@@ -143,9 +143,9 @@ function exportCSV(records){
 /* ─── SIDEBAR ────────────────────────────────────────────────────────────── */
 function Sidebar(){
   const s={width:52,background:"#0c1428",display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 0",gap:4,flexShrink:0};
-  const logo={width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#3b82f6,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Serif Display',serif",fontSize:16,color:"white",marginBottom:18};
+  const logo={width:32,height:32,borderRadius:9,overflow:"hidden",marginBottom:18,background:"white",display:"flex",alignItems:"center",justifyContent:"center"};
   const ic=(on)=>({width:36,height:36,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:on?"#60a5fa":"rgba(255,255,255,0.28)",background:on?"rgba(59,130,246,0.18)":"transparent",cursor:"pointer"});
-  return(<aside style={s}><div style={logo}>S</div><div style={ic(true)}>◉</div><div style={ic(false)}>◈</div><div style={ic(false)}>◎</div><div style={{width:20,height:1,background:"rgba(255,255,255,0.07)",margin:"6px 0"}}/><div style={ic(false)}>◻</div><div style={{flex:1}}/><div style={ic(false)}>◬</div></aside>);
+  return(<aside style={s}><div style={logo}><img src="/logo.png" alt="SculptAI" style={{width:38,height:38,objectFit:"contain"}}/></div><div style={ic(true)}>◉</div><div style={ic(false)}>◈</div><div style={ic(false)}>◎</div><div style={{width:20,height:1,background:"rgba(255,255,255,0.07)",margin:"6px 0"}}/><div style={ic(false)}>◻</div><div style={{flex:1}}/><div style={ic(false)}>◬</div></aside>);
 }
 
 /* ─── PATIENT CARD ───────────────────────────────────────────────────────── */
@@ -433,7 +433,7 @@ ML RISK: ${score}/100 | ASSESSMENT: ${cls.label}`}]})});
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',sans-serif",color:C.navy}}>
       <header style={{background:"white",borderBottom:`1px solid ${C.border}`,padding:"16px 28px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:32,height:32,borderRadius:9,background:"linear-gradient(135deg,#3b82f6,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Serif Display',serif",fontSize:16,color:"white"}}>S</div>
+          <div style={{width:40,height:40,borderRadius:9,overflow:"hidden",background:"white",display:"flex",alignItems:"center",justifyContent:"center"}}><img src="/logo.png" alt="SculptAI" style={{width:38,height:38,objectFit:"contain"}}/></div>
           <div>
             <div style={{fontFamily:"'DM Serif Display',serif",fontSize:17,color:C.navy,letterSpacing:"-0.01em"}}>SculptAI</div>
             <div style={{fontSize:9,letterSpacing:"0.2em",color:C.muted,textTransform:"uppercase"}}>Ön Değerlendirme Formu</div>
@@ -507,7 +507,7 @@ function Login({onLogin}){
     <div style={{minHeight:"100vh",background:"#f7f8fa",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{width:"100%",maxWidth:360}}>
         <div style={{textAlign:"center",marginBottom:28}}>
-          <div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#3b82f6,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Serif Display',serif",fontSize:22,color:"white",margin:"0 auto 14px"}}>S</div>
+          <div style={{width:64,height:64,borderRadius:12,overflow:"hidden",background:"white",margin:"0 auto 14px",display:"flex",alignItems:"center",justifyContent:"center"}}><img src="/logo.png" alt="SculptAI" style={{width:62,height:62,objectFit:"contain"}}/></div>
           <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.navy,marginBottom:3}}>SculptAI</div>
           <div style={{fontSize:12,color:C.muted}}>Doktor Paneli Girişi</div>
         </div>
