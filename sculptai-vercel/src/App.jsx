@@ -371,11 +371,19 @@ function PatientForm({model,trainPct,doctorId}){
   const [currentQ,setCurrentQ]=useState(0);
   const [answers,setAnswers]=useState({});
   const [submitted,setSubmitted]=useState(false);
+  const [doctorInfo,setDoctorInfo]=useState(null);
   const q=QUESTIONS[currentQ];
   const canNext=answers[q?.id]!==undefined&&answers[q?.id]!=="";
   const progress=(currentQ/QUESTIONS.length)*100;
   const secIdx=SECTIONS.indexOf(q?.section);
-  const C={bg:"#f7f8fa",accent:"#3b82f6",navy:"#0c1428",muted:"#9ca3af",border:"#e5e7eb"};
+  const accent=doctorInfo?.primary_color||"#3b82f6";
+  const C={bg:"#f7f8fa",accent:accent,navy:"#0c1428",muted:"#9ca3af",border:"#e5e7eb"};
+
+  useEffect(()=>{
+    if(!doctorId) return;
+    sb.from("doctors").select("id,name,clinic_name,photo_url,primary_color").eq("id",doctorId).single()
+      .then(({data})=>{ if(data) setDoctorInfo(data); });
+  },[doctorId]);
 
   async function handleSubmit(){
     const feats=extractFeatures(answers);
@@ -444,9 +452,11 @@ ML RISK: ${score}/100 | ASSESSMENT: ${cls.label}`}]})});
       <main style={{maxWidth:580,margin:"0 auto",padding:"36px 20px"}}>
         {currentQ===0&&(
           <div style={{textAlign:"center",marginBottom:32}} className="f1">
-            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:"1px solid #dbeafe",borderRadius:24,fontSize:10,letterSpacing:"0.22em",color:C.accent,marginBottom:18,textTransform:"uppercase",background:"#eff6ff"}}>✦ Hacettepe Üniversitesi · Plastik Cerrahi</div>
+            {doctorInfo?.photo_url&&<img src={doctorInfo.photo_url} alt={doctorInfo.name} style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",margin:"0 auto 12px",display:"block",border:`3px solid ${accent}`}}/>}
+            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:10,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
             <div style={{fontFamily:"'DM Serif Display',serif",fontSize:32,color:C.navy,marginBottom:12,fontWeight:400,lineHeight:1.2}}>Hoş Geldiniz</div>
-            <div style={{fontSize:14,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto"}}>Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur. Yanıtlarınız tamamen gizli tutulur.</div>
+            <div style={{fontSize:14,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.</div>
+            {doctorInfo?.name&&<div style={{fontSize:13,color:accent,fontWeight:500}}>Dr. görüşmesi: {doctorInfo.name}</div>}
           </div>
         )}
         <div style={{display:"flex",gap:5,marginBottom:20,flexWrap:"wrap"}} className="f2">
@@ -460,7 +470,7 @@ ML RISK: ${score}/100 | ASSESSMENT: ${cls.label}`}]})});
             <span style={{fontSize:10,color:C.accent,fontWeight:500}}>%{Math.round(progress)}</span>
           </div>
           <div style={{height:3,background:C.border,borderRadius:2}}>
-            <div style={{height:"100%",width:`${progress}%`,background:"linear-gradient(90deg,#3b82f6,#06b6d4)",borderRadius:2,transition:"width 0.4s ease"}}/>
+            <div style={{height:"100%",width:`${progress}%`,background:`linear-gradient(90deg,${accent},${accent}cc)`,borderRadius:2,transition:"width 0.4s ease"}}/>
           </div>
         </div>
         <div style={{background:"white",border:`1.5px solid ${C.border}`,borderRadius:14,padding:"24px 22px",marginBottom:14}} className="f3">
