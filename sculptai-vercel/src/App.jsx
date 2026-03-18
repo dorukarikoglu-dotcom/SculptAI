@@ -10,10 +10,10 @@ const sb = createClient(
 /* ─── FONTS & STYLES ─────────────────────────────────────────────────────── */
 const FL = document.createElement("link");
 FL.rel = "stylesheet";
-FL.href = "https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap";
+FL.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap";
 document.head.appendChild(FL);
 const SE = document.createElement("style");
-SE.textContent = `*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#f7f8fa;color:#111827;font-size:13px;line-height:1.5}input,button,select{font-family:'DM Sans',sans-serif}button{cursor:pointer}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#e5e7eb;border-radius:2px}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}.f1{animation:fadeUp 0.35s ease 0.05s both}.f2{animation:fadeUp 0.35s ease 0.12s both}.f3{animation:fadeUp 0.35s ease 0.19s both}.f4{animation:fadeUp 0.35s ease 0.26s both}.f5{animation:fadeUp 0.35s ease 0.33s both}`;
+SE.textContent = `*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#f5f0e8;color:#1a1510;font-size:13px;line-height:1.5}input,button,select{font-family:'Inter',sans-serif}button{cursor:pointer}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#d4cabf;border-radius:2px}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}.f1{animation:fadeUp 0.35s ease 0.05s both}.f2{animation:fadeUp 0.35s ease 0.12s both}.f3{animation:fadeUp 0.35s ease 0.19s both}.f4{animation:fadeUp 0.35s ease 0.26s both}.f5{animation:fadeUp 0.35s ease 0.33s both}`;
 document.head.appendChild(SE);
 
 /* ─── TRAINING DATA ──────────────────────────────────────────────────────── */
@@ -142,10 +142,10 @@ function exportCSV(records){
 
 /* ─── SIDEBAR ────────────────────────────────────────────────────────────── */
 function Sidebar(){
-  const s={width:52,background:"#0c1428",display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 0",gap:4,flexShrink:0};
-  const logo={width:32,height:32,borderRadius:9,overflow:"hidden",marginBottom:18,background:"white",display:"flex",alignItems:"center",justifyContent:"center"};
-  const ic=(on)=>({width:36,height:36,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:on?"#60a5fa":"rgba(255,255,255,0.28)",background:on?"rgba(59,130,246,0.18)":"transparent",cursor:"pointer"});
-  return(<aside style={s}><div style={logo}><img src="/logo.png" alt="SculptAI" style={{width:38,height:38,objectFit:"contain"}}/></div><div style={ic(true)}>◉</div><div style={ic(false)}>◈</div><div style={ic(false)}>◎</div><div style={{width:20,height:1,background:"rgba(255,255,255,0.07)",margin:"6px 0"}}/><div style={ic(false)}>◻</div><div style={{flex:1}}/><div style={ic(false)}>◬</div></aside>);
+  const s={width:52,background:"#1a1510",display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 0",gap:4,flexShrink:0};
+  const logo={width:28,height:28,border:"1px solid rgba(255,255,255,0.12)",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:18};
+  const ic=(on)=>({width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:on?"#f5f0e8":"rgba(255,255,255,0.22)",background:on?"rgba(245,240,232,0.1)":"transparent",cursor:"pointer"});
+  return(<aside style={s}><div style={logo}><div style={{width:7,height:7,background:"#f5f0e8",borderRadius:"50%"}}/></div><div style={ic(true)}>◉</div><div style={ic(false)}>◈</div><div style={ic(false)}>◎</div><div style={{width:20,height:1,background:"rgba(255,255,255,0.07)",margin:"6px 0"}}/><div style={ic(false)}>◻</div><div style={{flex:1}}/><div style={ic(false)}>◬</div></aside>);
 }
 
 /* ─── PATIENT CARD ───────────────────────────────────────────────────────── */
@@ -158,7 +158,7 @@ function PatientCard({patient,onDelete}){
   const flags=getFlags(a,cls.cat);
   const signals=getSignals(a,cls.cat);
   return(
-    <div style={{background:"white",borderRadius:12,border:`1.5px solid ${open?"#0c1428":"#f1f3f5"}`,marginBottom:8,overflow:"hidden",cursor:"pointer",transition:"all 0.15s",boxShadow:open?"0 4px 18px rgba(12,20,40,0.09)":"none"}}>
+    <div style={{background:"#f5f0e8",borderRadius:12,border:`1.5px solid ${open?"#1a1510":"#f1f3f5"}`,marginBottom:8,overflow:"hidden",cursor:"pointer",transition:"all 0.15s",boxShadow:open?"0 4px 18px rgba(12,20,40,0.09)":"none"}}>
       <div style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px"}} onClick={()=>setOpen(o=>!o)}>
         <div style={{width:3,height:44,borderRadius:2,background:cls.color,flexShrink:0}}/>
         <div style={{width:72,height:44,borderRadius:9,background:cls.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,flexShrink:0}}>
@@ -166,42 +166,42 @@ function PatientCard({patient,onDelete}){
           <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",textAlign:"center",lineHeight:1.2,color:cls.textColor}}>{cls.label.split(" ").slice(0,2).join("\n")}</div>
         </div>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:14,fontWeight:500,color:"#0c1428",marginBottom:2}}>{a.name||"İsimsiz Hasta"}</div>
-          <div style={{fontSize:11,color:"#9ca3af"}}>{a.age&&`${a.age} yaş · `}{a.procedure}</div>
+          <div style={{fontSize:14,fontWeight:500,color:"#1a1510",marginBottom:2}}>{a.name||"İsimsiz Hasta"}</div>
+          <div style={{fontSize:11,color:"#b0a898"}}>{a.age&&`${a.age} yaş · `}{a.procedure}</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:148}}>
           {flags.map((f,i)=>(
-            <div key={i} style={{fontSize:11,color:"#6b7280",display:"flex",alignItems:"center",gap:5}}>
+            <div key={i} style={{fontSize:11,color:"#8a7a68",display:"flex",alignItems:"center",gap:5}}>
               <div style={{width:5,height:5,borderRadius:"50%",background:cls.color,flexShrink:0}}/>{f}
             </div>
           ))}
         </div>
-        <div style={{fontSize:10,color:"#d1d5db",flexShrink:0}}>{patient.date?.slice(0,10)}</div>
-        <div style={{fontSize:10,color:"#d1d5db",transition:"transform 0.2s",transform:open?"rotate(180deg)":"none",flexShrink:0}}>▼</div>
+        <div style={{fontSize:10,color:"#d4cabf",flexShrink:0}}>{patient.date?.slice(0,10)}</div>
+        <div style={{fontSize:10,color:"#d4cabf",transition:"transform 0.2s",transform:open?"rotate(180deg)":"none",flexShrink:0}}>▼</div>
       </div>
       {open&&(
-        <div style={{borderTop:"1px solid #f9fafb",padding:"14px 18px 14px 57px",background:"#fafbfc",animation:"fadeUp 0.18s ease"}}>
+        <div style={{borderTop:"1px solid #ece7db",padding:"14px 18px 14px 57px",background:"#fafbfc",animation:"fadeUp 0.18s ease"}}>
           <div style={{borderRadius:12,border:"1.5px solid #f1f3f5",overflow:"hidden"}}>
             <div style={{padding:"12px 16px",display:"flex",alignItems:"flex-start",gap:10,background:cls.bg}}>
               <div style={{fontSize:16,flexShrink:0,marginTop:1}}>{cls.icon}</div>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:cls.textColor,marginBottom:2}}>{cls.obs}</div>
-                <div style={{fontSize:11,lineHeight:1.65,color:"#6b7280"}}>{cls.obsBody}</div>
+                <div style={{fontSize:11,lineHeight:1.65,color:"#8a7a68"}}>{cls.obsBody}</div>
               </div>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",borderTop:"1px solid #f3f4f6"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",borderTop:"1px solid #e0d9cc"}}>
               {signals.map((s,i)=>(
-                <div key={i} style={{padding:"10px 14px",borderRight:i<2?"1px solid #f3f4f6":"none"}}>
-                  <div style={{fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"#9ca3af",marginBottom:3}}>{s.label}</div>
-                  <div style={{fontSize:12,fontWeight:500,color:"#1e293b"}}>{s.val}</div>
+                <div key={i} style={{padding:"10px 14px",borderRight:i<2?"1px solid #e0d9cc":"none"}}>
+                  <div style={{fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"#b0a898",marginBottom:3}}>{s.label}</div>
+                  <div style={{fontSize:12,fontWeight:500,color:"#1a1510"}}>{s.val}</div>
                 </div>
               ))}
             </div>
-            <div style={{borderTop:"1px solid #f3f4f6",padding:"12px 16px",background:"white"}}>
+            <div style={{borderTop:"1px solid #e0d9cc",padding:"12px 16px",background:"#f5f0e8"}}>
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
-                <div style={{width:18,height:18,background:"linear-gradient(135deg,#0c1428,#3b82f6)",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"white",flexShrink:0}}>✦</div>
-                <div style={{fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:"#3b82f6",fontWeight:600}}>Sistem Gözlemi</div>
-                {patient.ai_loading&&<div style={{fontSize:10,color:"#9ca3af",animation:"pulse 1.5s infinite"}}>Claude analizi hazırlanıyor...</div>}
+                <div style={{width:18,height:18,background:"#1a1510",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#f5f0e8",flexShrink:0}}>✦</div>
+                <div style={{fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:"#1a1510",fontWeight:600}}>Sistem Gözlemi</div>
+                {patient.ai_loading&&<div style={{fontSize:10,color:"#b0a898",animation:"pulse 1.5s infinite"}}>Claude analizi hazırlanıyor...</div>}
               </div>
 
               {/* AUTO SUMMARY — always shown */}
@@ -238,11 +238,11 @@ function PatientCard({patient,onDelete}){
                     )}
                     {comms.length>0&&(
                       <div style={{background:"#fafafa",border:"1px solid #f1f3f5",borderRadius:9,padding:"9px 12px"}}>
-                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#3b82f6",marginBottom:5}}>💬 İletişim Tarzı</div>
+                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#1a1510",marginBottom:5}}>💬 İletişim Tarzı</div>
                         <div style={{display:"flex",flexDirection:"column",gap:3}}>
                           {comms.map((c,i)=>(
-                            <div key={i} style={{fontSize:11,color:"#374151",display:"flex",gap:6}}>
-                              <span style={{color:"#3b82f6",flexShrink:0}}>→</span>{c}
+                            <div key={i} style={{fontSize:11,color:"#2a2018",display:"flex",gap:6}}>
+                              <span style={{color:"#1a1510",flexShrink:0}}>→</span>{c}
                             </div>
                           ))}
                         </div>
@@ -254,24 +254,24 @@ function PatientCard({patient,onDelete}){
 
               {/* CLAUDE DEEP ANALYSIS */}
               {patient.ai_text&&!patient.ai_text.includes("kullanılamıyor")&&(
-                <div style={{background:"#f0f7ff",border:"1px solid #bfdbfe",borderRadius:9,padding:"9px 12px"}}>
+                <div style={{background:"#f0f7ff",border:"1px solid #d4cabf",borderRadius:9,padding:"9px 12px"}}>
                   <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#1e40af",marginBottom:5}}>🤖 Claude Derinlemeli Analiz</div>
                   <div style={{fontSize:12,color:"#1e3a5f",lineHeight:1.75}}>{patient.ai_text}</div>
                 </div>
               )}
               {patient.ai_loading&&(
-                <div style={{background:"#f0f7ff",border:"1px dashed #bfdbfe",borderRadius:9,padding:"9px 12px",textAlign:"center"}}>
+                <div style={{background:"#f0f7ff",border:"1px dashed #d4cabf",borderRadius:9,padding:"9px 12px",textAlign:"center"}}>
                   <div style={{fontSize:11,color:"#93c5fd",animation:"pulse 1.5s infinite"}}>✦ Claude analizi yükleniyor...</div>
                 </div>
               )}
             </div>
-            <div style={{borderTop:"1px solid #f3f4f6",padding:"10px 16px",display:"flex",gap:8,background:"white"}}>
-              <button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:500,border:"1.5px solid #e5e7eb",background:"white",color:"#475569"}}>📋 Not Ekle</button>
-              {cls.ambassador&&<button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:500,border:"1.5px solid #ddd6fe",background:"white",color:"#7c3aed"}}>🌟 Sadakat</button>}
-              <button onClick={e=>{e.stopPropagation();}} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",background:"#0c1428",color:"white"}}>Görüşmeye Hazır</button>
+            <div style={{borderTop:"1px solid #e0d9cc",padding:"10px 16px",display:"flex",gap:8,background:"#f5f0e8"}}>
+              <button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:500,border:"1.5px solid #e0d9cc",background:"#f5f0e8",color:"#3a3028"}}>📋 Not Ekle</button>
+              {cls.ambassador&&<button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:500,border:"1.5px solid #ddd6fe",background:"#f5f0e8",color:"#7c3aed"}}>🌟 Sadakat</button>}
+              <button onClick={e=>{e.stopPropagation();}} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",background:"#1a1510",color:"#f5f0e8"}}>Görüşmeye Hazır</button>
               {!confirm
-                ?<button onClick={e=>{e.stopPropagation();setConfirm(true);}} style={{padding:"8px 12px",borderRadius:8,fontSize:12,border:"1.5px solid #fee2e2",background:"white",color:"#ef4444"}}>Sil</button>
-                :<button onClick={e=>{e.stopPropagation();onDelete(patient.id);}} style={{padding:"8px 12px",borderRadius:8,fontSize:12,border:"none",background:"#ef4444",color:"white",fontWeight:600}}>Emin misin?</button>
+                ?<button onClick={e=>{e.stopPropagation();setConfirm(true);}} style={{padding:"8px 12px",borderRadius:8,fontSize:12,border:"1.5px solid #fee2e2",background:"#f5f0e8",color:"#ef4444"}}>Sil</button>
+                :<button onClick={e=>{e.stopPropagation();onDelete(patient.id);}} style={{padding:"8px 12px",borderRadius:8,fontSize:12,border:"none",background:"#ef4444",color:"#f5f0e8",fontWeight:600}}>Emin misin?</button>
               }
             </div>
           </div>
@@ -285,9 +285,9 @@ function PatientCard({patient,onDelete}){
 function Analytics({patients}){
   const total=patients.length;
   if(total===0) return(
-    <div style={{textAlign:"center",padding:"60px 20px",color:"#9ca3af"}}>
+    <div style={{textAlign:"center",padding:"60px 20px",color:"#b0a898"}}>
       <div style={{fontSize:40,marginBottom:14}}>📊</div>
-      <div style={{fontSize:15,color:"#374151",marginBottom:8}}>Henüz veri yok</div>
+      <div style={{fontSize:15,color:"#2a2018",marginBottom:8}}>Henüz veri yok</div>
       <div style={{fontSize:13}}>İlk hasta formu doldurulunca istatistikler burada görünecek</div>
     </div>
   );
@@ -337,7 +337,7 @@ function Analytics({patients}){
   const today=new Date().getDay();
   const dayLabels=Array(7).fill(0).map((_,i)=>days[(today-6+i+7)%7]);
 
-  const C={card:"white",border:"#f1f3f5",muted:"#9ca3af",navy:"#0c1428"};
+  const C={card:"#f5f0e8",border:"#f1f3f5",muted:"#b0a898",navy:"#1a1510"};
   const card=(extra={})=>({background:C.card,border:`1.5px solid ${C.border}`,borderRadius:12,padding:16,...extra});
 
   return(
@@ -346,14 +346,14 @@ function Analytics({patients}){
       {/* KPI ROW */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18}}>
         {[
-          {val:total,lbl:"Toplam Hasta",color:"#3b82f6",grad:"linear-gradient(90deg,#3b82f6,#06b6d4)",note:`Ort. risk: ${avgRisk}`},
-          {val:fitRate+"%",lbl:"Uygun Profil Oranı",color:"#10b981",grad:"linear-gradient(90deg,#10b981,#06b6d4)",note:`${green+amb} hasta`},
+          {val:total,lbl:"Toplam Hasta",color:"#1a1510",grad:"linear-gradient(90deg,#1a1510,#2a2018)",note:`Ort. risk: ${avgRisk}`},
+          {val:fitRate+"%",lbl:"Uygun Profil Oranı",color:"#10b981",grad:"linear-gradient(90deg,#10b981,#2a2018)",note:`${green+amb} hasta`},
           {val:red,lbl:"Dikkat Gerektiren",color:"#ef4444",grad:"linear-gradient(90deg,#ef4444,#f97316)",note:`%${Math.round(red/total*100)} oranında`},
           {val:amb,lbl:"Marka Elçisi Adayı",color:"#8b5cf6",grad:"linear-gradient(90deg,#8b5cf6,#a78bfa)",note:"Referans potansiyeli"},
         ].map(k=>(
           <div key={k.lbl} style={{...card(),position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:k.grad}}/>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
             <div style={{fontSize:10,color:C.muted,marginBottom:4}}>{k.lbl}</div>
             <div style={{fontSize:11,fontWeight:500,color:k.color}}>{k.note}</div>
           </div>
@@ -365,12 +365,12 @@ function Analytics({patients}){
 
         {/* Weekly trend */}
         <div style={card()}>
-          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Son 7 Gün</div>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#2a2018",marginBottom:12}}>Son 7 Gün</div>
           <div style={{display:"flex",alignItems:"flex-end",gap:6,height:70,marginBottom:6}}>
             {bins.map((v,i)=>(
               <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
                 <div style={{fontSize:9,color:C.muted,fontWeight:500}}>{v||""}</div>
-                <div style={{width:"100%",borderRadius:4,background:v>0?"#3b82f6":"#f3f4f6",height:`${Math.max(4,Math.round(v/maxBin*52))}px`,transition:"height 0.4s ease"}}/>
+                <div style={{width:"100%",borderRadius:4,background:v>0?"#1a1510":"#e0d9cc",height:`${Math.max(4,Math.round(v/maxBin*52))}px`,transition:"height 0.4s ease"}}/>
               </div>
             ))}
           </div>
@@ -381,7 +381,7 @@ function Analytics({patients}){
 
         {/* Segment dist */}
         <div style={card()}>
-          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Segment Dağılımı</div>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#2a2018",marginBottom:12}}>Segment Dağılımı</div>
           {[
             {label:"🟢 Uygun Görünüyor",count:green,color:"#10b981"},
             {label:"🟡 Değerlendirme",count:amber,color:"#f59e0b"},
@@ -389,8 +389,8 @@ function Analytics({patients}){
             {label:"🌟 Marka Elçisi",count:amb,color:"#8b5cf6"},
           ].map(s=>(
             <div key={s.label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
-              <div style={{fontSize:11,color:"#374151",width:130,flexShrink:0}}>{s.label}</div>
-              <div style={{flex:1,height:7,background:"#f3f4f6",borderRadius:4,overflow:"hidden"}}>
+              <div style={{fontSize:11,color:"#2a2018",width:130,flexShrink:0}}>{s.label}</div>
+              <div style={{flex:1,height:7,background:"#e0d9cc",borderRadius:4,overflow:"hidden"}}>
                 <div style={{height:"100%",borderRadius:4,background:s.color,width:`${total?Math.round(s.count/total*100):0}%`,transition:"width 0.8s ease"}}/>
               </div>
               <div style={{fontSize:11,fontWeight:600,color:s.color,minWidth:22,textAlign:"right"}}>{s.count}</div>
@@ -411,12 +411,12 @@ function Analytics({patients}){
 
         {/* Procedures */}
         <div style={card()}>
-          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>En Sık Prosedürler</div>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#2a2018",marginBottom:12}}>En Sık Prosedürler</div>
           {procs.map(([name,count])=>(
-            <div key={name} style={{display:"flex",alignItems:"center",gap:8,paddingBottom:7,borderBottom:"1px solid #f9fafb",marginBottom:7}}>
-              <div style={{flex:1,fontSize:12,color:"#374151",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{name}</div>
-              <div style={{width:70,height:5,background:"#f3f4f6",borderRadius:3,overflow:"hidden",flexShrink:0}}>
-                <div style={{height:"100%",borderRadius:3,background:"linear-gradient(90deg,#3b82f6,#06b6d4)",width:`${Math.round(count/procs[0][1]*100)}%`}}/>
+            <div key={name} style={{display:"flex",alignItems:"center",gap:8,paddingBottom:7,borderBottom:"1px solid #ece7db",marginBottom:7}}>
+              <div style={{flex:1,fontSize:12,color:"#2a2018",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{name}</div>
+              <div style={{width:70,height:5,background:"#e0d9cc",borderRadius:3,overflow:"hidden",flexShrink:0}}>
+                <div style={{height:"100%",borderRadius:3,background:"linear-gradient(90deg,#1a1510,#2a2018)",width:`${Math.round(count/procs[0][1]*100)}%`}}/>
               </div>
               <div style={{fontSize:12,fontWeight:600,color:C.navy,minWidth:20,textAlign:"right"}}>{count}</div>
               <div style={{fontSize:10,color:C.muted,minWidth:28,textAlign:"right"}}>{Math.round(count/total*100)}%</div>
@@ -426,10 +426,10 @@ function Analytics({patients}){
 
         {/* Auto insights */}
         <div style={card()}>
-          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Sistem İçgörüleri</div>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#2a2018",marginBottom:12}}>Sistem İçgörüleri</div>
           {insights.length===0&&<div style={{fontSize:12,color:C.muted}}>Daha fazla veri geldikçe içgörüler burada görünecek.</div>}
           {insights.map((ins,i)=>{
-            const colors={green:{bg:"#f0fdf4",border:"#a7f3d0",title:"#065f46",body:"#047857"},warn:{bg:"#fffbeb",border:"#fde68a",title:"#92400e",body:"#b45309"},info:{bg:"#eff6ff",border:"#bfdbfe",title:"#1e40af",body:"#2563eb"}};
+            const colors={green:{bg:"#f0fdf4",border:"#a7f3d0",title:"#065f46",body:"#047857"},warn:{bg:"#fffbeb",border:"#fde68a",title:"#92400e",body:"#b45309"},info:{bg:"#ece7db",border:"#d4cabf",title:"#1e40af",body:"#2563eb"}};
             const c=colors[ins.type]||colors.info;
             return(
               <div key={i} style={{background:c.bg,border:`1.5px solid ${c.border}`,borderRadius:10,padding:"10px 12px",marginBottom:8}}>
@@ -443,13 +443,13 @@ function Analytics({patients}){
 
       {/* SOURCE */}
       <div style={card()}>
-        <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Hasta Kaynakları</div>
+        <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#2a2018",marginBottom:12}}>Hasta Kaynakları</div>
         <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
           {sources.map(([src,cnt])=>(
-            <div key={src} style={{background:"#f9fafb",border:"1.5px solid #e5e7eb",borderRadius:10,padding:"10px 14px",textAlign:"center",minWidth:90}}>
-              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.navy,lineHeight:1}}>{cnt}</div>
+            <div key={src} style={{background:"#ece7db",border:"1.5px solid #e0d9cc",borderRadius:10,padding:"10px 14px",textAlign:"center",minWidth:90}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:C.navy,lineHeight:1}}>{cnt}</div>
               <div style={{fontSize:10,color:C.muted,marginTop:3}}>{src}</div>
-              <div style={{fontSize:10,fontWeight:600,color:"#3b82f6",marginTop:2}}>{Math.round(cnt/total*100)}%</div>
+              <div style={{fontSize:10,fontWeight:600,color:"#1a1510",marginTop:2}}>{Math.round(cnt/total*100)}%</div>
             </div>
           ))}
         </div>
@@ -506,38 +506,38 @@ function DoctorPanel({doctor,onLogout}){
   const ambassadors=displayed.filter(p=>classify(p.risk_score||0,p.answers||{}).ambassador);
 
   return(
-    <div style={{display:"flex",height:"100vh",overflow:"hidden",fontFamily:"'DM Sans',sans-serif"}}>
+    <div style={{display:"flex",height:"100vh",overflow:"hidden",fontFamily:"'Inter',sans-serif"}}>
       <Sidebar/>
-      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#f7f8fa"}}>
-        <div style={{padding:"18px 28px 16px",display:"flex",alignItems:"flex-end",justifyContent:"space-between",flexShrink:0,background:"white",borderBottom:"1px solid #e5e7eb"}} className="f1">
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#f5f0e8"}}>
+        <div style={{padding:"18px 28px 16px",display:"flex",alignItems:"flex-end",justifyContent:"space-between",flexShrink:0,background:"#f5f0e8",borderBottom:"1px solid #e0d9cc"}} className="f1">
           <div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:26,color:"#0c1428",fontWeight:400,letterSpacing:"-0.02em"}}>Günaydın, <span style={{color:"#3b82f6"}}>{doctor.name}</span></div>
-            <div style={{fontSize:12,color:"#9ca3af",marginTop:3}}>{today}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,color:"#1a1510",fontWeight:300,letterSpacing:"-0.02em"}}>Günaydın, <em>{doctor.name}</em></div>
+            <div style={{fontSize:12,color:"#b0a898",marginTop:3}}>{today}</div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <button onClick={()=>setShowPw(v=>!v)} style={{padding:"6px 14px",borderRadius:8,fontSize:12,border:"1.5px solid #e5e7eb",background:"white",color:"#6b7280"}}>⚙ Şifre</button>
-            <button onClick={onLogout} style={{padding:"6px 14px",borderRadius:8,fontSize:12,border:"1.5px solid #fee2e2",background:"white",color:"#ef4444"}}>Çıkış</button>
-            <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"white"}}>{doctor.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>
+            <button onClick={()=>setShowPw(v=>!v)} style={{padding:"6px 14px",borderRadius:8,fontSize:12,border:"1.5px solid #e0d9cc",background:"#f5f0e8",color:"#8a7a68"}}>⚙ Şifre</button>
+            <button onClick={onLogout} style={{padding:"6px 14px",borderRadius:8,fontSize:12,border:"1.5px solid #fee2e2",background:"#f5f0e8",color:"#ef4444"}}>Çıkış</button>
+            <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#1a1510,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"#f5f0e8"}}>{doctor.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>
           </div>
         </div>
 
         {/* TAB NAV */}
-        <div style={{display:"flex",gap:2,padding:"0 28px",background:"white",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
+        <div style={{display:"flex",gap:2,padding:"0 28px",background:"#f5f0e8",borderBottom:"1px solid #e0d9cc",flexShrink:0}}>
           {[["patients","👥 Hastalar"],["analytics","📊 Analitik"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setTab(v)} style={{padding:"10px 16px",fontSize:12,fontWeight:600,border:"none",background:"transparent",color:tab===v?"#0c1428":"#9ca3af",borderBottom:tab===v?"2px solid #0c1428":"2px solid transparent",cursor:"pointer",transition:"all 0.15s"}}>{l}</button>
+            <button key={v} onClick={()=>setTab(v)} style={{padding:"10px 16px",fontSize:12,fontWeight:600,border:"none",background:"transparent",color:tab===v?"#1a1510":"#b0a898",borderBottom:tab===v?"2px solid #1a1510":"2px solid transparent",cursor:"pointer",transition:"all 0.15s"}}>{l}</button>
           ))}
         </div>
 
         {tab==="analytics"&&<Analytics patients={patients}/>}
         {tab==="patients"&&<div style={{flex:1,overflowY:"auto",padding:"20px 28px 24px"}}>
           {showPw&&(
-            <div style={{background:"white",border:"1px solid #e5e7eb",borderRadius:12,padding:"16px 20px",marginBottom:18,animation:"fadeUp 0.25s ease"}}>
-              <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Giriş Bilgilerini Değiştir</div>
+            <div style={{background:"#f5f0e8",border:"1px solid #e0d9cc",borderRadius:12,padding:"16px 20px",marginBottom:18,animation:"fadeUp 0.25s ease"}}>
+              <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#2a2018",marginBottom:12}}>Giriş Bilgilerini Değiştir</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {[["Yeni kullanıcı adı",newU,setNewU,"text"],["Yeni şifre",newP,setNewP,"password"],["Şifre tekrar",newP2,setNewP2,"password"]].map(([ph,val,set,type])=>(
-                  <input key={ph} type={type} placeholder={ph} value={val} onChange={e=>set(e.target.value)} style={{flex:1,minWidth:130,padding:"9px 12px",background:"#f9fafb",border:"1.5px solid #e5e7eb",borderRadius:9,color:"#111827",fontSize:13,outline:"none"}}/>
+                  <input key={ph} type={type} placeholder={ph} value={val} onChange={e=>set(e.target.value)} style={{flex:1,minWidth:130,padding:"9px 12px",background:"#ece7db",border:"1.5px solid #e0d9cc",borderRadius:9,color:"#1a1510",fontSize:13,outline:"none"}}/>
                 ))}
-                <button onClick={saveNewCreds} style={{padding:"9px 18px",background:"#0c1428",border:"none",borderRadius:9,color:"white",fontSize:13,fontWeight:600}}>Kaydet</button>
+                <button onClick={saveNewCreds} style={{padding:"9px 18px",background:"#1a1510",border:"none",borderRadius:9,color:"#f5f0e8",fontSize:13,fontWeight:600}}>Kaydet</button>
               </div>
               {pwErr&&<div style={{fontSize:12,color:"#ef4444",marginTop:8}}>{pwErr}</div>}
             </div>
@@ -547,13 +547,13 @@ function DoctorPanel({doctor,onLogout}){
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:24}} className="f2">
             {[
               {val:redCount,label:"Dikkat Gerektiriyor",note:"Bugün",color:"#ef4444",grad:"linear-gradient(90deg,#ef4444,#f97316)"},
-              {val:convRate+"%",label:"Uygun Görünüyor Oranı",note:"Toplam",color:"#3b82f6",grad:"linear-gradient(90deg,#3b82f6,#06b6d4)"},
-              {val:patients.length,label:"Toplam Hasta",note:"Tüm zamanlar",color:"#10b981",grad:"linear-gradient(90deg,#10b981,#06b6d4)"},
+              {val:convRate+"%",label:"Uygun Görünüyor Oranı",note:"Toplam",color:"#1a1510",grad:"linear-gradient(90deg,#1a1510,#2a2018)"},
+              {val:patients.length,label:"Toplam Hasta",note:"Tüm zamanlar",color:"#10b981",grad:"linear-gradient(90deg,#10b981,#2a2018)"},
             ].map(k=>(
-              <div key={k.label} style={{background:"white",border:"1.5px solid #f1f3f5",borderRadius:12,padding:"18px 20px",position:"relative",overflow:"hidden"}}>
+              <div key={k.label} style={{background:"#f5f0e8",border:"1.5px solid #f1f3f5",borderRadius:12,padding:"18px 20px",position:"relative",overflow:"hidden"}}>
                 <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:k.grad}}/>
-                <div style={{fontFamily:"'DM Serif Display',serif",fontSize:36,lineHeight:1,marginBottom:4,color:k.color}}>{k.val}</div>
-                <div style={{fontSize:11,color:"#9ca3af",marginBottom:4}}>{k.label}</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,lineHeight:1,marginBottom:4,color:k.color}}>{k.val}</div>
+                <div style={{fontSize:11,color:"#b0a898",marginBottom:4}}>{k.label}</div>
                 <div style={{fontSize:11,fontWeight:500,color:k.color}}>{k.note}</div>
               </div>
             ))}
@@ -561,22 +561,22 @@ function DoctorPanel({doctor,onLogout}){
 
           {/* LIST HEADER */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}} className="f3">
-            <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#374151"}}>Hasta Listesi</div>
+            <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#2a2018"}}>Hasta Listesi</div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {[["all","Tümü"],["red","🔴 Dikkat"],["amber","🟡 Değerlendirme"],["green","🟢 Uygun"],["ambassador","🌟 Elçi"]].map(([v,l])=>(
-                <button key={v} onClick={()=>setFilter(v)} style={{padding:"5px 13px",borderRadius:20,fontSize:11,fontWeight:500,border:`1.5px solid ${filter===v?"#0c1428":"#e5e7eb"}`,background:filter===v?"#0c1428":"white",color:filter===v?"white":"#6b7280",transition:"all 0.15s"}}>{l}</button>
+                <button key={v} onClick={()=>setFilter(v)} style={{padding:"5px 13px",borderRadius:20,fontSize:11,fontWeight:500,border:`1.5px solid ${filter===v?"#1a1510":"#e0d9cc"}`,background:filter===v?"#1a1510":"#f5f0e8",color:filter===v?"#f5f0e8":"#8a7a68",transition:"all 0.15s"}}>{l}</button>
               ))}
-              <button onClick={()=>exportCSV(patients)} style={{padding:"5px 13px",borderRadius:20,fontSize:11,fontWeight:500,border:"1.5px solid #bfdbfe",background:"#eff6ff",color:"#2563eb"}}>📊 CSV</button>
-              <button onClick={loadPatients} style={{padding:"5px 13px",borderRadius:20,fontSize:11,fontWeight:500,border:"1.5px solid #e5e7eb",background:"white",color:"#6b7280"}}>↻ Yenile</button>
+              <button onClick={()=>exportCSV(patients)} style={{padding:"5px 13px",borderRadius:20,fontSize:11,fontWeight:500,border:"1.5px solid #d4cabf",background:"#ece7db",color:"#2563eb"}}>📊 CSV</button>
+              <button onClick={loadPatients} style={{padding:"5px 13px",borderRadius:20,fontSize:11,fontWeight:500,border:"1.5px solid #e0d9cc",background:"#f5f0e8",color:"#8a7a68"}}>↻ Yenile</button>
             </div>
           </div>
 
-          {loading&&<div style={{textAlign:"center",padding:"40px",color:"#9ca3af"}}>Yükleniyor...</div>}
+          {loading&&<div style={{textAlign:"center",padding:"40px",color:"#b0a898"}}>Yükleniyor...</div>}
 
           {!loading&&clinical.length===0&&ambassadors.length===0&&(
-            <div style={{textAlign:"center",padding:"60px 20px",color:"#9ca3af"}}>
+            <div style={{textAlign:"center",padding:"60px 20px",color:"#b0a898"}}>
               <div style={{fontSize:40,marginBottom:14}}>📋</div>
-              <div style={{fontSize:15,color:"#374151",marginBottom:8}}>Henüz kayıt yok</div>
+              <div style={{fontSize:15,color:"#2a2018",marginBottom:8}}>Henüz kayıt yok</div>
               <div style={{fontSize:13}}>Hastalar <strong>sculptai-brown.vercel.app/form/{doctor.id}</strong> linkinden formu doldurunca burada görünecek</div>
             </div>
           )}
@@ -600,8 +600,8 @@ function DoctorPanel({doctor,onLogout}){
                 ?<button onClick={()=>setConfirmClear(true)} style={{padding:"6px 16px",background:"transparent",border:"1px solid rgba(239,68,68,0.2)",borderRadius:8,color:"rgba(239,68,68,0.5)",fontSize:11}}>Tüm kayıtları sil</button>
                 :<div style={{display:"flex",gap:9,justifyContent:"center",alignItems:"center"}}>
                   <span style={{fontSize:12,color:"#ef4444"}}>Emin misiniz?</span>
-                  <button onClick={clearAll} style={{padding:"6px 14px",background:"#ef4444",border:"none",borderRadius:8,color:"white",fontSize:12,fontWeight:600}}>Evet</button>
-                  <button onClick={()=>setConfirmClear(false)} style={{padding:"6px 14px",background:"white",border:"1.5px solid #e5e7eb",borderRadius:8,color:"#6b7280",fontSize:12}}>İptal</button>
+                  <button onClick={clearAll} style={{padding:"6px 14px",background:"#ef4444",border:"none",borderRadius:8,color:"#f5f0e8",fontSize:12,fontWeight:600}}>Evet</button>
+                  <button onClick={()=>setConfirmClear(false)} style={{padding:"6px 14px",background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:8,color:"#8a7a68",fontSize:12}}>İptal</button>
                 </div>
               }
             </div>
@@ -660,8 +660,8 @@ function PatientForm({model,trainPct,doctorId}){
   const canNext=answers[q?.id]!==undefined&&answers[q?.id]!=="";
   const progress=(currentQ/QUESTIONS.length)*100;
   const secIdx=SECTIONS.indexOf(q?.section);
-  const accent=doctorInfo?.primary_color||"#3b82f6";
-  const C={bg:"#f7f8fa",accent:accent,navy:"#0c1428",muted:"#9ca3af",border:"#e5e7eb"};
+  const accent=doctorInfo?.primary_color||"#1a1510";
+  const C={bg:"#f5f0e8",accent:accent,navy:"#1a1510",muted:"#b0a898",border:"#e0d9cc"};
 
   useEffect(()=>{
     if(!doctorId) return;
@@ -707,14 +707,14 @@ function PatientForm({model,trainPct,doctorId}){
   const [infoPage,setInfoPage]=useState(0); // 0=thanks+proc, 1=prep+normal
 
   if(submitted) return(
-    <div style={{minHeight:"100vh",background:"#f9fafb",fontFamily:"'DM Sans',sans-serif",display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:"100vh",background:"#ece7db",fontFamily:"'Inter',sans-serif",display:"flex",flexDirection:"column"}}>
       {/* Header */}
-      <div style={{padding:"16px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"white",borderBottom:"1px solid #f3f4f6",flexShrink:0}}>
+      <div style={{padding:"16px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#f5f0e8",borderBottom:"1px solid #e0d9cc",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:28,height:28,borderRadius:7,overflow:"hidden",background:"white",display:"flex",alignItems:"center",justifyContent:"center"}}><img src="/logo.png" alt="" style={{width:26,height:26,objectFit:"contain"}} onError={e=>e.target.style.display='none'}/></div>
-          <div style={{fontFamily:"'DM Serif Display',serif",fontSize:14,color:"#0c1428"}}>SculptAI</div>
+          <div style={{width:28,height:28,borderRadius:7,overflow:"hidden",background:"#f5f0e8",display:"flex",alignItems:"center",justifyContent:"center"}}><img src="/logo.png" alt="" style={{width:26,height:26,objectFit:"contain"}} onError={e=>e.target.style.display='none'}/></div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510"}}>SculptAI</div>
         </div>
-        <div style={{fontSize:10,color:"#9ca3af"}}>{doctorInfo?.name||""}</div>
+        <div style={{fontSize:10,color:"#b0a898"}}>{doctorInfo?.name||""}</div>
       </div>
 
       {/* Scrollable content */}
@@ -724,31 +724,31 @@ function PatientForm({model,trainPct,doctorId}){
           {/* Thanks top */}
           <div style={{background:"linear-gradient(150deg,#f5f3ff,#ede9fe)",borderRadius:16,padding:"24px 20px",textAlign:"center",marginBottom:14}}>
             <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,"+accent+","+accent+"cc)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,margin:"0 auto 14px",boxShadow:"0 8px 24px rgba(124,58,237,0.28)"}}>✓</div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:"#0c1428",fontWeight:400,marginBottom:6}}>Harika, teşekkürler!</div>
-            <div style={{fontSize:12,color:"#6b7280",lineHeight:1.65}}>Bilgileriniz alındı. Aşağıda sizin için hazırladığımız bilgileri inceleyebilirsiniz.</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:"#1a1510",fontWeight:400,marginBottom:6}}>Harika, teşekkürler!</div>
+            <div style={{fontSize:12,color:"#8a7a68",lineHeight:1.65}}>Bilgileriniz alındı. Aşağıda sizin için hazırladığımız bilgileri inceleyebilirsiniz.</div>
           </div>
 
           {/* Next step */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#9ca3af",fontWeight:600,margin:"14px 0 8px 2px"}}>Sonraki adım</div>
-          <div style={{background:"white",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Sonraki adım</div>
+          <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:36,height:36,borderRadius:10,background:"#f5f3ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>📅</div>
             <div>
-              <div style={{fontSize:12,fontWeight:600,color:"#0c1428",marginBottom:2}}>Konsültasyon randevunuz</div>
-              <div style={{fontSize:11,color:"#9ca3af",lineHeight:1.5}}>{doctorInfo?.name||"Doktorunuz"} ekibi bilgilerinizi inceleyip sizinle iletişime geçecek.</div>
+              <div style={{fontSize:12,fontWeight:600,color:"#1a1510",marginBottom:2}}>Konsültasyon randevunuz</div>
+              <div style={{fontSize:11,color:"#b0a898",lineHeight:1.5}}>{doctorInfo?.name||"Doktorunuz"} ekibi bilgilerinizi inceleyip sizinle iletişime geçecek.</div>
             </div>
           </div>
 
           {/* Procedure card */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#9ca3af",fontWeight:600,margin:"14px 0 8px 2px"}}>Seçtiğiniz prosedür</div>
-          <div style={{background:"#0c1428",borderRadius:14,padding:18,marginBottom:10,position:"relative",overflow:"hidden"}}>
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Seçtiğiniz prosedür</div>
+          <div style={{background:"#1a1510",borderRadius:14,padding:18,marginBottom:10,position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:-20,right:-20,width:80,height:80,borderRadius:"50%",background:"rgba(124,58,237,0.12)"}}/>
             <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#a78bfa",marginBottom:8,fontWeight:600}}>◈ {PI.category}</div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:17,color:"white",marginBottom:8,fontWeight:400}}>{proc||"Ameliyat"}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:"#f5f0e8",marginBottom:8,fontWeight:400}}>{proc||"Ameliyat"}</div>
             <div style={{fontSize:11,color:"rgba(255,255,255,0.55)",lineHeight:1.65,marginBottom:12}}>{PI.desc}</div>
             <div style={{display:"flex",gap:6}}>
               {PI.stats.map((s,i)=>(
                 <div key={i} style={{flex:1,background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"white",lineHeight:1}}>{s.val}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#f5f0e8",lineHeight:1}}>{s.val}</div>
                   <div style={{fontSize:8,color:"rgba(255,255,255,0.35)",marginTop:2,letterSpacing:"0.06em",textTransform:"uppercase"}}>{s.lbl}</div>
                 </div>
               ))}
@@ -756,42 +756,42 @@ function PatientForm({model,trainPct,doctorId}){
           </div>
 
           {/* Process info */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#9ca3af",fontWeight:600,margin:"14px 0 8px 2px"}}>Ameliyat sonrası süreç</div>
-          <div style={{background:"white",border:"1.5px solid #e5e7eb",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Ameliyat sonrası süreç</div>
+          <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
             <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:32,height:32,borderRadius:9,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🏥</div>
+              <div style={{width:32,height:32,borderRadius:9,background:"#ece7db",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🏥</div>
               <div>
-                <div style={{fontSize:12,fontWeight:600,color:"#0c1428"}}>Ne beklemeliyim?</div>
-                <div style={{fontSize:10,color:"#9ca3af",marginTop:1}}>İlk günlerden iyileşmeye kadar</div>
+                <div style={{fontSize:12,fontWeight:600,color:"#1a1510"}}>Ne beklemeliyim?</div>
+                <div style={{fontSize:10,color:"#b0a898",marginTop:1}}>İlk günlerden iyileşmeye kadar</div>
               </div>
             </div>
-            <div style={{padding:"2px 14px 12px",fontSize:11,color:"#4b5563",lineHeight:1.7,borderTop:"1px solid #f9fafb"}}>{PI.process}</div>
+            <div style={{padding:"2px 14px 12px",fontSize:11,color:"#3a3028",lineHeight:1.7,borderTop:"1px solid #ece7db"}}>{PI.process}</div>
           </div>
         </>)}
 
         {infoPage===1&&(<>
           {/* Recovery timeline */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#9ca3af",fontWeight:600,margin:"4px 0 10px 2px"}}>İyileşme takvimi</div>
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"4px 0 10px 2px"}}>İyileşme takvimi</div>
           <div style={{position:"relative",paddingLeft:20,marginBottom:14}}>
-            <div style={{position:"absolute",left:7,top:8,bottom:8,width:2,background:"linear-gradient(180deg,"+accent+","+accent+"66,#e5e7eb)",borderRadius:2}}/>
+            <div style={{position:"absolute",left:7,top:8,bottom:8,width:2,background:"linear-gradient(180deg,"+accent+","+accent+"66,#e0d9cc)",borderRadius:2}}/>
             {PI.timeline.map((t,i)=>(
               <div key={i} style={{position:"relative",display:"flex",alignItems:"flex-start",gap:12,paddingBottom:14}}>
                 <div style={{width:14,height:14,borderRadius:"50%",flexShrink:0,marginTop:2,position:"relative",left:-20,marginRight:-14,border:"2.5px solid white",boxShadow:"0 0 0 1.5px "+t.color,background:t.color,zIndex:1}}/>
-                <div style={{flex:1,background:"white",border:"1.5px solid #f1f3f5",borderRadius:11,padding:"11px 13px"}}>
+                <div style={{flex:1,background:"#f5f0e8",border:"1.5px solid #f1f3f5",borderRadius:11,padding:"11px 13px"}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
                     <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:t.color}}>{t.time}</div>
                     <div style={{fontSize:16}}>{t.emoji}</div>
                   </div>
-                  <div style={{fontSize:12,fontWeight:600,color:"#0c1428",marginBottom:3}}>{t.title}</div>
-                  <div style={{fontSize:11,color:"#6b7280",lineHeight:1.6}}>{t.desc}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:"#1a1510",marginBottom:3}}>{t.title}</div>
+                  <div style={{fontSize:11,color:"#8a7a68",lineHeight:1.6}}>{t.desc}</div>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Prep tips */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#9ca3af",fontWeight:600,margin:"0 0 8px 2px"}}>Ameliyat öncesi hazırlık</div>
-          <div style={{background:"white",border:"1.5px solid #e5e7eb",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"0 0 8px 2px"}}>Ameliyat öncesi hazırlık</div>
+          <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
             <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10,background:"#f0fdf4"}}>
               <div style={{fontSize:20}}>🌿</div>
               <div>
@@ -799,9 +799,9 @@ function PatientForm({model,trainPct,doctorId}){
                 <div style={{fontSize:10,color:"#6ee7b7",marginTop:1}}>Hacettepe Plastik Cerrahi önerileri</div>
               </div>
             </div>
-            <div style={{padding:"10px 14px 12px",display:"flex",flexDirection:"column",gap:7,borderTop:"1px solid #f9fafb"}}>
+            <div style={{padding:"10px 14px 12px",display:"flex",flexDirection:"column",gap:7,borderTop:"1px solid #ece7db"}}>
               {PI.prep.map((p,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9,fontSize:11,color:"#374151",lineHeight:1.55}}>
+                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9,fontSize:11,color:"#2a2018",lineHeight:1.55}}>
                   <div style={{width:16,height:16,borderRadius:4,background:"#ecfdf5",border:"1.5px solid #6ee7b7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"#059669",flexShrink:0,marginTop:1}}>✓</div>
                   {p}
                 </div>
@@ -810,8 +810,8 @@ function PatientForm({model,trainPct,doctorId}){
           </div>
 
           {/* Normal symptoms */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#9ca3af",fontWeight:600,margin:"0 0 8px 2px"}}>Endişelenmenize gerek yok</div>
-          <div style={{background:"white",border:"1.5px solid #e5e7eb",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"0 0 8px 2px"}}>Endişelenmenize gerek yok</div>
+          <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
             <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10,background:"#fffbeb"}}>
               <div style={{fontSize:20}}>💛</div>
               <div>
@@ -819,9 +819,9 @@ function PatientForm({model,trainPct,doctorId}){
                 <div style={{fontSize:10,color:"#d97706",marginTop:1}}>İlk günler için</div>
               </div>
             </div>
-            <div style={{padding:"10px 14px 12px",display:"flex",flexDirection:"column",gap:7,borderTop:"1px solid #f9fafb"}}>
+            <div style={{padding:"10px 14px 12px",display:"flex",flexDirection:"column",gap:7,borderTop:"1px solid #ece7db"}}>
               {PI.normal.map((n,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9,fontSize:11,color:"#374151",lineHeight:1.55}}>
+                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9,fontSize:11,color:"#2a2018",lineHeight:1.55}}>
                   <div style={{width:16,height:16,borderRadius:4,background:"#fff7ed",border:"1.5px solid #fdba74",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"#ea580c",flexShrink:0,marginTop:1}}>i</div>
                   {n}
                 </div>
@@ -830,11 +830,11 @@ function PatientForm({model,trainPct,doctorId}){
           </div>
 
           {/* Follow up */}
-          <div style={{background:"white",border:"1.5px solid #e5e7eb",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
+          <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🗓</div>
             <div>
-              <div style={{fontSize:12,fontWeight:600,color:"#0c1428",marginBottom:2}}>{PI.followup}</div>
-              <div style={{fontSize:11,color:"#9ca3af",lineHeight:1.5}}>İyileşme süreciniz doktorunuz tarafından düzenli olarak takip edilecek.</div>
+              <div style={{fontSize:12,fontWeight:600,color:"#1a1510",marginBottom:2}}>{PI.followup}</div>
+              <div style={{fontSize:11,color:"#b0a898",lineHeight:1.5}}>İyileşme süreciniz doktorunuz tarafından düzenli olarak takip edilecek.</div>
             </div>
           </div>
         </>)}
@@ -842,22 +842,22 @@ function PatientForm({model,trainPct,doctorId}){
       </div>
 
       {/* Bottom CTA */}
-      <div style={{padding:"12px 18px 24px",flexShrink:0,background:"white",borderTop:"1px solid #f3f4f6"}}>
+      <div style={{padding:"12px 18px 24px",flexShrink:0,background:"#f5f0e8",borderTop:"1px solid #e0d9cc"}}>
         {infoPage===0
-          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:14,background:accent,border:"none",borderRadius:12,color:"white",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Hazırlık bilgilerini gör →</button>
-          :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:14,background:"#0c1428",border:"none",borderRadius:12,color:"white",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Anladım, teşekkürler</button>
+          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:14,background:accent,border:"none",borderRadius:12,color:"#f5f0e8",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Hazırlık bilgilerini gör →</button>
+          :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:14,background:"#1a1510",border:"none",borderRadius:12,color:"#f5f0e8",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Anladım, teşekkürler</button>
         }
       </div>
     </div>
   );
 
   return(
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',sans-serif",color:C.navy}}>
-      <header style={{background:"white",borderBottom:`1px solid ${C.border}`,padding:"16px 28px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Inter',sans-serif",color:C.navy}}>
+      <header style={{background:"#f5f0e8",borderBottom:`1px solid ${C.border}`,padding:"16px 28px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:40,height:40,borderRadius:9,overflow:"hidden",background:"white",display:"flex",alignItems:"center",justifyContent:"center"}}><img src="/logo.png" alt="SculptAI" style={{width:38,height:38,objectFit:"contain"}}/></div>
+          <div style={{width:40,height:40,borderRadius:9,overflow:"hidden",background:"#f5f0e8",display:"flex",alignItems:"center",justifyContent:"center"}}><img src="/logo.png" alt="SculptAI" style={{width:38,height:38,objectFit:"contain"}}/></div>
           <div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:17,color:C.navy,letterSpacing:"-0.01em"}}>SculptAI</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:C.navy,letterSpacing:"-0.01em"}}>SculptAI</div>
             <div style={{fontSize:9,letterSpacing:"0.2em",color:C.muted,textTransform:"uppercase"}}>Ön Değerlendirme Formu</div>
           </div>
         </div>
@@ -868,14 +868,14 @@ function PatientForm({model,trainPct,doctorId}){
           <div style={{textAlign:"center",marginBottom:32}} className="f1">
             {doctorInfo?.photo_url&&<img src={doctorInfo.photo_url} alt={doctorInfo.name} style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",margin:"0 auto 12px",display:"block",border:`3px solid ${accent}`}}/>}
             <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:10,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
-            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:32,color:C.navy,marginBottom:12,fontWeight:400,lineHeight:1.2}}>Hoş Geldiniz</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>Hoş Geldiniz</div>
             <div style={{fontSize:14,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.</div>
             {doctorInfo?.name&&<div style={{fontSize:13,color:accent,fontWeight:500}}>Dr. görüşmesi: {doctorInfo.name}</div>}
           </div>
         )}
         <div style={{display:"flex",gap:5,marginBottom:20,flexWrap:"wrap"}} className="f2">
           {SECTIONS.map((sec,i)=>(
-            <div key={sec} style={{padding:"3px 11px",borderRadius:20,fontSize:9,letterSpacing:"0.13em",textTransform:"uppercase",background:i===secIdx?"#eff6ff":"transparent",border:`1.5px solid ${i===secIdx?C.accent:C.border}`,color:i===secIdx?C.accent:C.muted,transition:"all 0.3s"}}>{sec}</div>
+            <div key={sec} style={{padding:"3px 11px",borderRadius:20,fontSize:9,letterSpacing:"0.13em",textTransform:"uppercase",background:i===secIdx?"#ece7db":"transparent",border:`1.5px solid ${i===secIdx?C.accent:C.border}`,color:i===secIdx?C.accent:C.muted,transition:"all 0.3s"}}>{sec}</div>
           ))}
         </div>
         <div style={{marginBottom:22}} className="f2">
@@ -883,20 +883,20 @@ function PatientForm({model,trainPct,doctorId}){
             <span style={{fontSize:10,color:C.muted}}>SORU {currentQ+1} / {QUESTIONS.length}</span>
             <span style={{fontSize:10,color:C.accent,fontWeight:500}}>%{Math.round(progress)}</span>
           </div>
-          <div style={{height:3,background:C.border,borderRadius:2}}>
+          <div style={{height:1,background:C.border,borderRadius:1}}>
             <div style={{height:"100%",width:`${progress}%`,background:`linear-gradient(90deg,${accent},${accent}cc)`,borderRadius:2,transition:"width 0.4s ease"}}/>
           </div>
         </div>
-        <div style={{background:"white",border:`1.5px solid ${C.border}`,borderRadius:14,padding:"24px 22px",marginBottom:14}} className="f3">
-          <div style={{fontSize:9,color:C.accent,letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:9,fontWeight:600}}>{q.section}</div>
-          <div style={{fontSize:16,fontWeight:500,color:C.navy,marginBottom:20,lineHeight:1.6}}>{q.label}</div>
-          {q.type==="text"&&<input type="text" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#f9fafb",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:14,outline:"none"}}/>}
-          {q.type==="number"&&<input type="number" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#f9fafb",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:14,outline:"none"}}/>}
+        <div style={{background:"#f5f0e8",border:`1.5px solid ${C.border}`,borderRadius:14,padding:"24px 22px",marginBottom:14}} className="f3">
+          <div style={{fontSize:9,color:"#b0a898",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:9,fontWeight:400}}>{q.section}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:300,color:C.navy,marginBottom:20,lineHeight:1.35,letterSpacing:"-0.01em"}}>{q.label}</div>
+          {q.type==="text"&&<input type="text" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#ece7db",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:14,outline:"none"}}/>}
+          {q.type==="number"&&<input type="number" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#ece7db",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:14,outline:"none"}}/>}
           {q.type==="radio"&&(
             <div style={{display:"flex",flexDirection:"column",gap:7}}>
               {q.options.map(opt=>{
                 const sel=answers[q.id]===opt;
-                return(<button key={opt} onClick={()=>setAnswers(p=>({...p,[q.id]:opt}))} style={{padding:"12px 14px",background:sel?"#eff6ff":"#f9fafb",border:`1.5px solid ${sel?C.accent:C.border}`,borderRadius:10,color:sel?C.accent:"#374151",fontSize:13,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:11,transition:"all 0.15s"}}>
+                return(<button key={opt} onClick={()=>setAnswers(p=>({...p,[q.id]:opt}))} style={{padding:"12px 14px",background:sel?"#ece7db":"#ece7db",border:`1.5px solid ${sel?C.accent:C.border}`,borderRadius:10,color:sel?C.accent:"#2a2018",fontSize:13,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:11,transition:"all 0.15s"}}>
                   <div style={{width:15,height:15,borderRadius:"50%",border:`2px solid ${sel?C.accent:C.muted}`,background:sel?C.accent:"transparent",flexShrink:0,transition:"all 0.15s"}}/>
                   {opt}
                 </button>);
@@ -905,9 +905,9 @@ function PatientForm({model,trainPct,doctorId}){
           )}
         </div>
         <div style={{display:"flex",gap:9}} className="f3">
-          {currentQ>0&&<button onClick={()=>setCurrentQ(c=>c-1)} style={{flex:1,padding:"12px",background:"white",border:`1.5px solid ${C.border}`,borderRadius:11,color:C.muted,fontSize:13,cursor:"pointer"}}>← Geri</button>}
+          {currentQ>0&&<button onClick={()=>setCurrentQ(c=>c-1)} style={{flex:1,padding:"13px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,fontSize:12,cursor:"pointer"}}>← Geri</button>}
           <button onClick={()=>{if(currentQ<QUESTIONS.length-1)setCurrentQ(c=>c+1);else if(model)handleSubmit();}} disabled={!canNext||(!model&&currentQ===QUESTIONS.length-1)}
-            style={{flex:2,padding:"12px",background:canNext?"linear-gradient(135deg,#3b82f6,#06b6d4)":"#f3f4f6",border:"none",borderRadius:11,color:canNext?"white":"#9ca3af",fontSize:14,fontWeight:600,cursor:canNext?"pointer":"not-allowed",transition:"all 0.2s"}}>
+            style={{flex:2,padding:"13px",background:canNext?"#1a1510":"#e0d9cc",border:"none",borderRadius:8,color:canNext?"#f5f0e8":"#b0a898",fontSize:12,fontWeight:500,letterSpacing:"0.08em",cursor:canNext?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Inter',sans-serif"}}>
             {currentQ===QUESTIONS.length-1?(model?"Formu Gönder →":"Model yükleniyor..."):"Devam →"}
           </button>
         </div>
@@ -926,26 +926,41 @@ function Login({onLogin}){
     else setErr("Kullanıcı adı veya şifre hatalı.");
     setLoading(false);
   }
-  const C={navy:"#0c1428",border:"#e5e7eb",muted:"#9ca3af"};
   return(
-    <div style={{minHeight:"100vh",background:"#f7f8fa",fontFamily:"'DM Sans',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{width:"100%",maxWidth:360}}>
-        <div style={{textAlign:"center",marginBottom:28}}>
-          <div style={{width:64,height:64,borderRadius:12,overflow:"hidden",background:"white",margin:"0 auto 14px",display:"flex",alignItems:"center",justifyContent:"center"}}><img src="/logo.png" alt="SculptAI" style={{width:62,height:62,objectFit:"contain"}}/></div>
-          <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.navy,marginBottom:3}}>SculptAI</div>
-          <div style={{fontSize:12,color:C.muted}}>Doktor Paneli Girişi</div>
+    <div style={{minHeight:"100vh",background:"#f5f0e8",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{width:"100%",maxWidth:400}}>
+        {/* Logo */}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:52}}>
+          <div style={{width:22,height:22,border:"1px solid #c8bfb0",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{width:7,height:7,background:"#1a1510",borderRadius:"50%"}}/>
+          </div>
+          <div style={{fontSize:12,fontWeight:500,color:"#1a1510",letterSpacing:"0.04em"}}>SculptAI</div>
         </div>
-        <div style={{background:"white",border:`1.5px solid ${C.border}`,borderRadius:16,padding:"26px 24px"}}>
-          {[["Kullanıcı Adı",u,setU,"text"],["Şifre",p,setP,"password"]].map(([label,val,set,type])=>(
-            <div key={label} style={{marginBottom:14}}>
-              <div style={{fontSize:10,color:C.muted,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6,fontWeight:600}}>{label}</div>
-              <input type={type} value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} style={{width:"100%",padding:"11px 14px",background:"#f9fafb",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:14,outline:"none"}}/>
-            </div>
-          ))}
-          {err&&<div style={{marginBottom:12,padding:"8px 12px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:12,color:"#dc2626"}}>{err}</div>}
-          <button onClick={attempt} disabled={loading} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#3b82f6,#0c1428)",border:"none",borderRadius:11,color:"white",fontSize:14,fontWeight:600,cursor:"pointer",opacity:loading?0.7:1}}>
-            {loading?"Giriş yapılıyor...":"Giriş Yap →"}
-          </button>
+
+        {/* Title */}
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:52,fontWeight:300,color:"#1a1510",lineHeight:1.05,marginBottom:14,letterSpacing:"-0.01em"}}>
+          Günaydın,<br/><em>Doktor.</em>
+        </div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:300,fontStyle:"italic",color:"#b0a898",lineHeight:1.5,marginBottom:44}}>
+          Her hasta bir karar.<br/><span style={{color:"#1a1510",fontStyle:"normal",fontWeight:400}}>Her karar bir veri.</span>
+        </div>
+
+        {/* Fields */}
+        {[["KULLANICI ADI",u,setU,"text"],["ŞİFRE",p,setP,"password"]].map(([label,val,set,type])=>(
+          <div key={label} style={{marginBottom:16}}>
+            <div style={{fontSize:10,color:"#b0a898",letterSpacing:"0.15em",marginBottom:7}}>{label}</div>
+            <input type={type} value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} style={{width:"100%",padding:"13px 15px",background:"#ece7db",border:"1px solid #d4cabf",borderRadius:8,color:"#1a1510",fontSize:13,outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+          </div>
+        ))}
+
+        {err&&<div style={{marginBottom:14,padding:"9px 12px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:12,color:"#dc2626"}}>{err}</div>}
+
+        <button onClick={attempt} disabled={loading} style={{width:"100%",padding:"14px",background:"#1a1510",border:"none",borderRadius:8,color:"#f5f0e8",fontSize:12,fontWeight:500,letterSpacing:"0.1em",cursor:"pointer",opacity:loading?0.7:1,fontFamily:"'Inter',sans-serif",marginTop:4}}>
+          {loading?"GİRİŞ YAPILIYOR...":"GİRİŞ YAP"}
+        </button>
+
+        <div style={{textAlign:"center",fontSize:10,color:"#c8bfb0",marginTop:20,letterSpacing:"0.06em"}}>
+          Hacettepe Üniversitesi · Plastik Cerrahi
         </div>
       </div>
     </div>
