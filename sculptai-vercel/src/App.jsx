@@ -853,18 +853,23 @@ function PatientForm({model,trainPct,doctorId}){
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Inter',sans-serif",color:C.navy}}>
-      {/* Hero görsel — sadece ilk soru (karşılama) */}
+      {/* Hero grid — sadece ilk soru (karşılama) */}
       {currentQ===0&&(
-        <div style={{width:"100%",height:260,position:"relative",overflow:"hidden",flexShrink:0}}>
-          <img src="/hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 20%"}}
-            onError={e=>{e.target.parentElement.style.display="none"}}/>
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(245,240,232,0) 30%, rgba(245,240,232,1) 100%)"}}/>
-          {/* Header üstünde logo */}
+        <div style={{width:"100%",height:280,display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:2,position:"relative",overflow:"hidden",flexShrink:0}}>
+          {["hero.png","hero2.png","hero3.png","hero4.png"].map((src,i)=>(
+            <div key={i} style={{position:"relative",overflow:"hidden"}}>
+              <img src={`/${src}`} alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 15%"}}
+                onError={e=>{e.target.parentElement.style.background="#ece7db"}}/>
+            </div>
+          ))}
+          {/* Gradient overlay */}
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(245,240,232,0) 20%, rgba(245,240,232,1) 100%)"}}/>
+          {/* Logo üstte */}
           <div style={{position:"absolute",top:16,left:20,display:"flex",alignItems:"center",gap:7}}>
-            <div style={{width:20,height:20,border:"1px solid rgba(255,255,255,0.6)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(245,240,232,0.2)"}}>
+            <div style={{width:20,height:20,border:"1px solid rgba(255,255,255,0.7)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(245,240,232,0.25)"}}>
               <div style={{width:6,height:6,background:"white",borderRadius:"50%"}}/>
             </div>
-            <div style={{fontSize:12,fontWeight:500,color:"white",letterSpacing:"0.04em",textShadow:"0 1px 4px rgba(0,0,0,0.2)"}}>SculptAI</div>
+            <div style={{fontSize:12,fontWeight:500,color:"white",letterSpacing:"0.04em",textShadow:"0 1px 6px rgba(0,0,0,0.3)"}}>SculptAI</div>
           </div>
         </div>
       )}
