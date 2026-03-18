@@ -993,6 +993,8 @@ FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında
     }
     setGuideLoading(false);
   }
+
+  async function fetchAI(a,score,cls,recId){
     try{
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:`Sen SculptAI klinik analiz modülüsün. Hacettepe Üniversitesi plastik cerrahi verisiyle eğitildiniz. Bu hasta için doktora yönelik kısa, danışma tonu ağırlıklı TÜRKÇE bir gözlem yaz. 3-4 cümle, başlık veya liste kullanma. 1-2 dikkat sinyali ve 1 güçlü yan belirt.\n\nHasta: ${a.name||"Anonim"}, ${a.age} yaş, ${a.gender} | Prosedür: ${a.procedure}\nMotivasyon: ${a.motivation} | Beklenti: ${a.expectation} | Önceki cerrahi: ${a.prevSurgery}\nÇok doktor: ${a.multiDoctor} | Risk bilgisi: ${a.riskKnowledge} | Sabır: ${a.patience}\nDestek: ${a.support} | Revizyon: ${a.revision} | Uyum: ${a.compliance}\nFiyat: ${a.price} | Paylaşım: ${a.sharing} | Tavsiye: ${a.recommends} | Sosyal: ${a.socialMedia}\nML RİSK SKORU: ${score}/100 | DEĞERLENDİRME: ${cls.label}`}]})});
       const d=await res.json();
