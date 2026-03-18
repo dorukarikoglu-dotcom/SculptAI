@@ -217,6 +217,13 @@ function PatientCard({patient,onDelete}){
           <div style={{fontSize:14,color:"#b0a898",transform:open?"rotate(90deg)":"none",transition:"transform 0.2s"}}>›</div>
         </div>
       </div>
+        {/* No appointment badge — kart kapalıyken de görünsün */}
+        {noAppointment&&(
+          <div onClick={e=>e.stopPropagation()} style={{padding:"5px 18px",background:"#fef2f2",borderTop:"1px solid #fecaca",display:"flex",alignItems:"center",gap:8}}>
+            <div style={{fontSize:10,color:"#dc2626",fontWeight:500}}>✕ Randevu Alınmadı</div>
+            <button onClick={async e=>{e.stopPropagation();await sb.from("patients").update({no_appointment:false}).eq("id",patient.id);setNoAppointment(false);}} style={{fontSize:9,color:"#b0a898",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline"}}>Geri Al</button>
+          </div>
+        )}
       {open&&(
         <div style={{borderTop:"1px solid #d4cabf",animation:"fadeUp 0.18s ease"}}>
           {/* Observation strip */}
@@ -304,13 +311,6 @@ function PatientCard({patient,onDelete}){
                 </div>
               )}
             </div>
-            {/* No appointment badge */}
-            {noAppointment&&(
-              <div style={{padding:"6px 16px",background:"#fef2f2",borderTop:"1px solid #fecaca",display:"flex",alignItems:"center",gap:8}}>
-                <div style={{fontSize:10,color:"#dc2626",fontWeight:500}}>✕ Randevu Alınmadı</div>
-                <button onClick={e=>{e.stopPropagation();markNoAppointment();}} style={{fontSize:9,color:"#b0a898",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline"}}>Geri Al</button>
-              </div>
-            )}
             {/* Cross-sell badge */}
             {crossSellDetected&&(
               <div style={{padding:"6px 16px",background:"#f0fdf4",borderTop:"1px solid #a7f3d0",display:"flex",alignItems:"center",gap:8}}>
