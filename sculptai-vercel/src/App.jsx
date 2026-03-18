@@ -198,12 +198,72 @@ function PatientCard({patient,onDelete}){
               ))}
             </div>
             <div style={{borderTop:"1px solid #f3f4f6",padding:"12px 16px",background:"white"}}>
-              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
                 <div style={{width:18,height:18,background:"linear-gradient(135deg,#0c1428,#3b82f6)",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"white",flexShrink:0}}>✦</div>
                 <div style={{fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:"#3b82f6",fontWeight:600}}>Sistem Gözlemi</div>
-                {patient.ai_loading&&<div style={{fontSize:10,color:"#9ca3af",animation:"pulse 1.5s infinite"}}>Hazırlanıyor...</div>}
+                {patient.ai_loading&&<div style={{fontSize:10,color:"#9ca3af",animation:"pulse 1.5s infinite"}}>Claude analizi hazırlanıyor...</div>}
               </div>
-              <div style={{fontSize:12,color:"#475569",lineHeight:1.7}}>{patient.ai_text||(patient.ai_loading?"Klinik analiz hazırlanıyor...":"Analiz mevcut değil.")}</div>
+
+              {/* AUTO SUMMARY — always shown */}
+              {(()=>{
+                const a=patient.answers||{};
+                const s=patient.risk_score||0;
+                const risks=[];
+                const comms=[];
+                if(a.motivation&&(a.motivation.includes("çevre")||a.motivation.includes("baskı")||a.motivation.includes("köklü"))) risks.push("Dış kaynaklı motivasyon saptandı");
+                if(a.expectations&&(a.expectations.includes("mükemmel")||a.expectations.includes("tamamen"))) risks.push("Yüksek beklenti eşiği");
+                if(a.previousSurgery&&a.previousSurgery.includes("Evet")) risks.push("Önceki cerrahi deneyimi var");
+                if(a.doctorVisits&&a.doctorVisits.includes("Birçok")) risks.push("Birden fazla doktor konsültasyonu");
+                if(a.decisionPressure&&a.decisionPressure.includes("acele")) risks.push("Karar baskısı mevcut");
+                if(a.support&&a.support.includes("yok")) risks.push("Sosyal destek yetersiz görünüyor");
+                if(risks.length===0&&s<35) risks.push("Belirgin risk faktörü saptanmadı");
+
+                if(s>=68) comms.push("Beklentileri net şekilde konuşun, alternatif senaryolar sunun");
+                else if(s>=48) comms.push("Motivasyon kaynağını derinleştirin, gerçekçi sonuçları görselleştirin");
+                else comms.push("Güven verin, süreci adım adım anlatın");
+                if(a.motivation?.includes("köklü")) comms.push("Hayat değişimi beklentisini nazikçe yeniden çerçeveleyin");
+                if(a.doctorVisits?.includes("Birçok")) comms.push("Önceki konsültasyonlarda ne duyduklarını sorun");
+
+                return(
+                  <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:patient.ai_text?10:0}}>
+                    {risks.length>0&&(
+                      <div style={{background:"#fafafa",border:"1px solid #f1f3f5",borderRadius:9,padding:"9px 12px"}}>
+                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#ef4444",marginBottom:5}}>⚠ Risk Faktörleri</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                          {risks.map((r,i)=>(
+                            <span key={i} style={{fontSize:10,padding:"2px 8px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,color:"#b91c1c"}}>{r}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {comms.length>0&&(
+                      <div style={{background:"#fafafa",border:"1px solid #f1f3f5",borderRadius:9,padding:"9px 12px"}}>
+                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#3b82f6",marginBottom:5}}>💬 İletişim Tarzı</div>
+                        <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                          {comms.map((c,i)=>(
+                            <div key={i} style={{fontSize:11,color:"#374151",display:"flex",gap:6}}>
+                              <span style={{color:"#3b82f6",flexShrink:0}}>→</span>{c}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* CLAUDE DEEP ANALYSIS */}
+              {patient.ai_text&&!patient.ai_text.includes("kullanılamıyor")&&(
+                <div style={{background:"#f0f7ff",border:"1px solid #bfdbfe",borderRadius:9,padding:"9px 12px"}}>
+                  <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#1e40af",marginBottom:5}}>🤖 Claude Derinlemeli Analiz</div>
+                  <div style={{fontSize:12,color:"#1e3a5f",lineHeight:1.75}}>{patient.ai_text}</div>
+                </div>
+              )}
+              {patient.ai_loading&&(
+                <div style={{background:"#f0f7ff",border:"1px dashed #bfdbfe",borderRadius:9,padding:"9px 12px",textAlign:"center"}}>
+                  <div style={{fontSize:11,color:"#93c5fd",animation:"pulse 1.5s infinite"}}>✦ Claude analizi yükleniyor...</div>
+                </div>
+              )}
             </div>
             <div style={{borderTop:"1px solid #f3f4f6",padding:"10px 16px",display:"flex",gap:8,background:"white"}}>
               <button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:500,border:"1.5px solid #e5e7eb",background:"white",color:"#475569"}}>📋 Not Ekle</button>
@@ -633,14 +693,7 @@ function PatientForm({model,trainPct,doctorId}){
 
   async function fetchAI(a,score,cls,recId){
     try{
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:700,messages:[{role:"user",content:`You are SculptAI, trained on 71 real Hacettepe University plastic surgery patients. Write a brief clinical observation IN ENGLISH (3-4 sentences, no headers, no bullets). Soft advisory tone. Mention 1-2 specific risk signals and 1 positive. End with a communication tip.
-
-Patient: ${a.name||"Anonymous"}, Age ${a.age}, ${a.gender} | Procedure: ${a.procedure}
-Motivation: ${a.motivation} | Expected: ${a.expectation} | Prev: ${a.prevSurgery}
-Multi-doctor: ${a.multiDoctor} | Knowledge: ${a.riskKnowledge} | Patience: ${a.patience}
-Support: ${a.support} | Revision: ${a.revision} | Compliance: ${a.compliance}
-Price: ${a.price} | Sharing: ${a.sharing} | Recommends: ${a.recommends} | Social: ${a.socialMedia}
-ML RISK: ${score}/100 | ASSESSMENT: ${cls.label}`}]})});
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:`Sen SculptAI klinik analiz modülüsün. Hacettepe Üniversitesi plastik cerrahi verisiyle eğitildiniz. Bu hasta için doktora yönelik kısa, danışma tonu ağırlıklı TÜRKÇE bir gözlem yaz. 3-4 cümle, başlık veya liste kullanma. 1-2 dikkat sinyali ve 1 güçlü yan belirt.\n\nHasta: ${a.name||"Anonim"}, ${a.age} yaş, ${a.gender} | Prosedür: ${a.procedure}\nMotivasyon: ${a.motivation} | Beklenti: ${a.expectation} | Önceki cerrahi: ${a.prevSurgery}\nÇok doktor: ${a.multiDoctor} | Risk bilgisi: ${a.riskKnowledge} | Sabır: ${a.patience}\nDestek: ${a.support} | Revizyon: ${a.revision} | Uyum: ${a.compliance}\nFiyat: ${a.price} | Paylaşım: ${a.sharing} | Tavsiye: ${a.recommends} | Sosyal: ${a.socialMedia}\nML RİSK SKORU: ${score}/100 | DEĞERLENDİRME: ${cls.label}`}]})});
       const d=await res.json();
       const txt=d.content?.map(b=>b.text||"").join("\n")||"Analiz mevcut değil.";
       await sb.from("patients").update({ai_text:txt,ai_loading:false}).eq("id",recId);
