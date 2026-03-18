@@ -156,6 +156,7 @@ function PatientCard({patient,onDelete}){
   const [showOutcome,setShowOutcome]=useState(false);
   const [showAmbassador,setShowAmbassador]=useState(false);
   const [outcomeProcedures,setOutcomeProcedures]=useState(patient.outcome_procedures||[]);
+  const [noAppointment,setNoAppointment]=useState(patient.no_appointment||false);
   const [ambassadorSent,setAmbassadorSent]=useState(patient.ambassador_sent||false);
   const a=patient.answers||{};
   const score=patient.risk_score||0;
@@ -166,8 +167,15 @@ function PatientCard({patient,onDelete}){
   const ALL_PROCS=["Burun Estetiği","Meme Küçültme","Meme Büyütme","Meme Dikleştirme","Karın Germe","Liposuction","Üst Göz Kapağı","Alt Göz Kapağı","Botoks","Dolgu","Kol Germe","Yüz Germe","Uyluk Germe","Popo Estetiği","Jinekomasti"];
 
   async function saveOutcome(){
-    await sb.from("patients").update({outcome_procedures:outcomeProcedures}).eq("id",patient.id);
+    await sb.from("patients").update({outcome_procedures:outcomeProcedures,no_appointment:false}).eq("id",patient.id);
+    setNoAppointment(false);
     setShowOutcome(false);
+  }
+
+  async function markNoAppointment(){
+    await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patient.id);
+    setNoAppointment(true);
+    setOutcomeProcedures([]);
   }
 
   async function sendAmbassador(){
@@ -296,6 +304,13 @@ function PatientCard({patient,onDelete}){
                 </div>
               )}
             </div>
+            {/* No appointment badge */}
+            {noAppointment&&(
+              <div style={{padding:"6px 16px",background:"#fef2f2",borderTop:"1px solid #fecaca",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{fontSize:10,color:"#dc2626",fontWeight:500}}>✕ Randevu Alınmadı</div>
+                <button onClick={e=>{e.stopPropagation();markNoAppointment();}} style={{fontSize:9,color:"#b0a898",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline"}}>Geri Al</button>
+              </div>
+            )}
             {/* Cross-sell badge */}
             {crossSellDetected&&(
               <div style={{padding:"6px 16px",background:"#f0fdf4",borderTop:"1px solid #a7f3d0",display:"flex",alignItems:"center",gap:8}}>
@@ -314,6 +329,11 @@ function PatientCard({patient,onDelete}){
               <button onClick={e=>{e.stopPropagation();setShowOutcome(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:400,border:`1px solid ${outcomeProcedures.length>0?"#059669":"#d4cabf"}`,background:"transparent",color:outcomeProcedures.length>0?"#059669":"#8a7a68",letterSpacing:"0.03em"}}>
                 {outcomeProcedures.length>0?"✓ Randevu Girildi":"Randevu Sonucu"}
               </button>
+              {!noAppointment&&(
+                <button onClick={e=>{e.stopPropagation();markNoAppointment();}} style={{padding:"8px 10px",borderRadius:7,fontSize:11,fontWeight:400,border:"1px solid #fecaca",background:"transparent",color:"#dc2626",letterSpacing:"0.02em",flexShrink:0}}>
+                  Randevu Yok
+                </button>
+              )}
               {cls.ambassador&&!ambassadorSent&&(
                 <button onClick={e=>{e.stopPropagation();setShowAmbassador(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:400,border:"1px solid #ddd6fe",background:"transparent",color:"#7c3aed",letterSpacing:"0.03em"}}>🌟 Elçi Paketi</button>
               )}
