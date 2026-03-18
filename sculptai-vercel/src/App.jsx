@@ -748,6 +748,8 @@ function PatientForm({model,trainPct,doctorId}){
   const [answers,setAnswers]=useState({});
   const [submitted,setSubmitted]=useState(false);
   const [doctorInfo,setDoctorInfo]=useState(null);
+  const [ambassadorCode,setAmbassadorCode]=useState(null);
+  const [patientSegment,setPatientSegment]=useState(null);
   const q=QUESTIONS[currentQ];
   const canNext=(q?.optional||answers[q?.id]!==undefined&&answers[q?.id]!=="")&&
     !(q?.id==="referralCode"&&answers["source"]!=="Bir hasta beni yönlendirdi (referans kodu var)"&&!answers[q?.id])
@@ -768,6 +770,7 @@ function PatientForm({model,trainPct,doctorId}){
     const raw=model?model.forward(feats):0.5;
     const score=Math.round(raw*100);
     const cls=classify(score,answers);
+    const ambCode=cls.ambassador?"REF-"+Math.random().toString(36).substr(2,4).toUpperCase():null;
     const rec={
       id:Date.now().toString(),
       doctor_id:doctorId,
@@ -779,9 +782,14 @@ function PatientForm({model,trainPct,doctorId}){
       answers:answers,
       ai_text:"",
       ai_loading:true,
+      ambassador_code:ambCode||"",
+      ambassador_sent:false,
+      outcome_procedures:[],
     };
     await sb.from("patients").insert(rec);
     setSubmitted(true);
+    setAmbassadorCode(ambCode);
+    setPatientSegment(cls);
     fetchAI(answers,score,cls,rec.id);
   }
 
@@ -831,6 +839,32 @@ function PatientForm({model,trainPct,doctorId}){
               <div style={{fontSize:11,color:"#b0a898",lineHeight:1.5}}>{doctorInfo?.name||"Doktorunuz"} ekibi bilgilerinizi inceleyip sizinle iletişime geçecek.</div>
             </div>
           </div>
+
+          {/* MARKA ELÇİSİ KARTI */}
+          {ambassadorCode&&(
+            <div style={{background:"linear-gradient(135deg,#faf5ff,#ede9fe)",border:"1.5px solid #ddd6fe",borderRadius:14,padding:"18px 16px",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                <div style={{fontSize:20}}>🌟</div>
+                <div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:400,color:"#4c1d95",letterSpacing:"-0.01em"}}>Marka Elçisi Oldunuz</div>
+                  <div style={{fontSize:11,color:"#7c3aed",marginTop:1}}>Teşekkür ederiz</div>
+                </div>
+              </div>
+              <div style={{fontSize:12,color:"#5b21b6",lineHeight:1.7,marginBottom:14}}>
+                Sizi aramızda görmekten mutluluk duyuyoruz. Arkadaşlarınızı kliniğimize yönlendirirken aşağıdaki kişisel kodunuzu paylaşın — her yönlendirme için size özel avantajlar sunacağız.
+              </div>
+              <div style={{background:"white",border:"1px solid #ddd6fe",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div>
+                  <div style={{fontSize:9,letterSpacing:"0.15em",textTransform:"uppercase",color:"#b0a898",marginBottom:4}}>Referans Kodunuz</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:400,color:"#7c3aed",letterSpacing:"0.08em"}}>{ambassadorCode}</div>
+                </div>
+                <button onClick={()=>{navigator.clipboard?.writeText(ambassadorCode);}} style={{padding:"8px 14px",background:"#7c3aed",border:"none",borderRadius:8,color:"white",fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Kopyala</button>
+              </div>
+              <div style={{fontSize:10,color:"#a78bfa",marginTop:10,lineHeight:1.6}}>
+                Bu kodu WhatsApp, Instagram veya mesajla arkadaşlarınızla paylaşabilirsiniz.
+              </div>
+            </div>
+          )}
 
           {/* Procedure card */}
           <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Seçtiğiniz prosedür</div>
