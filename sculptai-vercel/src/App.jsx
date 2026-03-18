@@ -447,7 +447,7 @@ function PatientForm({model,trainPct,doctorId}){
 
   async function fetchAI(a,score,cls,recId){
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:700,messages:[{role:"user",content:`You are SculptAI, trained on 71 real Hacettepe University plastic surgery patients. Write a brief clinical observation IN ENGLISH (3-4 sentences, no headers, no bullets). Soft advisory tone. Mention 1-2 specific risk signals and 1 positive. End with a communication tip.
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:700,messages:[{role:"user",content:`You are SculptAI, trained on 71 real Hacettepe University plastic surgery patients. Write a brief clinical observation IN ENGLISH (3-4 sentences, no headers, no bullets). Soft advisory tone. Mention 1-2 specific risk signals and 1 positive. End with a communication tip.
 
 Patient: ${a.name||"Anonymous"}, Age ${a.age}, ${a.gender} | Procedure: ${a.procedure}
 Motivation: ${a.motivation} | Expected: ${a.expectation} | Prev: ${a.prevSurgery}
