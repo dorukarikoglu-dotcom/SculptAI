@@ -906,6 +906,8 @@ function PatientForm({model,trainPct,doctorId}){
   const [doctorInfo,setDoctorInfo]=useState(null);
   const [ambassadorCode,setAmbassadorCode]=useState(null);
   const [patientSegment,setPatientSegment]=useState(null);
+  const [personalGuide,setPersonalGuide]=useState(null);
+  const [guideLoading,setGuideLoading]=useState(false);
   const q=QUESTIONS[currentQ];
   const canNext=(q?.optional||answers[q?.id]!==undefined&&answers[q?.id]!=="")&&
     !(q?.id==="referralCode"&&answers["source"]!=="Bir hasta beni yönlendirdi (referans kodu var)"&&!answers[q?.id])
@@ -947,9 +949,50 @@ function PatientForm({model,trainPct,doctorId}){
     setAmbassadorCode(ambCode);
     setPatientSegment(cls);
     fetchAI(answers,score,cls,rec.id);
+    fetchPersonalGuide(answers,score,cls);
   }
 
-  async function fetchAI(a,score,cls,recId){
+  async function fetchPersonalGuide(a,score,cls){
+    setGuideLoading(true);
+    const profile=detectProfile(a);
+    const profileNames={analyst:"analitik ve araştırmacı",trustseeker:"güven arayan ve endişeli",social:"sosyal ve paylaşımcı",pragmatic:"pratik ve hızlı karar veren"};
+    const toneInstructions={
+      analyst:"Bilimsel ve teknik bir dil kullan. Spesifik süreler, yüzdeler ve mekanizmalar belirt. Klinik terminoloji kullan ama açıkla.",
+      trustseeker:"Çok sıcak, güvence verici ve yargısız bir dil kullan. 'Normal', 'endişelenmeyin', 'yanınızdayız' ifadelerini kullan. Karmaşık terimlerden kaçın.",
+      social:"Sosyal hayata dönüş, görünüm ve çevresiyle paylaşım odaklı yaz. Ne zaman dışarı çıkabileceğini, ne zaman fark edilmeyeceğini vurgula.",
+      pragmatic:"Çok kısa, madde madde, net. Sayılar ve tarihler kullan. Gereksiz açıklama yapma.",
+    };
+    try{
+      setGuideLoading(true);
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:800,
+        messages:[{role:"user",content:`Sen SculptAI'ın hasta rehberlik sisteminin bir parçasısın. Aşağıdaki hastaya TÜRKÇE, tamamen kişisel bir iyileşme ve hazırlık rehberi yaz.
+
+HASTA PROFİLİ:
+- Ad: ${a.name||"Hasta"}, ${a.age} yaş, ${a.gender}
+- Prosedür: ${a.procedure}
+- Motivasyon: ${a.motivation}
+- Beklenti: ${a.expectation}
+- Bilgi düzeyi: ${a.riskKnowledge}
+- Sabır: ${a.patience}
+- Sosyal destek: ${a.support}
+- Revizyon tutumu: ${a.revision}
+- Önceki cerrahi: ${a.prevSurgery}
+- Kişilik tipi: ${profileNames[profile]}
+
+YAZIM TONU: ${toneInstructions[profile]}
+
+FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında başlık koy. Toplam 200-250 kelime. Başlıklar: [Sizi Bekleyen Süreç], [Dikkat Etmeniz Gerekenler], [Size Özel Tavsiye]. Başka başlık veya format kullanma. Liste değil, akıcı paragraf.`}]
+      })});
+      const d=await res.json();
+      const txt=d.content?.map(b=>b.text||"").join("")||"";
+      setPersonalGuide(txt);
+    }catch{
+      setPersonalGuide(null);
+    }
+    setGuideLoading(false);
+  }
     try{
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:`Sen SculptAI klinik analiz modülüsün. Hacettepe Üniversitesi plastik cerrahi verisiyle eğitildiniz. Bu hasta için doktora yönelik kısa, danışma tonu ağırlıklı TÜRKÇE bir gözlem yaz. 3-4 cümle, başlık veya liste kullanma. 1-2 dikkat sinyali ve 1 güçlü yan belirt.\n\nHasta: ${a.name||"Anonim"}, ${a.age} yaş, ${a.gender} | Prosedür: ${a.procedure}\nMotivasyon: ${a.motivation} | Beklenti: ${a.expectation} | Önceki cerrahi: ${a.prevSurgery}\nÇok doktor: ${a.multiDoctor} | Risk bilgisi: ${a.riskKnowledge} | Sabır: ${a.patience}\nDestek: ${a.support} | Revizyon: ${a.revision} | Uyum: ${a.compliance}\nFiyat: ${a.price} | Paylaşım: ${a.sharing} | Tavsiye: ${a.recommends} | Sosyal: ${a.socialMedia}\nML RİSK SKORU: ${score}/100 | DEĞERLENDİRME: ${cls.label}`}]})});
       const d=await res.json();
@@ -1027,6 +1070,32 @@ function PatientForm({model,trainPct,doctorId}){
           )}
 
           {/* Procedure card */}
+          {/* KİŞİSEL REHBER */}
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Size özel rehber</div>
+          {guideLoading&&(
+            <div style={{background:"#ece7db",border:"1px solid #d4cabf",borderRadius:12,padding:"20px 16px",marginBottom:10,textAlign:"center"}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#b0a898",fontStyle:"italic",animation:"pulse 1.5s infinite"}}>Kişisel rehberiniz hazırlanıyor...</div>
+              <div style={{fontSize:10,color:"#d4cabf",marginTop:6}}>Yapay zeka form cevaplarınızı analiz ediyor</div>
+            </div>
+          )}
+          {personalGuide&&!guideLoading&&(()=>{
+            const sections=personalGuide.split(/\[([^\]]+)\]/).filter(s=>s.trim());
+            const parsed=[];
+            for(let i=0;i<sections.length;i+=2){
+              if(sections[i+1]) parsed.push({title:sections[i],body:sections[i+1].trim()});
+            }
+            return(
+              <div style={{background:"#f5f0e8",border:"1px solid #d4cabf",borderRadius:12,overflow:"hidden",marginBottom:10}}>
+                {parsed.map((s,i)=>(
+                  <div key={i} style={{padding:"14px 16px",borderBottom:i<parsed.length-1?"1px solid #e8e2d8":"none"}}>
+                    <div style={{fontSize:9,letterSpacing:"0.15em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,marginBottom:7}}>{s.title}</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:300,color:"#1a1510",lineHeight:1.8}}>{s.body}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
           <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Seçtiğiniz prosedür</div>
           <div style={{background:"#1a1510",borderRadius:14,padding:18,marginBottom:10,position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:-20,right:-20,width:80,height:80,borderRadius:"50%",background:"rgba(124,58,237,0.12)"}}/>
