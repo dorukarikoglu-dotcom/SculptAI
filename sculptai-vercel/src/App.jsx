@@ -839,15 +839,27 @@ const PROCEDURE_RECOVERY={
 function getPersonalizedContent(proc,profile,section){
   const procData=PROCEDURE_RECOVERY[proc]?.[profile];
   if(procData&&procData[section]) return procData[section];
-  // Fallback — genel profil tonu
-  const profileText={
-    analyst:{recovery:"İyileşme süreci cerrahi teknik ve bireysel faktörlere bağlıdır. Doktorunuz size özel takvimi konsültasyonda paylaşacak.",risks:"Riskler ameliyat öncesi değerlendirmede kapsamlı biçimde ele alınacaktır."},
-    trustseeker:{recovery:"Her adımda ne olacağını bilerek sürece gireceksiniz. Ekibimiz her aşamada yanınızda.",risks:"Olası durumların büyük çoğunluğu geçici ve yönetilebilir. Doktorunuz bunları sizinle detaylı paylaşacak."},
-    social:{recovery:"Ne zaman sosyal hayata döneceğiniz ve son hali konsültasyonda netleşecek.",risks:"Süreç hakkında doğru bilgiye sahip olmak çevrenize de güven verir."},
-    pragmatic:{recovery:"Konsültasyonda takvim netleşecek.",risks:"Doktorunuz kritik noktaları özetleyecek."},
+  const fallbacks={
+    analyst:{
+      recovery:`${proc} sonrası iyileşme süreci, kullanılan teknik ve bireysel faktörlere bağlı değişkenlik gösterir. Erken dönem ödem ve ekimoz beklenen bulgulardır; doktorunuz size özel takvimi konsültasyonda paylaşacaktır.`,
+      risks:`${proc} ameliyatında komplikasyonlar ameliyat öncesi değerlendirmede kapsamlı biçimde ele alınacaktır. Kişisel risk profili sağlık durumunuza göre değerlendirilebilir.`,
+    },
+    trustseeker:{
+      recovery:`${proc} ameliyatından sonra her adımda ne olacağını bilerek sürece gireceksiniz. İlk günler en zorlu dönem olabilir ama ağrı yönetimi ve ekibimizin desteğiyle rahat geçirilir. Şişlik zamanla azalır, kendinizi her geçen gün daha iyi hissedersiniz.`,
+      risks:`${proc} sonrasında yaşanabilecek durumların büyük çoğunluğu geçici ve yönetilebilir. Bir şey fark ettiğinizde doktorunuzu aramaktan çekinmeyin — ekibimiz her adımda yanınızda.`,
+    },
+    social:{
+      recovery:`${proc} sonrası sosyal hayata dönüş takvimi konsültasyonda netleşecek. Çevrenizin fark etmemeye başladığı an iyileşmenin büyük ölçüde tamamlandığının işaretidir.`,
+      risks:`${proc} hakkında çevrenizle konuşurken doğru bilgiye sahip olmak önemli. Doktorunuz süreçle ilgili paylaşabileceğiniz güvenilir bilgileri sizinle paylaşacak.`,
+    },
+    pragmatic:{
+      recovery:`${proc}: Konsültasyonda takvim net olarak paylaşılacak. Kritik kısıtlamalar ve işe dönüş süresi doktorunuz tarafından özetlenecek.`,
+      risks:`Dikkat edilmesi gereken kritik noktalar konsültasyonda paylaşılacak. Gerisini doktorunuz yönetir.`,
+    },
   };
-  return profileText[profile]?.[section]||"";
+  return fallbacks[profile]?.[section]||"";
 }
+
 
 const PROCEDURE_INFO = {
   "default":{category:"Estetik Cerrahi",desc:"Uzman ekibimiz size özel bir plan hazırlayacak.",stats:[{val:"Değişken",lbl:"Süre"},{val:"Değişken",lbl:"İyileşme"},{val:"6-12 ay",lbl:"Sonuç"}],process:"Ameliyat sonrası süreç prosedürünüze göre değişir. Doktorunuz konsültasyonda detayları sizinle paylaşacak.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"Ameliyat & Uyanış",desc:"Ekibimiz sizi süreç boyunca bilgilendirecek."},{time:"İlk hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme başlar",desc:"Dinlenme ve doktor önerilerine uyum bu dönemde kritik."},{time:"6-12 ay",emoji:"✨",color:"#10b981",title:"Nihai sonuç",desc:"Son şekil zamanla ortaya çıkar."}],prep:["Ameliyat öncesi 6-8 saat aç kalmanız gerekecek","Kullandığınız tüm ilaçları doktorunuza bildirin","Sorularınızı konsültasyon için not edin"],normal:["İlk günlerde hafif şişlik ve ağrı olabilir","3. günden itibaren şişlik azalmaya başlar"],followup:"Kontrol randevularınız"},
@@ -1046,6 +1058,12 @@ function PatientForm({model,trainPct,doctorId}){
         </>)}
 
         {infoPage===1&&(<>
+          {/* Kişiselleştirilmiş giriş — EN ÜSTTE */}
+          <div style={{background:"linear-gradient(135deg,#ece7db,#e8e3d8)",border:"1px solid #d4cabf",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
+            <div style={{fontSize:9,letterSpacing:"0.15em",textTransform:"uppercase",color:"#b0a898",marginBottom:6,fontWeight:500}}>Size özel not</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:300,color:"#1a1510",lineHeight:1.75,fontStyle:"italic"}}>{PC.recoveryIntro}</div>
+          </div>
+
           {/* Recovery timeline */}
           <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"4px 0 10px 2px"}}>İyileşme takvimi</div>
           <div style={{position:"relative",paddingLeft:20,marginBottom:14}}>
