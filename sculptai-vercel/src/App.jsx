@@ -222,10 +222,188 @@ function PatientCard({patient,onDelete}){
 }
 
 /* ─── DOCTOR PANEL ───────────────────────────────────────────────────────── */
+function Analytics({patients}){
+  const total=patients.length;
+  if(total===0) return(
+    <div style={{textAlign:"center",padding:"60px 20px",color:"#9ca3af"}}>
+      <div style={{fontSize:40,marginBottom:14}}>📊</div>
+      <div style={{fontSize:15,color:"#374151",marginBottom:8}}>Henüz veri yok</div>
+      <div style={{fontSize:13}}>İlk hasta formu doldurulunca istatistikler burada görünecek</div>
+    </div>
+  );
+
+  // Compute stats
+  const red=patients.filter(p=>(p.risk_score||0)>=68).length;
+  const amber=patients.filter(p=>{const s=p.risk_score||0;return s>=48&&s<68;}).length;
+  const green=patients.filter(p=>{const s=p.risk_score||0;const a=p.answers||{};const amb=a.sharing==="Evet paylaşırım"&&a.recommends==="Evet, sık öneririm"&&a.socialMedia==="Sık paylaşırım"&&s<35;return !amb&&s<48;}).length;
+  const amb=patients.filter(p=>{const s=p.risk_score||0;const a=p.answers||{};return a.sharing==="Evet paylaşırım"&&a.recommends==="Evet, sık öneririm"&&a.socialMedia==="Sık paylaşırım"&&s<35;}).length;
+  const avgRisk=total?Math.round(patients.reduce((s,p)=>s+(p.risk_score||0),0)/total):0;
+  const fitRate=total?Math.round((green+amb)/total*100):0;
+
+  // Procedure counts
+  const procMap={};
+  patients.forEach(p=>{const pr=p.answers?.procedure||"Diğer";procMap[pr]=(procMap[pr]||0)+1;});
+  const procs=Object.entries(procMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+  // Source counts
+  const srcMap={};
+  patients.forEach(p=>{
+    const s=p.answers?.source||"Diğer";
+    const short=s.includes("tavsiye")?"Hasta tavsiyesi":s.includes("Hacettepe")?"Hacettepe itibarı":s.includes("Google")?"Google":s.includes("Instagram")?"Instagram":"Diğer";
+    srcMap[short]=(srcMap[short]||0)+1;
+  });
+  const sources=Object.entries(srcMap).sort((a,b)=>b[1]-a[1]);
+
+  // Weekly bins (last 7 days)
+  const now=Date.now();
+  const dayMs=86400000;
+  const bins=Array(7).fill(0);
+  patients.forEach(p=>{
+    const d=now-(new Date(p.created_at||now).getTime());
+    const idx=Math.floor(d/dayMs);
+    if(idx>=0&&idx<7) bins[6-idx]++;
+  });
+  const maxBin=Math.max(...bins,1);
+
+  // Auto insights
+  const insights=[];
+  if(fitRate>=70) insights.push({type:"green",title:"Uygun profil oranı yüksek",body:`Hastaların %${fitRate}'i uygun veya marka elçisi profilinde. Klinik hasta seçimi başarılı.`});
+  if(red/total>0.2) insights.push({type:"warn",title:"Yüksek risk oranı dikkat çekiyor",body:`Hastaların %${Math.round(red/total*100)}'i dikkat gerektiriyor. Konsültasyon öncesi ek değerlendirme faydalı olabilir.`});
+  if(amb>0) insights.push({type:"info",title:`${amb} marka elçisi adayı`,body:"Bu hastaları sadakat programına davet ederek organik büyümeye katkı sağlayabilirsiniz."});
+  const topProc=procs[0];
+  if(topProc&&topProc[1]/total>0.25) insights.push({type:"info",title:`${topProc[0]} en sık prosedür`,body:`Toplam hastaların %${Math.round(topProc[1]/total*100)}'i bu prosedür için başvuruyor.`});
+
+  const days=["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"];
+  const today=new Date().getDay();
+  const dayLabels=Array(7).fill(0).map((_,i)=>days[(today-6+i+7)%7]);
+
+  const C={card:"white",border:"#f1f3f5",muted:"#9ca3af",navy:"#0c1428"};
+  const card=(extra={})=>({background:C.card,border:`1.5px solid ${C.border}`,borderRadius:12,padding:16,...extra});
+
+  return(
+    <div style={{padding:"20px 28px 24px",overflowY:"auto",flex:1}}>
+
+      {/* KPI ROW */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18}}>
+        {[
+          {val:total,lbl:"Toplam Hasta",color:"#3b82f6",grad:"linear-gradient(90deg,#3b82f6,#06b6d4)",note:`Ort. risk: ${avgRisk}`},
+          {val:fitRate+"%",lbl:"Uygun Profil Oranı",color:"#10b981",grad:"linear-gradient(90deg,#10b981,#06b6d4)",note:`${green+amb} hasta`},
+          {val:red,lbl:"Dikkat Gerektiren",color:"#ef4444",grad:"linear-gradient(90deg,#ef4444,#f97316)",note:`%${Math.round(red/total*100)} oranında`},
+          {val:amb,lbl:"Marka Elçisi Adayı",color:"#8b5cf6",grad:"linear-gradient(90deg,#8b5cf6,#a78bfa)",note:"Referans potansiyeli"},
+        ].map(k=>(
+          <div key={k.lbl} style={{...card(),position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:k.grad}}/>
+            <div style={{fontFamily:"'DM Serif Display',serif",fontSize:28,lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
+            <div style={{fontSize:10,color:C.muted,marginBottom:4}}>{k.lbl}</div>
+            <div style={{fontSize:11,fontWeight:500,color:k.color}}>{k.note}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* TREND + SEGMENT */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+
+        {/* Weekly trend */}
+        <div style={card()}>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Son 7 Gün</div>
+          <div style={{display:"flex",alignItems:"flex-end",gap:6,height:70,marginBottom:6}}>
+            {bins.map((v,i)=>(
+              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                <div style={{fontSize:9,color:C.muted,fontWeight:500}}>{v||""}</div>
+                <div style={{width:"100%",borderRadius:4,background:v>0?"#3b82f6":"#f3f4f6",height:`${Math.max(4,Math.round(v/maxBin*52))}px`,transition:"height 0.4s ease"}}/>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            {dayLabels.map((d,i)=><div key={i} style={{flex:1,textAlign:"center",fontSize:9,color:C.muted}}>{d}</div>)}
+          </div>
+        </div>
+
+        {/* Segment dist */}
+        <div style={card()}>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Segment Dağılımı</div>
+          {[
+            {label:"🟢 Uygun Görünüyor",count:green,color:"#10b981"},
+            {label:"🟡 Değerlendirme",count:amber,color:"#f59e0b"},
+            {label:"🔴 Dikkat",count:red,color:"#ef4444"},
+            {label:"🌟 Marka Elçisi",count:amb,color:"#8b5cf6"},
+          ].map(s=>(
+            <div key={s.label} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+              <div style={{fontSize:11,color:"#374151",width:130,flexShrink:0}}>{s.label}</div>
+              <div style={{flex:1,height:7,background:"#f3f4f6",borderRadius:4,overflow:"hidden"}}>
+                <div style={{height:"100%",borderRadius:4,background:s.color,width:`${total?Math.round(s.count/total*100):0}%`,transition:"width 0.8s ease"}}/>
+              </div>
+              <div style={{fontSize:11,fontWeight:600,color:s.color,minWidth:22,textAlign:"right"}}>{s.count}</div>
+              <div style={{fontSize:10,color:C.muted,minWidth:28,textAlign:"right"}}>{total?Math.round(s.count/total*100):0}%</div>
+            </div>
+          ))}
+          {/* Color bar */}
+          <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",marginTop:8}}>
+            {[{c:"#10b981",n:green},{c:"#f59e0b",n:amber},{c:"#ef4444",n:red},{c:"#8b5cf6",n:amb}].map((s,i)=>(
+              <div key={i} style={{flex:s.n,background:s.c,minWidth:s.n?2:0}}/>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* PROCS + INSIGHTS */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+
+        {/* Procedures */}
+        <div style={card()}>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>En Sık Prosedürler</div>
+          {procs.map(([name,count])=>(
+            <div key={name} style={{display:"flex",alignItems:"center",gap:8,paddingBottom:7,borderBottom:"1px solid #f9fafb",marginBottom:7}}>
+              <div style={{flex:1,fontSize:12,color:"#374151",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{name}</div>
+              <div style={{width:70,height:5,background:"#f3f4f6",borderRadius:3,overflow:"hidden",flexShrink:0}}>
+                <div style={{height:"100%",borderRadius:3,background:"linear-gradient(90deg,#3b82f6,#06b6d4)",width:`${Math.round(count/procs[0][1]*100)}%`}}/>
+              </div>
+              <div style={{fontSize:12,fontWeight:600,color:C.navy,minWidth:20,textAlign:"right"}}>{count}</div>
+              <div style={{fontSize:10,color:C.muted,minWidth:28,textAlign:"right"}}>{Math.round(count/total*100)}%</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Auto insights */}
+        <div style={card()}>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Sistem İçgörüleri</div>
+          {insights.length===0&&<div style={{fontSize:12,color:C.muted}}>Daha fazla veri geldikçe içgörüler burada görünecek.</div>}
+          {insights.map((ins,i)=>{
+            const colors={green:{bg:"#f0fdf4",border:"#a7f3d0",title:"#065f46",body:"#047857"},warn:{bg:"#fffbeb",border:"#fde68a",title:"#92400e",body:"#b45309"},info:{bg:"#eff6ff",border:"#bfdbfe",title:"#1e40af",body:"#2563eb"}};
+            const c=colors[ins.type]||colors.info;
+            return(
+              <div key={i} style={{background:c.bg,border:`1.5px solid ${c.border}`,borderRadius:10,padding:"10px 12px",marginBottom:8}}>
+                <div style={{fontSize:12,fontWeight:600,color:c.title,marginBottom:3}}>{ins.title}</div>
+                <div style={{fontSize:11,color:c.body,lineHeight:1.55}}>{ins.body}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* SOURCE */}
+      <div style={card()}>
+        <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Hasta Kaynakları</div>
+        <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+          {sources.map(([src,cnt])=>(
+            <div key={src} style={{background:"#f9fafb",border:"1.5px solid #e5e7eb",borderRadius:10,padding:"10px 14px",textAlign:"center",minWidth:90}}>
+              <div style={{fontFamily:"'DM Serif Display',serif",fontSize:22,color:C.navy,lineHeight:1}}>{cnt}</div>
+              <div style={{fontSize:10,color:C.muted,marginTop:3}}>{src}</div>
+              <div style={{fontSize:10,fontWeight:600,color:"#3b82f6",marginTop:2}}>{Math.round(cnt/total*100)}%</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 function DoctorPanel({doctor,onLogout}){
   const [patients,setPatients]=useState([]);
   const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState("all");
+  const [tab,setTab]=useState("patients"); // patients | analytics
   const [showPw,setShowPw]=useState(false);
   const [newU,setNewU]=useState("");const [newP,setNewP]=useState("");const [newP2,setNewP2]=useState("");const [pwErr,setPwErr]=useState("");
   const [confirmClear,setConfirmClear]=useState(false);
@@ -283,7 +461,15 @@ function DoctorPanel({doctor,onLogout}){
           </div>
         </div>
 
-        <div style={{flex:1,overflowY:"auto",padding:"20px 28px 24px"}}>
+        {/* TAB NAV */}
+        <div style={{display:"flex",gap:2,padding:"0 28px",background:"white",borderBottom:"1px solid #e5e7eb",flexShrink:0}}>
+          {[["patients","👥 Hastalar"],["analytics","📊 Analitik"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setTab(v)} style={{padding:"10px 16px",fontSize:12,fontWeight:600,border:"none",background:"transparent",color:tab===v?"#0c1428":"#9ca3af",borderBottom:tab===v?"2px solid #0c1428":"2px solid transparent",cursor:"pointer",transition:"all 0.15s"}}>{l}</button>
+          ))}
+        </div>
+
+        {tab==="analytics"&&<Analytics patients={patients}/>}
+        {tab==="patients"&&<div style={{flex:1,overflowY:"auto",padding:"20px 28px 24px"}}>
           {showPw&&(
             <div style={{background:"white",border:"1px solid #e5e7eb",borderRadius:12,padding:"16px 20px",marginBottom:18,animation:"fadeUp 0.25s ease"}}>
               <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#374151",marginBottom:12}}>Giriş Bilgilerini Değiştir</div>
@@ -360,7 +546,7 @@ function DoctorPanel({doctor,onLogout}){
               }
             </div>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );
