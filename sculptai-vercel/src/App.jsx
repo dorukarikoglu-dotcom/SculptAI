@@ -853,19 +853,38 @@ function PatientForm({model,trainPct,doctorId}){
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Inter',sans-serif",color:C.navy}}>
-      <header style={{background:"#f5f0e8",borderBottom:`1px solid ${C.border}`,padding:"16px 28px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:40,height:40,borderRadius:9,overflow:"hidden",background:"#f5f0e8",display:"flex",alignItems:"center",justifyContent:"center"}}><img src="/logo.png" alt="SculptAI" style={{width:38,height:38,objectFit:"contain"}}/></div>
-          <div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:C.navy,letterSpacing:"-0.01em"}}>SculptAI</div>
-            <div style={{fontSize:9,letterSpacing:"0.2em",color:C.muted,textTransform:"uppercase"}}>Ön Değerlendirme Formu</div>
+      {/* Hero görsel — sadece ilk soru (karşılama) */}
+      {currentQ===0&&(
+        <div style={{width:"100%",height:260,position:"relative",overflow:"hidden",flexShrink:0}}>
+          <img src="/hero.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 20%"}}
+            onError={e=>{e.target.parentElement.style.display="none"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(245,240,232,0) 30%, rgba(245,240,232,1) 100%)"}}/>
+          {/* Header üstünde logo */}
+          <div style={{position:"absolute",top:16,left:20,display:"flex",alignItems:"center",gap:7}}>
+            <div style={{width:20,height:20,border:"1px solid rgba(255,255,255,0.6)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(245,240,232,0.2)"}}>
+              <div style={{width:6,height:6,background:"white",borderRadius:"50%"}}/>
+            </div>
+            <div style={{fontSize:12,fontWeight:500,color:"white",letterSpacing:"0.04em",textShadow:"0 1px 4px rgba(0,0,0,0.2)"}}>SculptAI</div>
           </div>
         </div>
-        {!model&&<div style={{fontSize:11,color:C.muted}}>Model yükleniyor %{trainPct}...</div>}
-      </header>
-      <main style={{maxWidth:580,margin:"0 auto",padding:"36px 20px"}}>
+      )}
+
+      {/* Normal header — sadece soru ekranlarında */}
+      {currentQ>0&&(
+        <header style={{background:"#f5f0e8",borderBottom:`1px solid ${C.border}`,padding:"16px 28px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:20,height:20,border:"1px solid #c8bfb0",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{width:6,height:6,background:"#1a1510",borderRadius:"50%"}}/>
+            </div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:C.navy,letterSpacing:"-0.01em"}}>SculptAI</div>
+          </div>
+          {!model&&<div style={{fontSize:11,color:C.muted}}>Model yükleniyor %{trainPct}...</div>}
+        </header>
+      )}
+
+      <main style={{maxWidth:580,margin:"0 auto",padding:currentQ===0?"0 20px 36px":"36px 20px"}}>
         {currentQ===0&&(
-          <div style={{textAlign:"center",marginBottom:32}} className="f1">
+          <div style={{textAlign:"center",marginBottom:32,paddingTop:8}} className="f1">
             {doctorInfo?.photo_url&&<img src={doctorInfo.photo_url} alt={doctorInfo.name} style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",margin:"0 auto 12px",display:"block",border:`3px solid ${accent}`}}/>}
             <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:10,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>Hoş Geldiniz</div>
