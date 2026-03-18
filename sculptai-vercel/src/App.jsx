@@ -856,7 +856,7 @@ function PatientForm({model,trainPct,doctorId}){
       {/* Hero görsel — sadece ilk soru (karşılama) */}
       {currentQ===0&&(
         <div style={{width:"100%",height:260,position:"relative",overflow:"hidden",flexShrink:0}}>
-          <img src="/hero.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 20%"}}
+          <img src="/hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 20%"}}
             onError={e=>{e.target.parentElement.style.display="none"}}/>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(245,240,232,0) 30%, rgba(245,240,232,1) 100%)"}}/>
           {/* Header üstünde logo */}
