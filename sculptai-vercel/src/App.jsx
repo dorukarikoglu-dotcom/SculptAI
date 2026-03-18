@@ -728,6 +728,127 @@ function DoctorPanel({doctor,onLogout}){
 }
 
 /* ─── PATIENT FORM ───────────────────────────────────────────────────────── */
+/* ─── KİŞİLİK PROFİLİ ───────────────────────────────────────────────────── */
+function detectProfile(answers){
+  const knowledge=answers.riskKnowledge||"";
+  const motivation=answers.motivation||"";
+  const sharing=answers.sharing||"";
+  const recommends=answers.recommends||"";
+  const patience=answers.patience||"";
+
+  const isAnalyst=knowledge.includes("Detaylı")&&(motivation.includes("iyileştirmek")||motivation.includes("özgüven"));
+  const isSocial=(sharing.includes("Sık")||sharing.includes("sık"))&&(recommends.includes("sık")||recommends.includes("Sık"));
+  const isPragmatic=patience.includes("Hızlı")&&!knowledge.includes("Detaylı");
+  const isTrustSeeker=knowledge.includes("Hiçbir")||knowledge.includes("Genel");
+
+  if(isAnalyst) return "analyst";
+  if(isSocial) return "social";
+  if(isPragmatic) return "pragmatic";
+  return "trustseeker";
+}
+
+const PROFILE_CONTENT={
+  analyst:{
+    welcome:"Araştırmanız bize de gösteriyor. Aşağıdaki bilgiler klinik verilerle desteklenmiştir — konsültasyonda detayları doktorunuzla birlikte değerlendirebilirsiniz.",
+    recoveryIntro:"İyileşme süreci, kullanılan teknik ve yapısal faktörlere göre değişkenlik gösterir. Aşağıda aşama aşama ne bekleyebileceğinizi bulabilirsiniz.",
+    riskIntro:"Her cerrahi girişimde görülme sıklığı istatistiksel olarak düşük olan riskler mevcuttur. Bunları bilmek, süreçte daha bilinçli kararlar almanızı sağlar.",
+    ambassadorMsg:"Veriye dayalı bir karar aldınız. Çevrenizde benzer titizlikle araştırma yapan biri varsa, SculptAI değerlendirme formunu önererek doğru kanaldan başlamalarına yardımcı olabilirsiniz.",
+    ambassadorCTA:"Araştırmacı birine önerin",
+  },
+  trustseeker:{
+    welcome:"Bu kararı vermek cesaret ister. Sorularınız, endişeleriniz, hatta bilmediğinizi düşündüğünüz şeyler — konsültasyonun tam da bunlar için olduğunu bilmenizi isteriz.",
+    recoveryIntro:"İyileşme süreci adım adım ilerler. Her aşamada ne hissedeceğinizi ve ne yapmanız gerektiğini önceden bilmek süreci çok kolaylaştırır.",
+    riskIntro:"Her ameliyatta bazı beklenmedik durumlar yaşanabilir — ama bunların büyük çoğunluğu geçicidir ve tedavi edilebilir. Doktorunuz her adımda yanınızda olacak.",
+    ambassadorMsg:"Çevrenizdeki biri bu kararı vermeye çalışıyorsa, deneyiminizi paylaşmak ona büyük destek olabilir. Referans kodunuzla gelen her kişi için size özel bir teşekkür hazırladık.",
+    ambassadorCTA:"Desteğe ihtiyacı olana önerin",
+  },
+  social:{
+    welcome:"Çevrenizde estetik kararlarda başvurulan biri olduğunuzu görüyoruz. Bu deneyimi yaşarken yakın çevrenizi de doğru yönlendirme fırsatınız olacak.",
+    recoveryIntro:"Süreçte nasıl görüneceğinizi ve ne zaman sosyal hayata döneceğinizi merak ediyorsanız — aşağıdaki takvim tam size göre.",
+    riskIntro:"Süreç hakkında çevrenizle konuşurken doğru bilgiye sahip olmak önemli. İşte bilmeniz ve paylaşabilmeniz gerekenler.",
+    ambassadorMsg:"Marka Elçisi programımıza hoş geldiniz. Kodunuzu paylaştığınızda getirdiğiniz her hasta için VIP konsültasyon önceliği, özel kontrol muayenesi ve klinik avantajları kazanırsınız.",
+    ambassadorCTA:"Özel avantajları görün",
+  },
+  pragmatic:{
+    welcome:"Süreç net ve öngörülebilir. İşte bilmeniz gereken her şey — kısa ve öz.",
+    recoveryIntro:"Takvim: ne zaman ne olur, ne zaman işe dönersiniz.",
+    riskIntro:"Dikkat etmeniz gereken 3 durum:",
+    ambassadorMsg:"Referans kodunuzu paylaşırsanız getirdiğiniz kişi başına avantaj kazanırsınız.",
+    ambassadorCTA:"Hızlıca paylaşın",
+  },
+};
+
+const PROCEDURE_RECOVERY={
+  "Burun Estetiği":{
+    analyst:{
+      recovery:"Ameliyat 1,5-2 saat sürer. Postoperatif dönemde alçı kalıp ve nazal tampon uygulanır; tamponlar 24-48 saat içinde, alçı 7-14. günde çıkarılır. İlk 48 saatte supine pozisyondan kaçınılmalı, soğuk kompres ödemi minimize eder. 3. günden itibaren ekimoz geriler. Dorsal ödem 6-12 ay içinde tamamen çözülür; nihai sonuç için bu süreyi hesaba katmak gerekir.",
+      risks:"Erken dönem: nazal sızıntı (ilk 24-48 saat normaldir), bulantı, tampon hissi (geçici). Geç dönem: %5-10 revizyon ihtimali (yapısal sınırlamalar nedeniyle), nadir solunum değişiklikleri. Enfeksiyon oranı antibiyotik profilaksisi ile belirgin şekilde düşüktür.",
+    },
+    trustseeker:{
+      recovery:"Ameliyattan uyandığınızda burnunuzda alçı ve tampon olacak — bu çok normal. Tamponlar genellikle 1-2. günde alınır, rahatlamış hissedersiniz. İlk 3 gün en zor dönem ama ağrı kesicilerle geçer. 3. günden itibaren şişlik hızla azalmaya başlar, 1-2. haftada alçı çıkar ve burunun genel şeklini görmeye başlarsınız. Son halini görmek için sabırlı olun — 6 aya kadar sürebilir ama her hafta biraz daha iyi görünecek.",
+      risks:"Bilmeniz gereken birkaç şey var ama hepsi yönetilebilir: İlk günlerde burundan hafif sızıntı olabilir — bu normal. Hapşırma hissi tampona bağlı, alınınca geçer. Nadiren ek dokunuş gerekebilir ama bu kötü bir sonuç değil, doktorunuzla konuşabileceğiniz bir durum.",
+    },
+    social:{
+      recovery:"Sosyal hayata ne zaman dönersiniz: Alçı çıkınca (1-2. hafta) hafif makyajla dışarı çıkabilirsiniz. Morluklar büyük çoğunlukla 2. haftada geçer. 1. ayda %80 çevreniz fark etmez. Final sonuç 6. ayda — ve o an paylaşmak için doğru zaman.",
+      risks:"İlk 2 haftada güneş gözlüğü takmamanız gerekiyor — bu önemli. 8 haftaya kadar vücut teması sporlarından kaçının. Bunlar dışında günlük hayatınıza neredeyse hemen dönebilirsiniz.",
+    },
+    pragmatic:{
+      recovery:"Gün 1-2: alçı + tampon, evde dinlenme. Gün 3-7: morluklar azalır, hafif aktivite. Hafta 2: alçı çıkar, işe dönüş. Ay 1-3: sosyal hayat normal. Ay 6: final sonuç.",
+      risks:"3 kritik kural: 8 hafta gözlük yok, 8 hafta güneş yok, 2 hafta spor yok. Gerisini doktorunuz yönetir.",
+    },
+  },
+  "Karın Germe":{
+    analyst:{
+      recovery:"Abdominoplasti 2-5 saat sürer; genel anestezi uygulanır. Postoperatif dönemde dren sistemi 1-3 gün kalır, eriyemeyen dikişler 1-3. haftada alınır. V pozisyonu ödemi azaltır, emboli profilaksisi için bacak hareketleri kritiktir. 2-3 gece hastane yatışı sonrası 1 hafta ev istirahati önerilir. 6 hafta boyunca ağır fiziksel aktivite kısıtlanır; kesi izi 6. aydan sonra solmaya başlar, 2 yıla kadar gelişir.",
+      risks:"En kritik risk: tromboemboli (pulmoner emboli). Profilaksi için antikoagülan ve varis çorabı uygulanır. Seroma oluşumu (%5-10) drenajla yönetilir. Kesi hattında gecikmiş iyileşme sigara kullanımıyla koreledir. Kalıcı hipoestezi nadir görülür.",
+    },
+    trustseeker:{
+      recovery:"Ameliyat sonrası ilk gün en zorlu dönem ama yalnız değilsiniz — ağrı kesiciler ve gerekirse uyku ilaçları kullanılıyor. İlk kalkışta baş dönmesi normal, yavaşça kalkın. 3. günden itibaren hareketler kolaylaşır. 2. haftadan itibaren sosyal hayata dönebilirsiniz. Dikişler 1-3 haftada alınır. 6 hafta sonra neredeyse her şeyi yapabilirsiniz.",
+      risks:"En önemli şey: bacaklarınızı hareket ettirmek. Bu kan pıhtısı oluşumunu önler — ekibiniz size bunu hatırlatacak ama siz de bilseniz iyi. Bunun dışında şişlik, hafif ağrı ve kesi hattında kaşıntı ilk aylarda normal — zamanla geçer.",
+    },
+    social:{
+      recovery:"Ne zaman ne yapabilirsiniz: 2. haftada sosyal hayata dönüş, 4. haftada tam duş, 6. haftada spor. Kesi izi bikini çizgisi içinde kalacak şekilde planlanıyor. 6. aydan sonra iz belirgin şekilde solur.",
+      risks:"İlk 6 hafta sauna ve solaryum yok — cildinizi korumak için. Sigara iyileşmeyi yavaşlatıyor, bu dönemde bırakmak çok önemli.",
+    },
+    pragmatic:{
+      recovery:"Hastane: 2-3 gece. Ev istirahati: 1 hafta. Sosyal hayat: 2. haftada. Spor: 6. haftada. Dikişler: 1-3 haftada alınır.",
+      risks:"Emboli için bacak hareketi şart. 6 hafta ağır iş yok, sauna yok, güneş yok.",
+    },
+  },
+  "Liposuction":{
+    analyst:{
+      recovery:"Liposuction lokal/genel anestezi ile uygulanır; kompresyon giysi postoperatif kontür için kritiktir. İlk 48 saatte belirgin ödem beklenir; 3-6 ay içinde final kontur oluşur. Teknik seçimi (tumescent, VASER vb.) doktor tarafından kişiselleştirilir. Eğer cilt elastikiyeti yetersizse ek rezeksiyon gerekebilir.",
+      risks:"Kontur düzensizliği, seroma, cilt duyusunda geçici değişiklik. Nadir: yağ embolisi (çok geniş alan + tek seans kombinasyonunda risk artar). Cilt kalitesi sonucu doğrudan etkiler.",
+    },
+    trustseeker:{
+      recovery:"İlk 2-3 gün ödemli geçer, normal. Kompresyon giysiyi giymek önemli — şekillenmesine yardımcı oluyor. 2. haftadan itibaren günlük hayat normale döner. Son şeklini görmek için 3-6 ay bekleyin ama her ay biraz daha iyi görünecek.",
+      risks:"Bölgede geçici uyuşukluk olabilir, zamanla geçer. Ciltte hafif düzensizlik nadiren olabilir. Bunlar doktorunuzla konuşabileceğiniz, yönetilebilir durumlar.",
+    },
+    social:{
+      recovery:"2. haftada sosyal hayat, 4. haftada havuz. 3. ayda kontur netleşmeye başlar. 6. ayda paylaşmak için doğru zaman.",
+      risks:"Kompresyon giysiyi aksatmayın — bu sonucu doğrudan etkiler. 6 hafta güneş ve sauna yok.",
+    },
+    pragmatic:{
+      recovery:"İlk hafta: dinlenme. 2. hafta: iş. 3-6 ay: final kontur. Kompresyon giysi şart.",
+      risks:"3 kural: Kompresyon giysi her gün, 6 hafta güneş yok, aşırı tuz yok (ödem yapar).",
+    },
+  },
+};
+
+// Diğer prosedürler için default profil içeriği
+function getPersonalizedContent(proc,profile,section){
+  const procData=PROCEDURE_RECOVERY[proc]?.[profile];
+  if(procData&&procData[section]) return procData[section];
+  // Fallback — genel profil tonu
+  const profileText={
+    analyst:{recovery:"İyileşme süreci cerrahi teknik ve bireysel faktörlere bağlıdır. Doktorunuz size özel takvimi konsültasyonda paylaşacak.",risks:"Riskler ameliyat öncesi değerlendirmede kapsamlı biçimde ele alınacaktır."},
+    trustseeker:{recovery:"Her adımda ne olacağını bilerek sürece gireceksiniz. Ekibimiz her aşamada yanınızda.",risks:"Olası durumların büyük çoğunluğu geçici ve yönetilebilir. Doktorunuz bunları sizinle detaylı paylaşacak."},
+    social:{recovery:"Ne zaman sosyal hayata döneceğiniz ve son hali konsültasyonda netleşecek.",risks:"Süreç hakkında doğru bilgiye sahip olmak çevrenize de güven verir."},
+    pragmatic:{recovery:"Konsültasyonda takvim netleşecek.",risks:"Doktorunuz kritik noktaları özetleyecek."},
+  };
+  return profileText[profile]?.[section]||"";
+}
+
 const PROCEDURE_INFO = {
   "default":{category:"Estetik Cerrahi",desc:"Uzman ekibimiz size özel bir plan hazırlayacak.",stats:[{val:"Değişken",lbl:"Süre"},{val:"Değişken",lbl:"İyileşme"},{val:"6-12 ay",lbl:"Sonuç"}],process:"Ameliyat sonrası süreç prosedürünüze göre değişir. Doktorunuz konsültasyonda detayları sizinle paylaşacak.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"Ameliyat & Uyanış",desc:"Ekibimiz sizi süreç boyunca bilgilendirecek."},{time:"İlk hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme başlar",desc:"Dinlenme ve doktor önerilerine uyum bu dönemde kritik."},{time:"6-12 ay",emoji:"✨",color:"#10b981",title:"Nihai sonuç",desc:"Son şekil zamanla ortaya çıkar."}],prep:["Ameliyat öncesi 6-8 saat aç kalmanız gerekecek","Kullandığınız tüm ilaçları doktorunuza bildirin","Sorularınızı konsültasyon için not edin"],normal:["İlk günlerde hafif şişlik ve ağrı olabilir","3. günden itibaren şişlik azalmaya başlar"],followup:"Kontrol randevularınız"},
 
@@ -829,6 +950,10 @@ function PatientForm({model,trainPct,doctorId}){
 
   const proc=answers.procedure||"";
   const PI=PROCEDURE_INFO[proc]||PROCEDURE_INFO["default"];
+  const profile=detectProfile(answers);
+  const PC=PROFILE_CONTENT[profile];
+  const recoveryText=getPersonalizedContent(proc,profile,"recovery");
+  const riskText=getPersonalizedContent(proc,profile,"risks");
   const [infoPage,setInfoPage]=useState(0); // 0=thanks+proc, 1=prep+normal
 
   if(submitted) return(
@@ -874,7 +999,7 @@ function PatientForm({model,trainPct,doctorId}){
                 </div>
               </div>
               <div style={{fontSize:12,color:"#5b21b6",lineHeight:1.7,marginBottom:14}}>
-                Sizi aramızda görmekten mutluluk duyuyoruz. Arkadaşlarınızı kliniğimize yönlendirirken aşağıdaki kişisel kodunuzu paylaşın — her yönlendirme için size özel avantajlar sunacağız.
+                {PC.ambassadorMsg}
               </div>
               <div style={{background:"white",border:"1px solid #ddd6fe",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div>
@@ -941,6 +1066,11 @@ function PatientForm({model,trainPct,doctorId}){
           </div>
 
           {/* Prep tips */}
+          {/* Kişiselleştirilmiş giriş */}
+          <div style={{background:"#ece7db",border:"1px solid #d4cabf",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+            <div style={{fontSize:11,color:"#2a2018",lineHeight:1.7,fontStyle:"italic"}}>{PC.recoveryIntro}</div>
+          </div>
+
           <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"0 0 8px 2px"}}>Ameliyat öncesi hazırlık</div>
           <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
             <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10,background:"#f0fdf4"}}>
@@ -959,6 +1089,29 @@ function PatientForm({model,trainPct,doctorId}){
               ))}
             </div>
           </div>
+
+          {/* Kişiselleştirilmiş İyileşme */}
+          {recoveryText&&(
+            <>
+              <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"0 0 8px 2px"}}>İyileşme süreci</div>
+              <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
+                <div style={{fontSize:11,color:"#2a2018",lineHeight:1.8}}>{recoveryText}</div>
+              </div>
+            </>
+          )}
+
+          {/* Kişiselleştirilmiş Riskler */}
+          {riskText&&(
+            <>
+              <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"0 0 8px 2px"}}>{PC.riskIntro}</div>
+              <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
+                <div style={{fontSize:11,color:"#92400e",lineHeight:1.8}}>{riskText}</div>
+                <div style={{marginTop:10,padding:"8px 10px",background:"rgba(255,255,255,0.6)",borderRadius:7,fontSize:10,color:"#b45309",fontStyle:"italic"}}>
+                  Son karar her zaman hekiminize aittir.
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Normal symptoms */}
           <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"0 0 8px 2px"}}>Endişelenmenize gerek yok</div>
