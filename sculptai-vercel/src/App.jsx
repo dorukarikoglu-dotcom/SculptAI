@@ -624,11 +624,21 @@ function DoctorPanel({doctor,onLogout}){
     <div style={{display:"flex",height:"100vh",overflow:"hidden",fontFamily:"'Inter',sans-serif"}}>
       <Sidebar/>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#f5f0e8"}}>
-        <div style={{padding:"18px 28px 16px",display:"flex",alignItems:"flex-end",justifyContent:"space-between",flexShrink:0,background:"#f5f0e8",borderBottom:"1px solid #e0d9cc"}} className="f1">
-          <div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,color:"#1a1510",fontWeight:300,letterSpacing:"-0.02em"}}>Günaydın, <em>{doctor.name}</em></div>
-            <div style={{fontSize:12,color:"#b0a898",marginTop:3}}>{today}</div>
+        <div style={{padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,background:"#f5f0e8",borderBottom:"1px solid #d4cabf"}} className="f1">
+          {/* Logo + Karşılama */}
+          <div style={{display:"flex",alignItems:"center",gap:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,paddingRight:16,borderRight:"1px solid #d4cabf"}}>
+              <div style={{width:20,height:20,border:"1px solid #c8bfb0",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <div style={{width:6,height:6,background:"#1a1510",borderRadius:"50%"}}/>
+              </div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:"#1a1510",fontWeight:400,letterSpacing:"0.02em"}}>SculptAI</div>
+            </div>
+            <div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:"#1a1510",fontWeight:300,letterSpacing:"-0.01em"}}>Günaydın, <em>Dr. {doctor.name.split(" ").slice(-1)[0]}</em></div>
+              <div style={{fontSize:10,color:"#b0a898",marginTop:1,letterSpacing:"0.03em"}}>{today}</div>
+            </div>
           </div>
+          {/* Sağ butonlar */}
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>setShowPw(v=>!v)} style={{padding:"6px 13px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#8a7a68",letterSpacing:"0.03em"}}>Şifre</button>
             <button onClick={onLogout} style={{padding:"6px 13px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#8a7a68",letterSpacing:"0.03em"}}>Çıkış</button>
