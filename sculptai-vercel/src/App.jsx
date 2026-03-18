@@ -72,7 +72,8 @@ const QUESTIONS=[
   {id:"name",section:"Kişisel Bilgiler",label:"İsminiz ve Soyisminiz",type:"text",placeholder:"Ad Soyad"},
   {id:"age",section:"Kişisel Bilgiler",label:"Kaç yaşındasınız?",type:"number",placeholder:"örn. 34"},
   {id:"gender",section:"Kişisel Bilgiler",label:"Cinsiyetiniz nedir?",type:"radio",options:["Kadın","Erkek","Belirtmek istemiyorum"]},
-  {id:"source",section:"Kişisel Bilgiler",label:"Bizi nereden duydunuz?",type:"radio",options:["Eski hastaların tavsiyesi üzerine geldim.","Kurumun (Hacettepe Üniversitesi) itibarı tercihimde etkili oldu.","Google'da gördüm.","Instagram'da gördüm.","Rastgele randevu aldım."]},
+  {id:"source",section:"Kişisel Bilgiler",label:"Bizi nereden duydunuz?",type:"radio",options:["Eski hastaların tavsiyesi üzerine geldim.","Kurumun (Hacettepe Üniversitesi) itibarı tercihimde etkili oldu.","Google'da gördüm.","Instagram'da gördüm.","Bir hasta beni yönlendirdi (referans kodu var)","Rastgele randevu aldım."]},
+  {id:"referralCode",section:"Kişisel Bilgiler",label:"Sizi yönlendiren kişinin referans kodu nedir? (varsa)",type:"text",placeholder:"örn. REF-2847",optional:true},
   {id:"procedure",section:"Ameliyat Bilgisi",label:"Hangi ameliyatı yaptırmak istiyorsunuz?",type:"radio",options:["Meme Küçültme","Meme Büyütme (Silikon Protez ile)","Meme Dikleştirme","Meme Asimetrisinin Giderilmesi","Meme Onarımı (Kanser sonrası)","Doğumsal Meme Anomalisinin Düzeltilmesi","Jinekomasti","Burun Estetiği","Yüz Germe","Üst Göz Kapağı Estetiği","Alt Göz Kapağı Estetiği","Botoks Uygulaması","Dolgu Uygulaması","Karın Germe","Liposuction","Uyluk veya Kol germe","Popo estetiği"]},
   {id:"motivation",section:"Motivasyon & Beklenti",label:"Sizi bu ameliyatı düşünmeye yönlendiren en önemli neden nedir?",type:"radio",options:["Görünümümü iyileştirmek istiyorum","Sosyal özgüvenimi artırmak istiyorum","Başka insanların yorumları beni kötü etkiliyor","Hayatımda büyük bir değişime ihtiyacım var"]},
   {id:"expectation",section:"Motivasyon & Beklenti",label:"Ameliyat sonucunda nasıl bir görünüm beklersiniz?",type:"radio",options:["Küçük iyileştirmeler yeterli","Doğal ve dengeli bir sonuç bekliyorum","Belirgin bir değişim bekliyorum, ameliyat olduğum belli olmalı","Tamamen farklı görünmek istiyorum"]},
@@ -152,11 +153,34 @@ function Sidebar(){
 function PatientCard({patient,onDelete}){
   const [open,setOpen]=useState(false);
   const [confirm,setConfirm]=useState(false);
+  const [showOutcome,setShowOutcome]=useState(false);
+  const [showAmbassador,setShowAmbassador]=useState(false);
+  const [outcomeProcedures,setOutcomeProcedures]=useState(patient.outcome_procedures||[]);
+  const [ambassadorSent,setAmbassadorSent]=useState(patient.ambassador_sent||false);
   const a=patient.answers||{};
   const score=patient.risk_score||0;
   const cls=classify(score,a);
   const flags=getFlags(a,cls.cat);
   const signals=getSignals(a,cls.cat);
+
+  const ALL_PROCS=["Burun Estetiği","Meme Küçültme","Meme Büyütme","Meme Dikleştirme","Karın Germe","Liposuction","Üst Göz Kapağı","Alt Göz Kapağı","Botoks","Dolgu","Kol Germe","Yüz Germe","Uyluk Germe","Popo Estetiği","Jinekomasti"];
+
+  async function saveOutcome(){
+    await sb.from("patients").update({outcome_procedures:outcomeProcedures}).eq("id",patient.id);
+    setShowOutcome(false);
+  }
+
+  async function sendAmbassador(){
+    const code="REF-"+Math.random().toString(36).substr(2,4).toUpperCase();
+    await sb.from("patients").update({ambassador_sent:true,ambassador_code:code}).eq("id",patient.id);
+    setAmbassadorSent(true);
+    setShowAmbassador(false);
+    alert(`Referans kodu: ${code}\nBu kodu hastaya paylaşın.`);
+  }
+
+  const formProc=a.procedure||"";
+  const crossSellDetected=outcomeProcedures.length>0&&!outcomeProcedures.every(p=>p===formProc);
+
   return(
     <div style={{background:"#f5f0e8",borderRadius:10,border:`1px solid ${open?"#1a1510":"#d4cabf"}`,marginBottom:8,overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s"}}>
       <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px"}} onClick={()=>setOpen(o=>!o)}>
@@ -272,14 +296,77 @@ function PatientCard({patient,onDelete}){
                 </div>
               )}
             </div>
+            {/* Cross-sell badge */}
+            {crossSellDetected&&(
+              <div style={{padding:"6px 16px",background:"#f0fdf4",borderTop:"1px solid #a7f3d0",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{fontSize:10,color:"#059669",fontWeight:500}}>↗ Cross-sell tespit edildi</div>
+                <div style={{fontSize:10,color:"#b0a898"}}>{outcomeProcedures.filter(p=>p!==formProc).join(", ")} eklendi</div>
+              </div>
+            )}
+            {/* Referral badge */}
+            {a.referralCode&&(
+              <div style={{padding:"6px 16px",background:"#f5f3ff",borderTop:"1px solid #ddd6fe",display:"flex",alignItems:"center",gap:6}}>
+                <div style={{fontSize:10,color:"#7c3aed",fontWeight:500}}>🔗 Referans kodu: {a.referralCode}</div>
+              </div>
+            )}
+
             <div style={{borderTop:"1px solid #d4cabf",padding:"10px 16px",display:"flex",gap:7,background:"#f5f0e8"}}>
-              <button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:400,border:"1px solid #d4cabf",background:"transparent",color:"#8a7a68",letterSpacing:"0.03em"}}>Not Ekle</button>
-              {cls.ambassador&&<button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:400,border:"1px solid #ddd6fe",background:"transparent",color:"#7c3aed",letterSpacing:"0.03em"}}>Sadakat</button>}
+              <button onClick={e=>{e.stopPropagation();setShowOutcome(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:400,border:`1px solid ${outcomeProcedures.length>0?"#059669":"#d4cabf"}`,background:"transparent",color:outcomeProcedures.length>0?"#059669":"#8a7a68",letterSpacing:"0.03em"}}>
+                {outcomeProcedures.length>0?"✓ Randevu Girildi":"Randevu Sonucu"}
+              </button>
+              {cls.ambassador&&!ambassadorSent&&(
+                <button onClick={e=>{e.stopPropagation();setShowAmbassador(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:400,border:"1px solid #ddd6fe",background:"transparent",color:"#7c3aed",letterSpacing:"0.03em"}}>🌟 Elçi Paketi</button>
+              )}
+              {cls.ambassador&&ambassadorSent&&(
+                <div style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,textAlign:"center",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe"}}>✓ Elçi Gönderildi</div>
+              )}
               <button onClick={e=>{e.stopPropagation();}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:500,border:"none",background:"#1a1510",color:"#f5f0e8",letterSpacing:"0.04em"}}>Görüşmeye Hazır</button>
               {!confirm
                 ?<button onClick={e=>{e.stopPropagation();setConfirm(true);}} style={{padding:"8px 12px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#b0a898"}}>Sil</button>
                 :<button onClick={e=>{e.stopPropagation();onDelete(patient.id);}} style={{padding:"8px 12px",borderRadius:7,fontSize:11,border:"none",background:"#ef4444",color:"white",fontWeight:500}}>Emin misin?</button>
               }
+            </div>
+
+            {/* SEKRETER MODALI */}
+            {showOutcome&&(
+              <div onClick={e=>e.stopPropagation()} style={{borderTop:"1px solid #d4cabf",padding:"16px",background:"#ece7db"}}>
+                <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#b0a898",marginBottom:8}}>Randevu Sonucu — Hangi prosedürler planlandı?</div>
+                <div style={{fontSize:11,color:"#8a7a68",marginBottom:10}}>Form prosedürü: <strong style={{color:"#1a1510"}}>{formProc}</strong></div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+                  {ALL_PROCS.map(p=>{
+                    const sel=outcomeProcedures.includes(p);
+                    return(
+                      <button key={p} onClick={()=>setOutcomeProcedures(prev=>sel?prev.filter(x=>x!==p):[...prev,p])}
+                        style={{padding:"5px 11px",borderRadius:20,fontSize:10,border:`1px solid ${sel?"#1a1510":"#d4cabf"}`,background:sel?"#1a1510":"transparent",color:sel?"#f5f0e8":"#8a7a68",cursor:"pointer"}}>
+                        {p}{p===formProc?" ✓":""}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={saveOutcome} style={{padding:"9px 20px",background:"#1a1510",border:"none",borderRadius:7,color:"#f5f0e8",fontSize:11,fontWeight:500,cursor:"pointer"}}>Kaydet</button>
+                  <button onClick={()=>setShowOutcome(false)} style={{padding:"9px 14px",background:"transparent",border:"1px solid #d4cabf",borderRadius:7,color:"#8a7a68",fontSize:11,cursor:"pointer"}}>İptal</button>
+                </div>
+              </div>
+            )}
+
+            {/* MARKA ELÇİSİ MODALI */}
+            {showAmbassador&&(
+              <div onClick={e=>e.stopPropagation()} style={{borderTop:"1px solid #ddd6fe",padding:"16px",background:"#faf5ff"}}>
+                <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#7c3aed",marginBottom:10}}>Marka Elçisi Paketi</div>
+                <div style={{fontSize:12,color:"#5b21b6",marginBottom:12,lineHeight:1.6}}>
+                  <strong>{a.name}</strong> marka elçisi profiline sahip. Referans kodu oluşturulacak ve hastaya iletilecek.
+                </div>
+                <div style={{background:"#ede9fe",border:"1px solid #ddd6fe",borderRadius:8,padding:"10px 12px",marginBottom:14}}>
+                  <div style={{fontSize:10,color:"#7c3aed",marginBottom:5,fontWeight:500}}>Pakete dahil:</div>
+                  <div style={{fontSize:11,color:"#5b21b6",lineHeight:1.7}}>✓ Kişisel referans kodu<br/>✓ Getirdiği her hasta için klinik avantajı<br/>✓ VIP konsültasyon önceliği</div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={sendAmbassador} style={{padding:"9px 20px",background:"#7c3aed",border:"none",borderRadius:7,color:"white",fontSize:11,fontWeight:500,cursor:"pointer"}}>Kodu Oluştur ve Gönder</button>
+                  <button onClick={()=>setShowAmbassador(false)} style={{padding:"9px 14px",background:"transparent",border:"1px solid #ddd6fe",borderRadius:7,color:"#7c3aed",fontSize:11,cursor:"pointer"}}>İptal</button>
+                </div>
+              </div>
+            )}
         </div>
       )}
     </div>
@@ -662,7 +749,9 @@ function PatientForm({model,trainPct,doctorId}){
   const [submitted,setSubmitted]=useState(false);
   const [doctorInfo,setDoctorInfo]=useState(null);
   const q=QUESTIONS[currentQ];
-  const canNext=answers[q?.id]!==undefined&&answers[q?.id]!=="";
+  const canNext=(q?.optional||answers[q?.id]!==undefined&&answers[q?.id]!=="")&&
+    !(q?.id==="referralCode"&&answers["source"]!=="Bir hasta beni yönlendirdi (referans kodu var)"&&!answers[q?.id])
+    ||(q?.id==="referralCode");
   const progress=(currentQ/QUESTIONS.length)*100;
   const secIdx=SECTIONS.indexOf(q?.section);
   const accent=doctorInfo?.primary_color||"#1a1510";
