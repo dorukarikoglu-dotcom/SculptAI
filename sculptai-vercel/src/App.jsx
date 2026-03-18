@@ -1383,11 +1383,11 @@ function Login({onLogin}){
           </div>
 
           {/* Title */}
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:48,fontWeight:300,color:"#1a1510",lineHeight:1.05,marginBottom:14,letterSpacing:"-0.01em"}}>
-            Günaydın,<br/><em>Doktor.</em>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:300,color:"#1a1510",lineHeight:1.1,marginBottom:14,letterSpacing:"-0.02em"}}>
+            Görünmeyeni<br/><em>görmek.</em>
           </div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:300,fontStyle:"italic",color:"#b0a898",lineHeight:1.6,marginBottom:44}}>
-            Her hasta bir karar.<br/><span style={{color:"#1a1510",fontStyle:"normal",fontWeight:400}}>Her karar bir veri.</span>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:300,fontStyle:"italic",color:"#b0a898",lineHeight:1.7,marginBottom:44}}>
+            Hasta beklentisi, karar kalitesini<br/><span style={{color:"#1a1510",fontStyle:"normal",fontWeight:400}}>doğrudan etkiler.</span>
           </div>
 
           {/* Fields */}
