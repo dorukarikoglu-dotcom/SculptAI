@@ -158,45 +158,52 @@ function PatientCard({patient,onDelete}){
   const flags=getFlags(a,cls.cat);
   const signals=getSignals(a,cls.cat);
   return(
-    <div style={{background:"#f5f0e8",borderRadius:12,border:`1.5px solid ${open?"#1a1510":"#f1f3f5"}`,marginBottom:8,overflow:"hidden",cursor:"pointer",transition:"all 0.15s",boxShadow:open?"0 4px 18px rgba(12,20,40,0.09)":"none"}}>
-      <div style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px"}} onClick={()=>setOpen(o=>!o)}>
-        <div style={{width:3,height:44,borderRadius:2,background:cls.color,flexShrink:0}}/>
-        <div style={{width:72,height:44,borderRadius:9,background:cls.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,flexShrink:0}}>
-          <div style={{fontSize:15,lineHeight:1}}>{cls.icon}</div>
-          <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",textAlign:"center",lineHeight:1.2,color:cls.textColor}}>{cls.label.split(" ").slice(0,2).join("\n")}</div>
+    <div style={{background:"#f5f0e8",borderRadius:10,border:`1px solid ${open?"#1a1510":"#d4cabf"}`,marginBottom:8,overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s"}}>
+      <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px"}} onClick={()=>setOpen(o=>!o)}>
+        {/* Left accent */}
+        <div style={{width:2,height:40,borderRadius:1,background:cls.color,flexShrink:0}}/>
+        {/* Segment pill */}
+        <div style={{padding:"4px 10px",borderRadius:20,background:cls.bg,border:`1px solid ${cls.border}`,flexShrink:0}}>
+          <div style={{fontSize:9,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase",color:cls.textColor,whiteSpace:"nowrap"}}>{cls.icon} {cls.label.split(" ").slice(0,2).join(" ")}</div>
         </div>
+        {/* Name + procedure */}
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:14,fontWeight:500,color:"#1a1510",marginBottom:2}}>{a.name||"İsimsiz Hasta"}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:400,color:"#1a1510",marginBottom:1,letterSpacing:"-0.01em"}}>{a.name||"İsimsiz Hasta"}</div>
           <div style={{fontSize:11,color:"#b0a898"}}>{a.age&&`${a.age} yaş · `}{a.procedure}</div>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:148}}>
-          {flags.map((f,i)=>(
-            <div key={i} style={{fontSize:11,color:"#8a7a68",display:"flex",alignItems:"center",gap:5}}>
-              <div style={{width:5,height:5,borderRadius:"50%",background:cls.color,flexShrink:0}}/>{f}
+        {/* Flags */}
+        <div style={{display:"flex",flexDirection:"column",gap:3,minWidth:140}}>
+          {flags.slice(0,2).map((f,i)=>(
+            <div key={i} style={{fontSize:10,color:"#8a7a68",display:"flex",alignItems:"center",gap:5}}>
+              <div style={{width:4,height:4,borderRadius:"50%",background:cls.color,flexShrink:0}}/>{f}
             </div>
           ))}
         </div>
-        <div style={{fontSize:10,color:"#d4cabf",flexShrink:0}}>{patient.date?.slice(0,10)}</div>
-        <div style={{fontSize:10,color:"#d4cabf",transition:"transform 0.2s",transform:open?"rotate(180deg)":"none",flexShrink:0}}>▼</div>
+        {/* Date + chevron */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
+          <div style={{fontSize:10,color:"#b0a898"}}>{patient.created_at?new Date(patient.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}):""}</div>
+          <div style={{fontSize:14,color:"#b0a898",transform:open?"rotate(90deg)":"none",transition:"transform 0.2s"}}>›</div>
+        </div>
       </div>
       {open&&(
-        <div style={{borderTop:"1px solid #ece7db",padding:"14px 18px 14px 57px",background:"#fafbfc",animation:"fadeUp 0.18s ease"}}>
-          <div style={{borderRadius:12,border:"1.5px solid #f1f3f5",overflow:"hidden"}}>
-            <div style={{padding:"12px 16px",display:"flex",alignItems:"flex-start",gap:10,background:cls.bg}}>
-              <div style={{fontSize:16,flexShrink:0,marginTop:1}}>{cls.icon}</div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:cls.textColor,marginBottom:2}}>{cls.obs}</div>
-                <div style={{fontSize:11,lineHeight:1.65,color:"#8a7a68"}}>{cls.obsBody}</div>
+        <div style={{borderTop:"1px solid #d4cabf",animation:"fadeUp 0.18s ease"}}>
+          {/* Observation strip */}
+          <div style={{padding:"12px 18px",background:cls.bg,borderBottom:`1px solid ${cls.border}`,display:"flex",alignItems:"flex-start",gap:10}}>
+            <div style={{fontSize:14,flexShrink:0,marginTop:1}}>{cls.icon}</div>
+            <div>
+              <div style={{fontSize:11,fontWeight:500,color:cls.textColor,marginBottom:2}}>{cls.obs}</div>
+              <div style={{fontSize:11,lineHeight:1.65,color:cls.textColor,opacity:0.8}}>{cls.obsBody}</div>
+            </div>
+          </div>
+          {/* Signal boxes */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",borderBottom:"1px solid #d4cabf"}}>
+            {signals.map((s,i)=>(
+              <div key={i} style={{padding:"10px 16px",borderRight:i<2?"1px solid #d4cabf":"none"}}>
+                <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#b0a898",marginBottom:3}}>{s.label}</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510"}}>{s.val}</div>
               </div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",borderTop:"1px solid #e0d9cc"}}>
-              {signals.map((s,i)=>(
-                <div key={i} style={{padding:"10px 14px",borderRight:i<2?"1px solid #e0d9cc":"none"}}>
-                  <div style={{fontSize:9,letterSpacing:"0.1em",textTransform:"uppercase",color:"#b0a898",marginBottom:3}}>{s.label}</div>
-                  <div style={{fontSize:12,fontWeight:500,color:"#1a1510"}}>{s.val}</div>
-                </div>
-              ))}
-            </div>
+            ))}
+          </div>
             <div style={{borderTop:"1px solid #e0d9cc",padding:"12px 16px",background:"#f5f0e8"}}>
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
                 <div style={{width:18,height:18,background:"#1a1510",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#f5f0e8",flexShrink:0}}>✦</div>
@@ -265,16 +272,14 @@ function PatientCard({patient,onDelete}){
                 </div>
               )}
             </div>
-            <div style={{borderTop:"1px solid #e0d9cc",padding:"10px 16px",display:"flex",gap:8,background:"#f5f0e8"}}>
-              <button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:500,border:"1.5px solid #e0d9cc",background:"#f5f0e8",color:"#3a3028"}}>📋 Not Ekle</button>
-              {cls.ambassador&&<button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:500,border:"1.5px solid #ddd6fe",background:"#f5f0e8",color:"#7c3aed"}}>🌟 Sadakat</button>}
-              <button onClick={e=>{e.stopPropagation();}} style={{flex:1,padding:"8px",borderRadius:8,fontSize:12,fontWeight:600,border:"none",background:"#1a1510",color:"#f5f0e8"}}>Görüşmeye Hazır</button>
+            <div style={{borderTop:"1px solid #d4cabf",padding:"10px 16px",display:"flex",gap:7,background:"#f5f0e8"}}>
+              <button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:400,border:"1px solid #d4cabf",background:"transparent",color:"#8a7a68",letterSpacing:"0.03em"}}>Not Ekle</button>
+              {cls.ambassador&&<button onClick={e=>e.stopPropagation()} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:400,border:"1px solid #ddd6fe",background:"transparent",color:"#7c3aed",letterSpacing:"0.03em"}}>Sadakat</button>}
+              <button onClick={e=>{e.stopPropagation();}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:500,border:"none",background:"#1a1510",color:"#f5f0e8",letterSpacing:"0.04em"}}>Görüşmeye Hazır</button>
               {!confirm
-                ?<button onClick={e=>{e.stopPropagation();setConfirm(true);}} style={{padding:"8px 12px",borderRadius:8,fontSize:12,border:"1.5px solid #fee2e2",background:"#f5f0e8",color:"#ef4444"}}>Sil</button>
-                :<button onClick={e=>{e.stopPropagation();onDelete(patient.id);}} style={{padding:"8px 12px",borderRadius:8,fontSize:12,border:"none",background:"#ef4444",color:"#f5f0e8",fontWeight:600}}>Emin misin?</button>
+                ?<button onClick={e=>{e.stopPropagation();setConfirm(true);}} style={{padding:"8px 12px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#b0a898"}}>Sil</button>
+                :<button onClick={e=>{e.stopPropagation();onDelete(patient.id);}} style={{padding:"8px 12px",borderRadius:7,fontSize:11,border:"none",background:"#ef4444",color:"white",fontWeight:500}}>Emin misin?</button>
               }
-            </div>
-          </div>
         </div>
       )}
     </div>
@@ -514,17 +519,17 @@ function DoctorPanel({doctor,onLogout}){
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,color:"#1a1510",fontWeight:300,letterSpacing:"-0.02em"}}>Günaydın, <em>{doctor.name}</em></div>
             <div style={{fontSize:12,color:"#b0a898",marginTop:3}}>{today}</div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <button onClick={()=>setShowPw(v=>!v)} style={{padding:"6px 14px",borderRadius:8,fontSize:12,border:"1.5px solid #e0d9cc",background:"#f5f0e8",color:"#8a7a68"}}>⚙ Şifre</button>
-            <button onClick={onLogout} style={{padding:"6px 14px",borderRadius:8,fontSize:12,border:"1.5px solid #fee2e2",background:"#f5f0e8",color:"#ef4444"}}>Çıkış</button>
-            <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#1a1510,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"#f5f0e8"}}>{doctor.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <button onClick={()=>setShowPw(v=>!v)} style={{padding:"6px 13px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#8a7a68",letterSpacing:"0.03em"}}>Şifre</button>
+            <button onClick={onLogout} style={{padding:"6px 13px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#8a7a68",letterSpacing:"0.03em"}}>Çıkış</button>
+            <div style={{width:32,height:32,borderRadius:"50%",background:"#1a1510",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:500,color:"#f5f0e8",letterSpacing:"0.04em"}}>{doctor.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>
           </div>
         </div>
 
         {/* TAB NAV */}
-        <div style={{display:"flex",gap:2,padding:"0 28px",background:"#f5f0e8",borderBottom:"1px solid #e0d9cc",flexShrink:0}}>
-          {[["patients","👥 Hastalar"],["analytics","📊 Analitik"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setTab(v)} style={{padding:"10px 16px",fontSize:12,fontWeight:600,border:"none",background:"transparent",color:tab===v?"#1a1510":"#b0a898",borderBottom:tab===v?"2px solid #1a1510":"2px solid transparent",cursor:"pointer",transition:"all 0.15s"}}>{l}</button>
+        <div style={{display:"flex",gap:0,padding:"0 28px",background:"#f5f0e8",borderBottom:"1px solid #d4cabf",flexShrink:0}}>
+          {[["patients","Hastalar"],["analytics","Analitik"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setTab(v)} style={{padding:"11px 18px",fontSize:11,fontWeight:500,letterSpacing:"0.06em",border:"none",background:"transparent",color:tab===v?"#1a1510":"#b0a898",borderBottom:tab===v?"1px solid #1a1510":"1px solid transparent",cursor:"pointer",transition:"all 0.15s",textTransform:"uppercase"}}>{l}</button>
           ))}
         </div>
 
