@@ -75,21 +75,42 @@ const QUESTIONS=[
   {id:"source",section:"Kişisel Bilgiler",label:"Bizi nereden duydunuz?",type:"radio",options:["Eski hastaların tavsiyesi üzerine geldim.","Kurumun (Hacettepe Üniversitesi) itibarı tercihimde etkili oldu.","Google'da gördüm.","Instagram'da gördüm.","Bir hasta beni yönlendirdi (referans kodu var)","Rastgele randevu aldım."]},
   {id:"referralCode",section:"Kişisel Bilgiler",label:"Sizi yönlendiren kişinin referans kodu nedir? (varsa)",type:"text",placeholder:"örn. REF-2847",optional:true},
   {id:"procedure",section:"Ameliyat Bilgisi",label:"Hangi ameliyatı yaptırmak istiyorsunuz?",type:"radio",options:["Meme Küçültme","Meme Büyütme (Silikon Protez ile)","Meme Dikleştirme","Meme Asimetrisinin Giderilmesi","Meme Onarımı (Kanser sonrası)","Doğumsal Meme Anomalisinin Düzeltilmesi","Jinekomasti","Burun Estetiği","Yüz Germe","Üst Göz Kapağı Estetiği","Alt Göz Kapağı Estetiği","Botoks Uygulaması","Dolgu Uygulaması","Karın Germe","Liposuction","Uyluk veya Kol germe","Popo estetiği"]},
-  {id:"motivation",section:"Motivasyon & Beklenti",label:"Sizi bu ameliyatı düşünmeye yönlendiren en önemli neden nedir?",type:"radio",options:["Görünümümü iyileştirmek istiyorum","Sosyal özgüvenimi artırmak istiyorum","Başka insanların yorumları beni kötü etkiliyor","Hayatımda büyük bir değişime ihtiyacım var"]},
-  {id:"expectation",section:"Motivasyon & Beklenti",label:"Ameliyat sonucunda nasıl bir görünüm beklersiniz?",type:"radio",options:["Küçük iyileştirmeler yeterli","Doğal ve dengeli bir sonuç bekliyorum","Belirgin bir değişim bekliyorum, ameliyat olduğum belli olmalı","Tamamen farklı görünmek istiyorum"]},
+
+  /* ── VALIDATED: BDD Screening (BDDQ adapted) ── */
+  {id:"bodyFocus",section:"Motivasyon & Beklenti",label:"Bu bölgenizi günlük hayatınızda ne sıklıkla düşünürsünüz?",type:"radio",options:["Nadiren aklıma gelir","Zaman zaman düşünürüm","Sık sık düşünürüm, ama kontrol altında","Neredeyse her gün, bazen işimi gücümü etkiliyor"]},
+  {id:"avoidance",section:"Motivasyon & Beklenti",label:"Bu konudan ötürü kaçındığınız durumlar oluyor mu?",type:"radio",options:["Hayır, hayatımı etkilemiyor","Bazen dikkatimi dağıtıyor","Bazı sosyal ortamlardan kaçınıyorum","Günlük hayatımı önemli ölçüde kısıtlıyor"]},
+  {id:"motivation",section:"Motivasyon & Beklenti",label:"Bu kararı almanızda en belirleyici olan nedir?",type:"radio",options:["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum","Yakınlarımın yorumları etkili oldu","Hayatımın daha iyi gideceğini düşünüyorum"]},
+  {id:"expectation",section:"Motivasyon & Beklenti",label:"Ameliyat sonucunda nasıl bir değişim bekliyorsunuz?",type:"radio",options:["Küçük, doğal bir iyileştirme yeterli","Dengeli ve orantılı bir sonuç bekliyorum","Belirgin bir fark olmasını istiyorum","Tamamen farklı bir görünüm istiyorum"]},
+
+  /* ── VALIDATED: Rosenberg Self-Esteem (adapted) ── */
+  {id:"selfEsteem",section:"Kendinizi Tanıyın",label:"Genel olarak kendinizden memnun musunuz?",type:"radio",options:["Evet, kendimden genel olarak memnunum","Çoğunlukla memnunum, bazı konularda değil","Kendimden pek memnun değilim","Hayır, kendimle barışık değilim"]},
+  {id:"selfWorth",section:"Kendinizi Tanıyın",label:"Zor anlarda kendinize nasıl yaklaşırsınız?",type:"radio",options:["Kendime karşı sabırlı ve anlayışlı olurum","Çoğunlukla anlayışlıyım ama sert de olabilirim","Kendimi sıklıkla eleştiririm","Kendime çok sert davranırım"]},
+  {id:"futureOptimism",section:"Kendinizi Tanıyın",label:"Gelecek hakkında genel olarak nasıl hissediyorsunuz?",type:"radio",options:["İyimserim, işlerin iyi gideceğine inanıyorum","Umutluyum ama endişelerim de var","Belirsizlik hissediyorum","Karamsar hissediyorum"]},
+
+  /* ── Karar Kalitesi ── */
+  {id:"decisionAge",section:"Karar Süreci",label:"Bu ameliyatı ne zamandır düşünüyorsunuz?",type:"radio",options:["1 aydan az","1–6 ay","6 ay – 1 yıl","1 yıldan fazla"]},
+  {id:"imagineAfter",section:"Karar Süreci",label:"Ameliyat sonrasını hayal ettiğinizde ne görüyorsunuz?",type:"radio",options:["Kendimi daha özgüvenli ve hafif hayal ediyorum","Belirli bir fiziksel değişikliği hayal ediyorum","Hayatımın daha iyi gideceğini hayal ediyorum","Çevremin tepkisini ve beğenisini hayal ediyorum"]},
+  {id:"worstCase",section:"Karar Süreci",label:"En kötü ihtimalde sonuç beklediğiniz gibi çıkmazsa ne yaparsınız?",type:"radio",options:["Doktorumla konuşur, birlikte değerlendiririm","Revizyon seçeneğini değerlendiririm","Çok üzülürüm ama kabullenirim","Bu ihtimali düşünmek istemiyorum"]},
   {id:"prevSurgery",section:"Geçmiş Deneyimler",label:"Daha önce estetik bir işlem geçirdiniz mi?",type:"radio",options:["Hayır","Evet ve memnunum","Evet ama beklentimi karşılamadı","Evet ve hiç memnun değilim"]},
-  {id:"multiDoctor",section:"Geçmiş Deneyimler",label:"Mevcut şikayetinizi daha önce başka doktorlara danıştınız mı?",type:"radio",options:["Hayır","1-2 doktora danıştım","Birçok doktora danıştım"]},
-  {id:"riskKnowledge",section:"Süreç Farkındalığı",label:"Ameliyatınızın riskleri ve iyileşme süreci hakkında bilginiz ne düzeydedir?",type:"radio",options:["Hiçbir bilgim yok","Genel olarak bilgi sahibiyim","Detaylı araştırdım ve biliyorum"]},
-  {id:"patience",section:"Süreç Farkındalığı",label:"İyileşme sürecinde sabırlı olabileceğinizi düşünüyor musunuz?",type:"radio",options:["Evet","Sabırlı olmakta zorlanabilirim","Hızlı sonuç görmek istiyorum"]},
-  {id:"support",section:"Süreç Farkındalığı",label:"Yakın çevreniz bu ameliyat kararınızı destekliyor mu?",type:"radio",options:["Evet","Kararsızlar","Bu işleme karşılar","Kimseye söylemedim"]},
-  {id:"revision",section:"Süreç Farkındalığı",label:"Ameliyat sonrası revizyon ihtimali olabileceğini biliyor musunuz?",type:"radio",options:["Evet, ve olası revizyonu normal kabul ederim","Revizyon ihtimali beni çok endişelendiriyor","Kusursuz sonuç bekliyorum"]},
-  {id:"compliance",section:"Süreç Farkındalığı",label:"Doktorunuzun önerilerine uyma konusunda kendinizi nasıl değerlendirirsiniz?",type:"radio",options:["Titizlikle tüm önerilere uyarım","Büyük ölçüde uyarım","Kendi yöntemlerimi uygulamayı tercih ederim"]},
-  {id:"price",section:"Hasta Profili",label:"Hangisi size daha yakındır?",type:"radio",options:["En uygun fiyatı tercih ederim","Dengeli fiyat/kalite isterim","Kalite için daha fazla öderim"]},
-  {id:"sharing",section:"Hasta Profili",label:"Yaptırdığınız işlemleri çevreniz ile paylaşır mısınız?",type:"radio",options:["Evet paylaşırım","Hayır paylaşmam","Sadece yakın çevrem ile paylaşırım"]},
-  {id:"crossSell",section:"Hasta Profili",label:"Mevcut şikâyetiniz dışında başka iyileştirmeler hakkında bilgi almak ister misiniz?",type:"radio",options:["Evet, önerilere açığım","Doktor uygun görürse değerlendirebilirim","Sadece mevcut şikâyetimle ilgilenmek istiyorum"]},
+  {id:"multiDoctor",section:"Geçmiş Deneyimler",label:"Bu konuyu daha önce başka doktorlarla görüştünüz mü?",type:"radio",options:["Hayır","1-2 doktorla görüştüm","Birçok doktorla görüştüm"]},
+
+  /* ── Süreç Farkındalığı ── */
+  {id:"riskKnowledge",section:"Süreç Farkındalığı",label:"Ameliyatın riskleri ve iyileşme süreci hakkında bilginiz ne düzeyde?",type:"radio",options:["Hiçbir bilgim yok","Genel olarak bilgi sahibiyim","Detaylı araştırdım ve biliyorum"]},
+  {id:"patience",section:"Süreç Farkındalığı",label:"İyileşme sürecinde sabırlı olabileceğinizi düşünüyor musunuz?",type:"radio",options:["Evet, sabırlıyım","Zorlanabilirim ama başarırım","Hızlı sonuç görmek istiyorum"]},
+  {id:"support",section:"Süreç Farkındalığı",label:"Yakın çevreniz bu kararınızı biliyor mu ve destekliyor mu?",type:"radio",options:["Evet, destekliyorlar","Biliyorlar ama kararsızlar","Karşılar","Kimseye söylemedim"]},
+  {id:"revision",section:"Süreç Farkındalığı",label:"Revizyon ihtimali olabileceğini biliyor musunuz?",type:"radio",options:["Evet, olası revizyonu normal karşılarım","Revizyon beni endişelendiriyor","Kusursuz sonuç bekliyorum"]},
+  {id:"compliance",section:"Süreç Farkındalığı",label:"Doktor önerilerine uyma konusunda kendinizi nasıl değerlendirirsiniz?",type:"radio",options:["Titizlikle tüm önerilere uyarım","Büyük ölçüde uyarım","Kendi yöntemlerimi uygulamayı tercih ederim"]},
+
+  /* ── Hasta Profili ── */
+  {id:"price",section:"Hasta Profili",label:"Fiyatlandırma konusunda hangisi size daha yakın?",type:"radio",options:["En uygun fiyatı tercih ederim","Dengeli fiyat/kalite isterim","Kalite için daha fazla ödemeye hazırım"]},
+  {id:"sharing",section:"Hasta Profili",label:"Yaptırdığınız işlemleri çevrenizle paylaşır mısınız?",type:"radio",options:["Evet, açıkça paylaşırım","Sadece çok yakınlarımla","Hayır, paylaşmam"]},
+  {id:"crossSell",section:"Hasta Profili",label:"Mevcut şikâyetiniz dışında başka iyileştirmeler hakkında bilgi almak ister misiniz?",type:"radio",options:["Evet, önerilere açığım","Doktor uygun görürse değerlendiririm","Sadece mevcut şikâyetimle ilgileniyorum"]},
   {id:"socialInfluence",section:"Hasta Profili",label:"Çevrenizde insanlar estetik kararlarında size danışır mı?",type:"radio",options:["Sık sık danışırlar","Bazen","Hayır"]},
-  {id:"recommends",section:"Hasta Profili",label:"Memnun kaldığınız bir hizmeti aktif olarak başkalarına önerir misiniz?",type:"radio",options:["Evet, sık öneririm","Bazen","Önermem"]},
-  {id:"socialMedia",section:"Hasta Profili",label:"Sosyal medyada deneyimlerinizi paylaşma sıklığınız nedir?",type:"radio",options:["Sık paylaşırım","Ara sıra","Genelde paylaşmam"]},
+  {id:"recommends",section:"Hasta Profili",label:"Memnun kaldığınız bir deneyimi aktif olarak başkalarına önerir misiniz?",type:"radio",options:["Evet, sık sık öneririm","Bazen","Önermem"]},
+  {id:"socialMedia",section:"Hasta Profili",label:"Sosyal medyada kişisel deneyimlerinizi paylaşma sıklığınız nedir?",type:"radio",options:["Sık paylaşırım","Ara sıra","Genelde paylaşmam"]},
+
+  /* ── Açık Uçlu — En Güçlü Sinyal ── */
+  {id:"openStory",section:"Size Bir Sorum Var",label:"Bu formu doldurmadan önce bugün sabah aynaya baktığınızda ne hissettiniz?",type:"text",placeholder:"İstediğiniz kadar az veya çok yazabilirsiniz...",optional:true},
 ];
 const SECTIONS=[...new Set(QUESTIONS.map(q=>q.section))];
 
@@ -142,11 +163,29 @@ function exportCSV(records){
 }
 
 /* ─── SIDEBAR ────────────────────────────────────────────────────────────── */
-function Sidebar(){
-  const s={width:52,background:"#1a1510",display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 0",gap:4,flexShrink:0};
-  const logo={width:28,height:28,border:"1px solid rgba(255,255,255,0.12)",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:18};
-  const ic=(on)=>({width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:on?"#f5f0e8":"rgba(255,255,255,0.22)",background:on?"rgba(245,240,232,0.1)":"transparent",cursor:"pointer"});
-  return(<aside style={s}><div style={logo}><div style={{width:7,height:7,background:"#f5f0e8",borderRadius:"50%"}}/></div><div style={ic(true)}>◉</div><div style={ic(false)}>◈</div><div style={ic(false)}>◎</div><div style={{width:20,height:1,background:"rgba(255,255,255,0.07)",margin:"6px 0"}}/><div style={ic(false)}>◻</div><div style={{flex:1}}/><div style={ic(false)}>◬</div></aside>);
+function Sidebar({tab,setTab}){
+  const items=[
+    {id:"patients",icon:(on)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.2)"} strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>},
+    {id:"analytics",icon:(on)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.2)"} strokeWidth="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
+    {id:"value",icon:(on)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.2)"} strokeWidth="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>},
+    {id:"settings",icon:(on)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.2)"} strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>},
+  ];
+  return(
+    <aside style={{width:52,background:"#1a1510",display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 0",gap:4,flexShrink:0}}>
+      <div style={{width:22,height:22,border:"1px solid rgba(255,255,255,0.12)",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:18}}>
+        <div style={{width:7,height:7,background:"#4a1520",borderRadius:"50%",boxShadow:"0 0 8px rgba(74,21,32,0.8)"}}/>
+      </div>
+      {items.map(({id,icon})=>(
+        <div key={id} onClick={()=>setTab(id)} style={{width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:tab===id?"rgba(245,240,232,0.08)":"transparent",transition:"background 0.15s"}}>
+          {icon(tab===id)}
+        </div>
+      ))}
+      <div style={{flex:1}}/>
+      <div style={{width:36,height:36,borderRadius:"50%",background:"#2a2018",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:500,color:"#f5f0e8",letterSpacing:"0.04em",marginBottom:6,cursor:"pointer"}}>
+        AK
+      </div>
+    </aside>
+  );
 }
 
 /* ─── PATIENT CARD ───────────────────────────────────────────────────────── */
@@ -396,6 +435,119 @@ function PatientCard({patient,onDelete}){
   );
 }
 
+/* ─── VALUE SCREEN ───────────────────────────────────────────────────────── */
+function ValueScreen({patients,doctor}){
+  const total=patients.length;
+  const crossSells=patients.filter(p=>p.outcome_procedures&&p.outcome_procedures.length>0&&p.outcome_procedures.some(x=>x!==(p.answers?.procedure||""))).length;
+  const noAppt=patients.filter(p=>p.no_appointment).length;
+  const ambassadors=patients.filter(p=>p.ambassador_code&&p.ambassador_code!=="").length;
+  const avgProc=22000;
+  const timeSaved=total*13;
+  const C={border:"#d4cabf",muted:"#b0a898"};
+  const cardS={background:"#ece7db",border:"1px solid #d4cabf",borderRadius:10,padding:"16px 20px"};
+  return(
+    <div style={{flex:1,overflowY:"auto",padding:"24px 32px"}}>
+      <div style={{marginBottom:24}}>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:300,color:"#1a1510",letterSpacing:"-0.01em",marginBottom:4}}>SculptAI'ın <em>Katkısı</em></div>
+        <div style={{fontSize:11,color:C.muted}}>Bu ay · {total} hasta · Piyasa ortalamalarına göre tahmini</div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+        {[
+          {accent:"#059669",icon:"↗",title:"Cross-Sell",sub:"Ek prosedür randevusu",val:crossSells,unit:" hasta",note:`Tahmini +₺${Math.round(crossSells*avgProc*0.4/1000)}K`,color:"#059669"},
+          {accent:"#4a1520",icon:"🛡",title:"Risk Filtresi",sub:"Randevu alınmadı",val:noAppt,unit:" hasta",note:"Revizyon riski önlendi",color:"#4a1520"},
+          {accent:"#1a1510",icon:"⏱",title:"Zaman Tasarrufu",sub:"Toplam kazanılan",val:timeSaved,unit:" dk",note:`${total} konsültasyon × 13dk`,color:"#1a1510"},
+        ].map((k,i)=>(
+          <div key={i} style={{...cardS,position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:k.accent}}/>
+            <div style={{fontSize:16,marginBottom:8}}>{k.icon}</div>
+            <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:4,fontWeight:500}}>{k.title}</div>
+            <div style={{fontSize:10,color:C.muted,marginBottom:10}}>{k.sub}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:38,fontWeight:300,color:k.color,lineHeight:1,letterSpacing:"-0.02em",marginBottom:2}}>{k.val}<span style={{fontSize:16}}>{k.unit}</span></div>
+            <div style={{fontSize:10,fontWeight:500,color:k.color,marginTop:4}}>{k.note}</div>
+          </div>
+        ))}
+      </div>
+      {crossSells>0&&(
+        <div style={{...cardS,marginBottom:12}}>
+          <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:12,fontWeight:500}}>Cross-Sell Detayı</div>
+          {patients.filter(p=>p.outcome_procedures?.length>0&&p.outcome_procedures.some(x=>x!==(p.answers?.procedure||""))).slice(0,5).map((p,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:12,paddingBottom:10,marginBottom:10,borderBottom:"1px solid #d4cabf"}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510",flex:1}}>{p.answers?.name||"Hasta"}</div>
+              <div style={{fontSize:10,color:C.muted,flex:1}}>{p.answers?.procedure} →</div>
+              <div style={{fontSize:10,color:"#059669",flex:1}}>{p.outcome_procedures.filter(x=>x!==p.answers?.procedure).join(", ")}</div>
+              <div style={{fontSize:12,color:"#059669",fontFamily:"'Cormorant Garamond',serif"}}>+₺{Math.round(avgProc*0.4/1000)}K tahmini</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={cardS}>
+        <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:10,fontWeight:500}}>Marka Elçisi Programı</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+          {[["Aktif Elçi",ambassadors],["Kod Gönderildi",patients.filter(p=>p.ambassador_sent).length],["Referansla Gelen",patients.filter(p=>p.answers?.referralCode).length]].map(([lbl,val])=>(
+            <div key={lbl} style={{background:"#f5f0e8",borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:300,color:"#7c3aed",lineHeight:1,marginBottom:3}}>{val}</div>
+              <div style={{fontSize:9,color:C.muted}}>{lbl}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:10,padding:"9px 11px",background:"#f5f0e8",borderRadius:7,fontSize:10,color:C.muted,fontStyle:"italic"}}>Rakamlar piyasa ortalamalarına göre tahminidir.</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SETTINGS SCREEN ────────────────────────────────────────────────────── */
+function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP2,pwErr,setPwErr,saveNewCreds,confirmClear,setConfirmClear,clearAll}){
+  const C={border:"#d4cabf",muted:"#b0a898"};
+  const cardS={background:"#ece7db",border:"1px solid #d4cabf",borderRadius:10,padding:"18px 20px",marginBottom:12};
+  return(
+    <div style={{flex:1,overflowY:"auto",padding:"24px 32px",maxWidth:520}}>
+      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:300,color:"#1a1510",marginBottom:24,letterSpacing:"-0.01em"}}>Ayarlar</div>
+      <div style={cardS}>
+        <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:12,fontWeight:500}}>Klinik Bilgileri</div>
+        {[["Doktor",doctor.name],["Kullanıcı Adı",doctor.username],["Klinik",doctor.clinic_name||"—"]].map(([lbl,val])=>(
+          <div key={lbl} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #d4cabf"}}>
+            <div style={{fontSize:11,color:C.muted}}>{lbl}</div>
+            <div style={{fontSize:11,color:"#1a1510",fontWeight:500}}>{val}</div>
+          </div>
+        ))}
+        <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0"}}>
+          <div style={{fontSize:11,color:C.muted}}>Form Linki</div>
+          <button onClick={()=>navigator.clipboard?.writeText(`${window.location.origin}/form/${doctor.id}`)} style={{fontSize:10,color:"#4a1520",border:"none",background:"transparent",cursor:"pointer",textDecoration:"underline"}}>Kopyala</button>
+        </div>
+      </div>
+      <div style={cardS}>
+        <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:12,fontWeight:500}}>Şifre Değiştir</div>
+        {[["Yeni Kullanıcı Adı",newU,setNewU,"text"],["Yeni Şifre",newP,setNewP,"password"],["Şifre Tekrar",newP2,setNewP2,"password"]].map(([lbl,val,set,type])=>(
+          <div key={lbl} style={{marginBottom:10}}>
+            <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:C.muted,marginBottom:5}}>{lbl}</div>
+            <input type={type} value={val} onChange={e=>set(e.target.value)} style={{width:"100%",padding:"10px 12px",background:"#f5f0e8",border:"1px solid #d4cabf",borderRadius:7,fontSize:12,color:"#1a1510",outline:"none"}}/>
+          </div>
+        ))}
+        {pwErr&&<div style={{fontSize:11,color:"#dc2626",marginBottom:8}}>{pwErr}</div>}
+        <button onClick={saveNewCreds} style={{padding:"9px 20px",background:"#1a1510",border:"none",borderRadius:7,color:"#f5f0e8",fontSize:11,fontWeight:500,cursor:"pointer",letterSpacing:"0.05em"}}>Kaydet</button>
+      </div>
+      <div style={{...cardS,border:"1px solid #fecaca"}}>
+        <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"#dc2626",marginBottom:12,fontWeight:500}}>Tehlikeli Alan</div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <div style={{fontSize:11,color:C.muted}}>Tüm hasta verilerini sil</div>
+          {!confirmClear
+            ?<button onClick={()=>setConfirmClear(true)} style={{padding:"7px 14px",border:"1px solid #fecaca",borderRadius:7,fontSize:11,color:"#dc2626",background:"transparent",cursor:"pointer"}}>Verileri Temizle</button>
+            :<div style={{display:"flex",gap:8}}>
+              <button onClick={clearAll} style={{padding:"7px 14px",background:"#dc2626",border:"none",borderRadius:7,fontSize:11,color:"white",cursor:"pointer",fontWeight:500}}>Evet, sil</button>
+              <button onClick={()=>setConfirmClear(false)} style={{padding:"7px 14px",border:"1px solid #d4cabf",borderRadius:7,fontSize:11,color:C.muted,background:"transparent",cursor:"pointer"}}>İptal</button>
+            </div>
+          }
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{fontSize:11,color:C.muted}}>Oturumu kapat</div>
+          <button onClick={onLogout} style={{padding:"7px 14px",border:"1px solid #d4cabf",borderRadius:7,fontSize:11,color:C.muted,background:"transparent",cursor:"pointer"}}>Çıkış Yap</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── DOCTOR PANEL ───────────────────────────────────────────────────────── */
 function Analytics({patients}){
   const total=patients.length;
@@ -578,7 +730,7 @@ function DoctorPanel({doctor,onLogout}){
   const [patients,setPatients]=useState([]);
   const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState("all");
-  const [tab,setTab]=useState("patients"); // patients | analytics
+  const [tab,setTab]=useState("patients"); // patients | analytics | value | settings
   const [showPw,setShowPw]=useState(false);
   const [newU,setNewU]=useState("");const [newP,setNewP]=useState("");const [newP2,setNewP2]=useState("");const [pwErr,setPwErr]=useState("");
   const [confirmClear,setConfirmClear]=useState(false);
@@ -622,7 +774,7 @@ function DoctorPanel({doctor,onLogout}){
 
   return(
     <div style={{display:"flex",height:"100vh",overflow:"hidden",fontFamily:"'Inter',sans-serif"}}>
-      <Sidebar/>
+      <Sidebar tab={tab} setTab={setTab}/>
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#f5f0e8"}}>
         <div style={{padding:"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,background:"#f5f0e8",borderBottom:"1px solid #d4cabf"}} className="f1">
           {/* Logo + Karşılama */}
@@ -640,8 +792,7 @@ function DoctorPanel({doctor,onLogout}){
           </div>
           {/* Sağ butonlar */}
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <button onClick={()=>setShowPw(v=>!v)} style={{padding:"6px 13px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#8a7a68",letterSpacing:"0.03em"}}>Şifre</button>
-            <button onClick={onLogout} style={{padding:"6px 13px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#8a7a68",letterSpacing:"0.03em"}}>Çıkış</button>
+            <button onClick={()=>setTab("settings")} style={{padding:"6px 13px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#8a7a68",letterSpacing:"0.03em"}}>Ayarlar</button>
             <div style={{width:32,height:32,borderRadius:"50%",background:"#1a1510",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:500,color:"#f5f0e8",letterSpacing:"0.04em"}}>{doctor.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>
           </div>
         </div>
@@ -654,6 +805,8 @@ function DoctorPanel({doctor,onLogout}){
         </div>
 
         {tab==="analytics"&&<Analytics patients={patients}/>}
+        {tab==="value"&&<ValueScreen patients={patients} doctor={doctor}/>}
+        {tab==="settings"&&<SettingsScreen doctor={doctor} onLogout={onLogout} showPw={showPw} setShowPw={setShowPw} newU={newU} setNewU={setNewU} newP={newP} setNewP={setNewP} newP2={newP2} setNewP2={setNewP2} pwErr={pwErr} setPwErr={setPwErr} saveNewCreds={saveNewCreds} confirmClear={confirmClear} setConfirmClear={setConfirmClear} clearAll={clearAll}/>}
         {tab==="patients"&&<div style={{flex:1,overflowY:"auto",padding:"20px 28px 24px"}}>
           {showPw&&(
             <div style={{background:"#f5f0e8",border:"1px solid #e0d9cc",borderRadius:12,padding:"16px 20px",marginBottom:18,animation:"fadeUp 0.25s ease"}}>
@@ -918,6 +1071,9 @@ function PatientForm({model,trainPct,doctorId}){
   const [patientSegment,setPatientSegment]=useState(null);
   const [personalGuide,setPersonalGuide]=useState(null);
   const [guideLoading,setGuideLoading]=useState(false);
+  const [questionTimes,setQuestionTimes]=useState({});
+  const [questionChanges,setQuestionChanges]=useState({});
+  const qStartTime=useRef(Date.now());
   const q=QUESTIONS[currentQ];
   const canNext=(q?.optional||answers[q?.id]!==undefined&&answers[q?.id]!=="")&&
     !(q?.id==="referralCode"&&answers["source"]!=="Bir hasta beni yönlendirdi (referans kodu var)"&&!answers[q?.id])
@@ -939,6 +1095,9 @@ function PatientForm({model,trainPct,doctorId}){
     const score=Math.round(raw*100);
     const cls=classify(score,answers);
     const ambCode=cls.ambassador?"REF-"+Math.random().toString(36).substr(2,4).toUpperCase():null;
+    const timingData={questionTimes,questionChanges};
+    const slowQuestions=Object.entries(questionTimes).filter(([,s])=>s>30).map(([id])=>id);
+    const changedQuestions=Object.entries(questionChanges).filter(([,c])=>c>0).map(([id,c])=>`${id}(${c}x)`);
     const rec={
       id:Date.now().toString(),
       doctor_id:doctorId,
@@ -953,16 +1112,17 @@ function PatientForm({model,trainPct,doctorId}){
       ambassador_code:ambCode||"",
       ambassador_sent:false,
       outcome_procedures:[],
+      question_times:timingData,
     };
     await sb.from("patients").insert(rec);
     setSubmitted(true);
     setAmbassadorCode(ambCode);
     setPatientSegment(cls);
-    fetchAI(answers,score,cls,rec.id);
-    fetchPersonalGuide(answers,score,cls);
+    fetchAI(answers,score,cls,rec.id,slowQuestions,changedQuestions);
+    fetchPersonalGuide(answers,score,cls,slowQuestions,changedQuestions);
   }
 
-  async function fetchPersonalGuide(a,score,cls){
+  async function fetchPersonalGuide(a,score,cls,slowQ=[],changedQ=[]){
     setGuideLoading(true);
     const profile=detectProfile(a);
     const profileNames={analyst:"analitik ve araştırmacı",trustseeker:"güven arayan ve endişeli",social:"sosyal ve paylaşımcı",pragmatic:"pratik ve hızlı karar veren"};
@@ -977,23 +1137,41 @@ function PatientForm({model,trainPct,doctorId}){
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
         model:"claude-sonnet-4-20250514",
         max_tokens:800,
-        messages:[{role:"user",content:`Sen SculptAI'ın hasta rehberlik sisteminin bir parçasısın. Aşağıdaki hastaya TÜRKÇE, tamamen kişisel bir iyileşme ve hazırlık rehberi yaz.
+        messages:[{role:"user",content:`Sen empati yeteneği çok yüksek, klinik deneyimli bir hasta koordinatörüsün. Hacettepe Üniversitesi Plastik Cerrahi Kliniği'nde çalışıyorsun.
 
-HASTA PROFİLİ:
-- Ad: ${a.name||"Hasta"}, ${a.age} yaş, ${a.gender}
-- Prosedür: ${a.procedure}
-- Motivasyon: ${a.motivation}
-- Beklenti: ${a.expectation}
-- Bilgi düzeyi: ${a.riskKnowledge}
-- Sabır: ${a.patience}
-- Sosyal destek: ${a.support}
-- Revizyon tutumu: ${a.revision}
-- Önceki cerrahi: ${a.prevSurgery}
-- Kişilik tipi: ${profileNames[profile]}
+Aşağıdaki kişi formu doldurdu ve şu an teşekkür ekranını okuyor. Bu kişiye özel, sadece ona yazılmış gibi hissettiren bir rehber yaz.
 
-YAZIM TONU: ${toneInstructions[profile]}
+KİŞİ HAKKINDA BİLDİKLERİN:
+- ${a.name||"Hasta"}, ${a.age} yaş, ${a.gender}
+- Yaptırmak istediği prosedür: ${a.procedure}
+- Bu kararı almak için asıl nedeni: ${a.motivation}
+- Sonuçtan beklentisi: ${a.expectation}
+- Süreci ne kadar biliyor: ${a.riskKnowledge}
+- Sabır düzeyi: ${a.patience}
+- Yakın çevresi ne düşünüyor: ${a.support}
+- Revizyon ihtimaline bakışı: ${a.revision}
+- Önceki cerrahi deneyimi: ${a.prevSurgery}
+- Ne zamandır düşünüyor: ${a.decisionAge||"belirtmedi"}
+- Ameliyat sonrası hayali: ${a.imagineAfter||"belirtmedi"}
+- En kötü ihtimal tutumu: ${a.worstCase||"belirtmedi"}
+- Uzun süre düşündüğü sorular: ${slowQ.length>0?slowQ.join(", "):"yok — hızlı karar verdi"}
+- Cevap değiştirdiği sorular: ${changedQ.length>0?changedQ.join(", "):"yok"}
+- Sabah aynaya bakış (kendi sözleriyle): "${a.openStory||"boş bıraktı"}"
+- Benlik saygısı sinyali: ${a.selfEsteem||"belirtmedi"} / Kendine yaklaşım: ${a.selfWorth||"belirtmedi"}
+- Kaçınma davranışı: ${a.avoidance||"belirtmedi"} / Bölgeyi düşünme: ${a.bodyFocus||"belirtmedi"}
 
-FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında başlık koy. Toplam 200-250 kelime. Başlıklar: [Sizi Bekleyen Süreç], [Dikkat Etmeniz Gerekenler], [Size Özel Tavsiye]. Başka başlık veya format kullanma. Liste değil, akıcı paragraf.`}]
+ÖNEMLİ: Hiçbir şekilde profil kategorisi veya tip adı kullanma. "Analist profili", "güven arayan" gibi etiketler yazma. Sadece o kişiyle konuşur gibi yaz.
+
+FORMAT — tam olarak bu 3 başlık, başka hiçbir şey:
+[Sizi Bekleyen Süreç]
+[Dikkat Etmeniz Gerekenler]  
+[Size Özel Tavsiye]
+
+Her bölüm 2-3 cümle, akıcı paragraf. Toplam 180-220 kelime.
+
+TON: Bu kişinin motivasyonunu, bilgi düzeyini ve duygusal durumunu oku. Ona göre yaz — teknik mi, sıcak mı, net mi — sen karar ver. Sanki o kişiyi tanıyormuşsun gibi yaz. Klişe cümlelerden kaçın. "Ameliyat olacaksınız" değil, o kişiye özel bir şey söyle.
+
+Türkçe yaz.`}]
       })});
       const d=await res.json();
       const txt=d.content?.map(b=>b.text||"").join("")||"";
@@ -1004,9 +1182,43 @@ FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında
     setGuideLoading(false);
   }
 
-  async function fetchAI(a,score,cls,recId){
+  async function fetchAI(a,score,cls,recId,slowQ=[],changedQ=[]){
     try{
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:`Sen SculptAI klinik analiz modülüsün. Hacettepe Üniversitesi plastik cerrahi verisiyle eğitildiniz. Bu hasta için doktora yönelik kısa, danışma tonu ağırlıklı TÜRKÇE bir gözlem yaz. 3-4 cümle, başlık veya liste kullanma. 1-2 dikkat sinyali ve 1 güçlü yan belirt.\n\nHasta: ${a.name||"Anonim"}, ${a.age} yaş, ${a.gender} | Prosedür: ${a.procedure}\nMotivasyon: ${a.motivation} | Beklenti: ${a.expectation} | Önceki cerrahi: ${a.prevSurgery}\nÇok doktor: ${a.multiDoctor} | Risk bilgisi: ${a.riskKnowledge} | Sabır: ${a.patience}\nDestek: ${a.support} | Revizyon: ${a.revision} | Uyum: ${a.compliance}\nFiyat: ${a.price} | Paylaşım: ${a.sharing} | Tavsiye: ${a.recommends} | Sosyal: ${a.socialMedia}\nML RİSK SKORU: ${score}/100 | DEĞERLENDİRME: ${cls.label}`}]})});
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:`Sen deneyimli bir klinik psikolog ve plastik cerrahi danışmanısın. Hacettepe Üniversitesi Plastik Cerrahi Kliniği için çalışıyorsun.
+
+Aşağıdaki hasta verilerini analiz edip doktora konsültasyon öncesi gizli bir brifing yaz. Bu brifing doktorun konsültasyonu nasıl yöneteceğini belirleyecek.
+
+HASTA VERİLERİ:
+- ${a.name||"Hasta"}, ${a.age} yaş, ${a.gender}
+- Prosedür: ${a.procedure}
+- Motivasyon: ${a.motivation}
+- Beklenti: ${a.expectation}
+- Önceki cerrahi deneyim: ${a.prevSurgery}
+- Kaç doktora danıştı: ${a.multiDoctor}
+- Süreç bilgisi: ${a.riskKnowledge}
+- Sabır düzeyi: ${a.patience}
+- Sosyal destek: ${a.support}
+- Revizyon tutumu: ${a.revision}
+- Uyum eğilimi: ${a.compliance}
+- Fiyat hassasiyeti: ${a.price}
+- Sosyal medya: ${a.socialMedia}
+- Tavsiye eğilimi: ${a.recommends}
+- ML risk skoru: ${score}/100
+- Uzun süre düşündüğü sorular (>30sn): ${slowQ.length>0?slowQ.join(", "):"yok"}
+- Cevabını değiştirdiği sorular: ${changedQ.length>0?changedQ.join(", "):"yok"}
+- BDD tarama sinyalleri: Bölgeyi düşünme sıklığı: ${a.bodyFocus||"belirtmedi"}, Kaçınma davranışı: ${a.avoidance||"belirtmedi"}
+- Öz-değer sinyalleri: Genel memnuniyet: ${a.selfEsteem||"belirtmedi"}, Kendine yaklaşım: ${a.selfWorth||"belirtmedi"}, Gelecek bakışı: ${a.futureOptimism||"belirtmedi"}
+- Açık uçlu cevap (sabah aynaya bakış): ${a.openStory||"boş bıraktı"}
+
+Şunları yaz — başlık veya liste KULLANMA, akıcı paragraf:
+
+Paragraf 1 — PSİKOGRAFİK OKUMA: Bu kişi gerçekte ne arıyor? Estetik talebin arkasındaki derin ihtiyaç ne? Hangi psikolojik dinamikler devrede? Açık söyle, yumuşatma.
+
+Paragraf 2 — KRİTİK RİSK NOKTALARI: Bu hastada konsültasyonu tehlikeye atabilecek veya ameliyat sonrası sorun yaratabilecek spesifik sinyaller neler? Neden tehlikeli?
+
+Paragraf 3 — KONSÜLTASYONda NE YAP: Doktorun bu hastaya özel izlemesi gereken strateji. Hangi soruları sormalı, hangi konuları mutlaka açmalı, hangi beklentileri düzeltmeli.
+
+Türkçe yaz. 200-250 kelime. Tıbbi etik çerçevesinde kal.`}]})});
       const d=await res.json();
       const txt=d.content?.map(b=>b.text||"").join("\n")||"Analiz mevcut değil.";
       await sb.from("patients").update({ai_text:txt,ai_loading:false}).eq("id",recId);
@@ -1023,67 +1235,54 @@ FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında
   const riskText=getPersonalizedContent(proc,profile,"risks");
   const [infoPage,setInfoPage]=useState(0); // 0=thanks+proc, 1=prep+normal
 
+  const BORD="#4a1520";
+  const BORD2="#8a3040";
+
   if(submitted) return(
-    <div style={{minHeight:"100vh",background:"#ece7db",fontFamily:"'Inter',sans-serif",display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:"100vh",background:"#f5f0e8",fontFamily:"'Inter',sans-serif",display:"flex",flexDirection:"column"}}>
       {/* Header */}
-      <div style={{padding:"16px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#f5f0e8",borderBottom:"1px solid #e0d9cc",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:28,height:28,borderRadius:7,overflow:"hidden",background:"#f5f0e8",display:"flex",alignItems:"center",justifyContent:"center"}}><img src="/logo.png" alt="" style={{width:26,height:26,objectFit:"contain"}} onError={e=>e.target.style.display='none'}/></div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510"}}>SculptAI</div>
+      <div style={{padding:"16px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#f5f0e8",borderBottom:"1px solid #d4cabf",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:7}}>
+          <div style={{width:18,height:18,border:"1px solid #c8bfb0",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{width:5,height:5,background:BORD,borderRadius:"50%"}}/>
+          </div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510",letterSpacing:"0.02em"}}>SculptAI</div>
         </div>
-        <div style={{fontSize:10,color:"#b0a898"}}>{doctorInfo?.name||""}</div>
+        <div style={{fontSize:9,color:"#b0a898",letterSpacing:"0.06em"}}>{doctorInfo?.name||""}</div>
       </div>
 
       {/* Scrollable content */}
       <div style={{flex:1,overflowY:"auto",padding:"16px 18px 4px"}}>
 
         {infoPage===0&&(<>
-          {/* Thanks top */}
-          <div style={{background:"linear-gradient(150deg,#f5f3ff,#ede9fe)",borderRadius:16,padding:"24px 20px",textAlign:"center",marginBottom:14}}>
-            <div style={{width:64,height:64,borderRadius:"50%",background:"linear-gradient(135deg,"+accent+","+accent+"cc)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,margin:"0 auto 14px",boxShadow:"0 8px 24px rgba(124,58,237,0.28)"}}>✓</div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:"#1a1510",fontWeight:400,marginBottom:6}}>Harika, teşekkürler!</div>
-            <div style={{fontSize:12,color:"#8a7a68",lineHeight:1.65}}>Bilgileriniz alındı. Aşağıda sizin için hazırladığımız bilgileri inceleyebilirsiniz.</div>
+          {/* HERO */}
+          <div style={{background:BORD,borderRadius:16,padding:"22px 20px",marginBottom:16,marginTop:14,position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",bottom:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(245,240,232,0.03)"}}/>
+            <div style={{width:34,height:34,borderRadius:"50%",border:"1px solid rgba(245,240,232,0.15)",display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(245,240,232,0.5)",fontSize:13,marginBottom:14}}>✓</div>
+            <div style={{fontSize:9,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(245,240,232,0.28)",marginBottom:8}}>Değerlendirme tamamlandı</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:300,color:"#f5f0e8",lineHeight:1.15,marginBottom:8,letterSpacing:"-0.01em"}}>Teşekkürler,<br/><em>iyi ki geldiniz.</em></div>
+            <div style={{fontSize:11,color:"rgba(245,240,232,0.35)",lineHeight:1.7}}>Bilgileriniz alındı. Aşağıda size özel rehber ve prosedür bilgileri.</div>
           </div>
 
-          {/* Next step */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Sonraki adım</div>
-          <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:36,height:36,borderRadius:10,background:"#f5f3ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>📅</div>
-            <div>
-              <div style={{fontSize:12,fontWeight:600,color:"#1a1510",marginBottom:2}}>Konsültasyon randevunuz</div>
-              <div style={{fontSize:11,color:"#b0a898",lineHeight:1.5}}>{doctorInfo?.name||"Doktorunuz"} ekibi bilgilerinizi inceleyip sizinle iletişime geçecek.</div>
-            </div>
-          </div>
-
-          {/* MARKA ELÇİSİ KARTI */}
+          {/* MARKA ELÇİSİ */}
           {ambassadorCode&&(
-            <div style={{background:"linear-gradient(135deg,#faf5ff,#ede9fe)",border:"1.5px solid #ddd6fe",borderRadius:14,padding:"18px 16px",marginBottom:10}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                <div style={{fontSize:20}}>🌟</div>
+            <div style={{background:BORD,borderRadius:14,padding:"18px 16px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-20,right:-20,width:80,height:80,borderRadius:"50%",background:"rgba(245,240,232,0.04)"}}/>
+              <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(245,240,232,0.28)",marginBottom:8}}>Marka Elçisi Programı</div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:300,color:"#f5f0e8",lineHeight:1.2,marginBottom:8,letterSpacing:"-0.01em"}}>Sizi aramızda<br/><em>görmekten mutluluk.</em></div>
+              <div style={{fontSize:10,color:"rgba(245,240,232,0.42)",lineHeight:1.7,marginBottom:13}}>{PC.ambassadorMsg}</div>
+              <div style={{background:"rgba(245,240,232,0.07)",border:"1px solid rgba(245,240,232,0.1)",borderRadius:9,padding:"11px 13px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div>
-                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:400,color:"#4c1d95",letterSpacing:"-0.01em"}}>Marka Elçisi Oldunuz</div>
-                  <div style={{fontSize:11,color:"#7c3aed",marginTop:1}}>Teşekkür ederiz</div>
+                  <div style={{fontSize:8,color:"rgba(245,240,232,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:3}}>Referans Kodunuz</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,color:"#f5f0e8",letterSpacing:"0.1em",fontWeight:300}}>{ambassadorCode}</div>
                 </div>
-              </div>
-              <div style={{fontSize:12,color:"#5b21b6",lineHeight:1.7,marginBottom:14}}>
-                {PC.ambassadorMsg}
-              </div>
-              <div style={{background:"white",border:"1px solid #ddd6fe",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div>
-                  <div style={{fontSize:9,letterSpacing:"0.15em",textTransform:"uppercase",color:"#b0a898",marginBottom:4}}>Referans Kodunuz</div>
-                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:400,color:"#7c3aed",letterSpacing:"0.08em"}}>{ambassadorCode}</div>
-                </div>
-                <button onClick={()=>{navigator.clipboard?.writeText(ambassadorCode);}} style={{padding:"8px 14px",background:"#7c3aed",border:"none",borderRadius:8,color:"white",fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Kopyala</button>
-              </div>
-              <div style={{fontSize:10,color:"#a78bfa",marginTop:10,lineHeight:1.6}}>
-                Bu kodu WhatsApp, Instagram veya mesajla arkadaşlarınızla paylaşabilirsiniz.
+                <button onClick={()=>{navigator.clipboard?.writeText(ambassadorCode);}} style={{padding:"6px 12px",background:"rgba(245,240,232,0.08)",border:"1px solid rgba(245,240,232,0.12)",borderRadius:6,fontSize:9,color:"rgba(245,240,232,0.7)",fontFamily:"'Inter',sans-serif",cursor:"pointer"}}>Kopyala</button>
               </div>
             </div>
           )}
 
-          {/* Procedure card */}
           {/* KİŞİSEL REHBER */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Size özel rehber</div>
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,margin:"0 0 8px 0"}}>Size Özel Rehber</div>
           {guideLoading&&(
             <div style={{background:"#ece7db",border:"1px solid #d4cabf",borderRadius:12,padding:"20px 16px",marginBottom:10,textAlign:"center"}}>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#b0a898",fontStyle:"italic",animation:"pulse 1.5s infinite"}}>Kişisel rehberiniz hazırlanıyor...</div>
@@ -1097,44 +1296,40 @@ FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında
               if(sections[i+1]) parsed.push({title:sections[i],body:sections[i+1].trim()});
             }
             return(
-              <div style={{background:"#f5f0e8",border:"1px solid #d4cabf",borderRadius:12,overflow:"hidden",marginBottom:10}}>
+              <div style={{border:"1px solid #d4cabf",borderRadius:12,overflow:"hidden",marginBottom:12}}>
                 {parsed.map((s,i)=>(
-                  <div key={i} style={{padding:"14px 16px",borderBottom:i<parsed.length-1?"1px solid #e8e2d8":"none"}}>
-                    <div style={{fontSize:9,letterSpacing:"0.15em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,marginBottom:7}}>{s.title}</div>
-                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:300,color:"#1a1510",lineHeight:1.8}}>{s.body}</div>
+                  <div key={i} style={{padding:"13px 15px",borderBottom:i<parsed.length-1?"1px solid #ece7db":"none"}}>
+                    <div style={{fontSize:8,letterSpacing:"0.14em",textTransform:"uppercase",color:BORD2,fontWeight:500,marginBottom:5}}>{s.title}</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:300,color:"#1a1510",lineHeight:1.8}}>{s.body}</div>
                   </div>
                 ))}
               </div>
             );
           })()}
 
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Seçtiğiniz prosedür</div>
-          <div style={{background:"#1a1510",borderRadius:14,padding:18,marginBottom:10,position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",top:-20,right:-20,width:80,height:80,borderRadius:"50%",background:"rgba(124,58,237,0.12)"}}/>
-            <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#a78bfa",marginBottom:8,fontWeight:600}}>◈ {PI.category}</div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:"#f5f0e8",marginBottom:8,fontWeight:400}}>{proc||"Ameliyat"}</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.55)",lineHeight:1.65,marginBottom:12}}>{PI.desc}</div>
-            <div style={{display:"flex",gap:6}}>
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,margin:"14px 0 8px 0"}}>Seçtiğiniz Prosedür</div>
+          <div style={{border:"1px solid #d4cabf",borderRadius:12,padding:15,marginBottom:12}}>
+            <div style={{fontSize:8,letterSpacing:"0.14em",textTransform:"uppercase",color:BORD2,marginBottom:5}}>◈ {PI.category}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:19,fontWeight:300,color:"#1a1510",marginBottom:6,letterSpacing:"-0.01em"}}>{proc||"Ameliyat"}</div>
+            <div style={{fontSize:10,color:"#8a7a68",lineHeight:1.65,marginBottom:11}}>{PI.desc}</div>
+            <div style={{display:"flex",gap:5}}>
               {PI.stats.map((s,i)=>(
-                <div key={i} style={{flex:1,background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
-                  <div style={{fontSize:13,fontWeight:600,color:"#f5f0e8",lineHeight:1}}>{s.val}</div>
-                  <div style={{fontSize:8,color:"rgba(255,255,255,0.35)",marginTop:2,letterSpacing:"0.06em",textTransform:"uppercase"}}>{s.lbl}</div>
+                <div key={i} style={{flex:1,background:"#ece7db",borderRadius:7,padding:"8px 5px",textAlign:"center"}}>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,color:"#1a1510",lineHeight:1}}>{s.val}</div>
+                  <div style={{fontSize:7,color:"#b0a898",marginTop:3,letterSpacing:"0.08em",textTransform:"uppercase"}}>{s.lbl}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Process info */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"14px 0 8px 2px"}}>Ameliyat sonrası süreç</div>
-          <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
-            <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:32,height:32,borderRadius:9,background:"#ece7db",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🏥</div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:"#1a1510"}}>Ne beklemeliyim?</div>
-                <div style={{fontSize:10,color:"#b0a898",marginTop:1}}>İlk günlerden iyileşmeye kadar</div>
-              </div>
+          {/* Sonraki adım */}
+          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,margin:"0 0 8px 0"}}>Sonraki Adım</div>
+          <div style={{border:"1px solid #d4cabf",borderRadius:12,padding:"13px 15px",display:"flex",alignItems:"center",gap:11,marginBottom:12}}>
+            <div style={{width:30,height:30,background:"#ece7db",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>📅</div>
+            <div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510",marginBottom:1}}>Konsültasyon randevusu</div>
+              <div style={{fontSize:10,color:"#b0a898",lineHeight:1.4}}>{doctorInfo?.name||"Doktorunuz"} ekibi sizinle iletişime geçecek.</div>
             </div>
-            <div style={{padding:"2px 14px 12px",fontSize:11,color:"#3a3028",lineHeight:1.7,borderTop:"1px solid #ece7db"}}>{PI.process}</div>
           </div>
         </>)}
 
@@ -1147,18 +1342,15 @@ FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında
 
           {/* Recovery timeline */}
           <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"4px 0 10px 2px"}}>İyileşme takvimi</div>
-          <div style={{position:"relative",paddingLeft:20,marginBottom:14}}>
-            <div style={{position:"absolute",left:7,top:8,bottom:8,width:2,background:"linear-gradient(180deg,"+accent+","+accent+"66,#e0d9cc)",borderRadius:2}}/>
+          <div style={{position:"relative",paddingLeft:16,marginBottom:14}}>
+            <div style={{position:"absolute",left:4,top:8,bottom:8,width:1,background:"linear-gradient(180deg,"+BORD+",rgba(74,21,32,0.08))"}}/>
             {PI.timeline.map((t,i)=>(
-              <div key={i} style={{position:"relative",display:"flex",alignItems:"flex-start",gap:12,paddingBottom:14}}>
-                <div style={{width:14,height:14,borderRadius:"50%",flexShrink:0,marginTop:2,position:"relative",left:-20,marginRight:-14,border:"2.5px solid white",boxShadow:"0 0 0 1.5px "+t.color,background:t.color,zIndex:1}}/>
-                <div style={{flex:1,background:"#f5f0e8",border:"1.5px solid #f1f3f5",borderRadius:11,padding:"11px 13px"}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
-                    <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:t.color}}>{t.time}</div>
-                    <div style={{fontSize:16}}>{t.emoji}</div>
-                  </div>
-                  <div style={{fontSize:12,fontWeight:600,color:"#1a1510",marginBottom:3}}>{t.title}</div>
-                  <div style={{fontSize:11,color:"#8a7a68",lineHeight:1.6}}>{t.desc}</div>
+              <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,paddingBottom:10}}>
+                <div style={{width:9,height:9,borderRadius:"50%",flexShrink:0,marginTop:4,position:"relative",left:-16,marginRight:-6,border:"1.5px solid #f5f0e8",background:BORD,opacity:1-i*0.18,zIndex:1}}/>
+                <div style={{flex:1,border:"1px solid #d4cabf",borderRadius:9,padding:"9px 11px"}}>
+                  <div style={{fontSize:7,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:600,color:BORD2,marginBottom:2,opacity:1-i*0.15}}>{t.time}</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,color:"#1a1510",marginBottom:1}}>{t.title}</div>
+                  <div style={{fontSize:9,color:"#8a7a68",lineHeight:1.55}}>{t.desc}</div>
                 </div>
               </div>
             ))}
@@ -1202,53 +1394,39 @@ FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında
           {/* Kişiselleştirilmiş Riskler */}
           {riskText&&(
             <>
-              <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"0 0 8px 2px"}}>{PC.riskIntro}</div>
-              <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
-                <div style={{fontSize:11,color:"#92400e",lineHeight:1.8}}>{riskText}</div>
-                <div style={{marginTop:10,padding:"8px 10px",background:"rgba(255,255,255,0.6)",borderRadius:7,fontSize:10,color:"#b45309",fontStyle:"italic"}}>
-                  Son karar her zaman hekiminize aittir.
-                </div>
+              <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,margin:"0 0 8px 0"}}>Bilinmesi Gerekenler</div>
+              <div style={{borderLeft:"1.5px solid "+BORD2,padding:"10px 12px",marginBottom:8}}>
+                <div style={{fontSize:11,fontWeight:500,color:"#1a1510",marginBottom:2}}>{PC.riskIntro}</div>
+                <div style={{fontSize:10,color:"#8a7a68",lineHeight:1.65}}>{riskText}</div>
               </div>
             </>
           )}
 
-          {/* Normal symptoms */}
-          <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:600,margin:"0 0 8px 2px"}}>Endişelenmenize gerek yok</div>
-          <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
-            <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10,background:"#fffbeb"}}>
-              <div style={{fontSize:20}}>💛</div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:"#92400e"}}>Bunlar normaldir</div>
-                <div style={{fontSize:10,color:"#d97706",marginTop:1}}>İlk günler için</div>
-              </div>
-            </div>
-            <div style={{padding:"10px 14px 12px",display:"flex",flexDirection:"column",gap:7,borderTop:"1px solid #ece7db"}}>
+          {/* Normal */}
+          {PI.normal&&PI.normal.length>0&&(
+            <>
+              <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,margin:"8px 0 8px 0"}}>Bunlar Normaldir</div>
               {PI.normal.map((n,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9,fontSize:11,color:"#2a2018",lineHeight:1.55}}>
-                  <div style={{width:16,height:16,borderRadius:4,background:"#fff7ed",border:"1.5px solid #fdba74",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"#ea580c",flexShrink:0,marginTop:1}}>i</div>
-                  {n}
+                <div key={i} style={{borderLeft:"1.5px solid #d4cabf",padding:"8px 12px",marginBottom:6}}>
+                  <div style={{fontSize:10,color:"#8a7a68",lineHeight:1.6}}>{n}</div>
                 </div>
               ))}
-            </div>
-          </div>
+            </>
+          )}
 
-          {/* Follow up */}
-          <div style={{background:"#f5f0e8",border:"1.5px solid #e0d9cc",borderRadius:12,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🗓</div>
-            <div>
-              <div style={{fontSize:12,fontWeight:600,color:"#1a1510",marginBottom:2}}>{PI.followup}</div>
-              <div style={{fontSize:11,color:"#b0a898",lineHeight:1.5}}>İyileşme süreciniz doktorunuz tarafından düzenli olarak takip edilecek.</div>
-            </div>
+          {/* Disclaimer */}
+          <div style={{padding:"9px 11px",background:"#ece7db",borderRadius:8,fontSize:9,color:"#b0a898",lineHeight:1.6,fontStyle:"italic",marginBottom:10}}>
+            Son karar her zaman hekiminize aittir. Bu bilgiler yalnızca ön bilgilendirme amaçlıdır.
           </div>
         </>)}
 
       </div>
 
       {/* Bottom CTA */}
-      <div style={{padding:"12px 18px 24px",flexShrink:0,background:"#f5f0e8",borderTop:"1px solid #e0d9cc"}}>
+      <div style={{padding:"10px 22px 22px",flexShrink:0,background:"#f5f0e8",borderTop:"1px solid #d4cabf"}}>
         {infoPage===0
-          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:14,background:accent,border:"none",borderRadius:12,color:"#f5f0e8",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Hazırlık bilgilerini gör →</button>
-          :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:14,background:"#1a1510",border:"none",borderRadius:12,color:"#f5f0e8",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Anladım, teşekkürler</button>
+          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f5f0e8",fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"'Inter',sans-serif",letterSpacing:"0.08em"}}>Hazırlık bilgilerini gör →</button>
+          :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f5f0e8",fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"'Inter',sans-serif",letterSpacing:"0.08em"}}>Anladım, teşekkürler</button>
         }
       </div>
     </div>
@@ -1323,7 +1501,12 @@ FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında
             <div style={{display:"flex",flexDirection:"column",gap:7}}>
               {q.options.map(opt=>{
                 const sel=answers[q.id]===opt;
-                return(<button key={opt} onClick={()=>setAnswers(p=>({...p,[q.id]:opt}))} style={{padding:"12px 14px",background:sel?"#ece7db":"#ece7db",border:`1.5px solid ${sel?C.accent:C.border}`,borderRadius:10,color:sel?C.accent:"#2a2018",fontSize:13,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:11,transition:"all 0.15s"}}>
+                return(<button key={opt} onClick={()=>{
+                  if(answers[q.id]&&answers[q.id]!==opt){
+                    setQuestionChanges(p=>({...p,[q.id]:(p[q.id]||0)+1}));
+                  }
+                  setAnswers(p=>({...p,[q.id]:opt}));
+                }} style={{padding:"12px 14px",background:sel?"#ece7db":"#ece7db",border:`1.5px solid ${sel?C.accent:C.border}`,borderRadius:10,color:sel?C.accent:"#2a2018",fontSize:13,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:11,transition:"all 0.15s"}}>
                   <div style={{width:15,height:15,borderRadius:"50%",border:`2px solid ${sel?C.accent:C.muted}`,background:sel?C.accent:"transparent",flexShrink:0,transition:"all 0.15s"}}/>
                   {opt}
                 </button>);
@@ -1332,8 +1515,18 @@ FORMAT: Tam olarak 3 bölüm yaz. Her bölümün başında [BAŞLIK] formatında
           )}
         </div>
         <div style={{display:"flex",gap:9}} className="f3">
-          {currentQ>0&&<button onClick={()=>setCurrentQ(c=>c-1)} style={{flex:1,padding:"13px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,fontSize:12,cursor:"pointer"}}>← Geri</button>}
-          <button onClick={()=>{if(currentQ<QUESTIONS.length-1)setCurrentQ(c=>c+1);else if(model)handleSubmit();}} disabled={!canNext||(!model&&currentQ===QUESTIONS.length-1)}
+          {currentQ>0&&<button onClick={()=>{
+            const elapsed=Math.round((Date.now()-qStartTime.current)/1000);
+            setQuestionTimes(p=>({...p,[QUESTIONS[currentQ].id]:elapsed}));
+            qStartTime.current=Date.now();
+            setCurrentQ(c=>c-1);
+          }} style={{flex:1,padding:"13px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,fontSize:12,cursor:"pointer"}}>← Geri</button>}
+          <button onClick={()=>{
+            const elapsed=Math.round((Date.now()-qStartTime.current)/1000);
+            setQuestionTimes(p=>({...p,[QUESTIONS[currentQ].id]:elapsed}));
+            qStartTime.current=Date.now();
+            if(currentQ<QUESTIONS.length-1)setCurrentQ(c=>c+1);else if(model)handleSubmit();
+          }} disabled={!canNext||(!model&&currentQ===QUESTIONS.length-1)}
             style={{flex:2,padding:"13px",background:canNext?"#1a1510":"#e0d9cc",border:"none",borderRadius:8,color:canNext?"#f5f0e8":"#b0a898",fontSize:12,fontWeight:500,letterSpacing:"0.08em",cursor:canNext?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Inter',sans-serif"}}>
             {currentQ===QUESTIONS.length-1?(model?"Formu Gönder →":"Model yükleniyor..."):"Devam →"}
           </button>
