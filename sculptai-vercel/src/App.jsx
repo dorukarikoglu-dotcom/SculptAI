@@ -276,33 +276,23 @@ function PatientCard({patient,onDelete}){
 
   return(
     <div style={{background:"#f5f0e8",borderRadius:10,border:`1px solid ${open?"#1a1510":"#d4cabf"}`,marginBottom:8,overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s"}}>
-      <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",background:noAppointment?"#fff5f5":"transparent"}} onClick={()=>setOpen(o=>!o)}>
+      <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:noAppointment?"#fff5f5":"transparent",minWidth:0,overflow:"hidden"}} onClick={()=>setOpen(o=>!o)}>
         {/* Left accent */}
-        <div style={{width:2,height:40,borderRadius:1,background:noAppointment?"#fca5a5":cls.color,flexShrink:0}}/>
-        {/* Segment pill */}
-        <div style={{padding:"4px 10px",borderRadius:20,background:cls.bg,border:`1px solid ${cls.border}`,flexShrink:0}}>
-          <div style={{fontSize:9,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase",color:cls.textColor,whiteSpace:"nowrap"}}>{cls.icon} {cls.label.split(" ").slice(0,2).join(" ")}</div>
+        <div style={{width:2,height:36,borderRadius:1,background:noAppointment?"#fca5a5":cls.color,flexShrink:0}}/>
+        {/* Segment pill — kısa label */}
+        <div style={{padding:"2px 6px",borderRadius:20,background:cls.bg,border:`1px solid ${cls.border}`,flexShrink:0,maxWidth:60}}>
+          <div style={{fontSize:8,fontWeight:500,textTransform:"uppercase",color:cls.textColor,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cls.icon}</div>
         </div>
-        {/* Name + procedure */}
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:400,color:"#1a1510",marginBottom:1,letterSpacing:"-0.01em"}}>{a.name||"İsimsiz Hasta"}</div>
-          <div style={{fontSize:11,color:"#b0a898"}}>{a.age&&`${a.age} yaş · `}{a.procedure}</div>
+        {/* Name + procedure — flex:1 minWidth:0 kritik */}
+        <div style={{flex:1,minWidth:0,overflow:"hidden"}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:400,color:"#1a1510",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name||"İsimsiz Hasta"}</div>
+          <div style={{fontSize:10,color:"#b0a898",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.age?`${a.age} yaş · `:""}{a.procedure}</div>
+          {noAppointment&&<div style={{fontSize:8,color:"#dc2626",fontWeight:500,marginTop:1,whiteSpace:"nowrap"}}>✕ Randevu Yok</div>}
         </div>
-        {/* Flags */}
-        <div style={{display:"flex",flexDirection:"column",gap:3,minWidth:0,maxWidth:140}}>
-          {flags.slice(0,2).map((f,i)=>(
-            <div key={i} style={{fontSize:10,color:"#8a7a68",display:"flex",alignItems:"center",gap:5}}>
-              <div style={{width:4,height:4,borderRadius:"50%",background:cls.color,flexShrink:0}}/>{f}
-            </div>
-          ))}
-        </div>
-        {/* Date + chevron + no-appt badge */}
-        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
-          {noAppointment
-            ?<div style={{fontSize:9,padding:"2px 8px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,color:"#dc2626",fontWeight:500}}>✕ Randevu Yok</div>
-            :<div style={{fontSize:10,color:"#b0a898"}}>{patient.created_at?new Date(patient.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}):""}</div>
-          }
-          <div style={{fontSize:14,color:"#b0a898",transform:open?"rotate(90deg)":"none",transition:"transform 0.2s"}}>›</div>
+        {/* Tarih + chevron — sabit genişlik */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0,width:40}}>
+          <div style={{fontSize:9,color:"#b0a898",whiteSpace:"nowrap"}}>{patient.created_at?new Date(patient.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}):""}</div>
+          <div style={{fontSize:13,color:"#b0a898",transform:open?"rotate(90deg)":"none",transition:"transform 0.2s"}}>›</div>
         </div>
       </div>
         {/* No appointment badge — kart kapalıyken de görünsün */}
