@@ -1932,7 +1932,9 @@ export default function App(){
     const formMatch=path.match(/^\/form\/(.+)$/);
     if(formMatch){setDoctorId(formMatch[1]);setView("patient");}
     else if(path.startsWith("/admin")){setView("admin");}
-    else if(path.startsWith("/panel")){setView("login");}
+    else if(path.startsWith("/panel")){
+      try{const saved=sessionStorage.getItem("sculpt_doctor");if(saved){const d=JSON.parse(saved);setDoctor(d);setView("doctor");}else{setView("login");}}catch{setView("login");}
+    }
     else{setView("patient");}
   },[]);
 
@@ -1962,7 +1964,7 @@ export default function App(){
   );
 
   if(view==="admin") return <AdminPanel/>;
-  if(view==="login") return <Login onLogin={d=>{setDoctor(d);setView("doctor");}}/>;
+  if(view==="login") return <Login onLogin={d=>{try{sessionStorage.setItem("sculpt_doctor",JSON.stringify(d));}catch{}setDoctor(d);setView("doctor");}}/>;
 
-  return <DoctorPanel doctor={doctor} onLogout={()=>{setDoctor(null);setView("login");}}/>;
+  return <DoctorPanel doctor={doctor} onLogout={()=>{try{sessionStorage.removeItem("sculpt_doctor");}catch{}setDoctor(null);setView("login");}}/>;
 }
