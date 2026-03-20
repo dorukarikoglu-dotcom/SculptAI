@@ -276,9 +276,9 @@ function PatientCard({patient,onDelete}){
 
   return(
     <div style={{background:"#f5f0e8",borderRadius:10,border:`1px solid ${open?"#1a1510":"#d4cabf"}`,marginBottom:8,overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s"}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:noAppointment?"#fff5f5":"transparent",minWidth:0,overflow:"hidden"}} onClick={()=>setOpen(o=>!o)}>
+      <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:noAppointment?"#fff5f5":outcomeProcedures.length>0?"#f0fdf4":"transparent",minWidth:0,overflow:"hidden"}} onClick={()=>setOpen(o=>!o)}>
         {/* Left accent */}
-        <div style={{width:2,height:36,borderRadius:1,background:noAppointment?"#fca5a5":cls.color,flexShrink:0}}/>
+        <div style={{width:2,height:36,borderRadius:1,background:noAppointment?"#fca5a5":outcomeProcedures.length>0?"#86efac":cls.color,flexShrink:0}}/>
         {/* Segment pill — kısa label */}
         <div style={{padding:"2px 6px",borderRadius:20,background:cls.bg,border:`1px solid ${cls.border}`,flexShrink:0,maxWidth:60}}>
           <div style={{fontSize:8,fontWeight:500,textTransform:"uppercase",color:cls.textColor,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cls.icon}</div>
@@ -295,7 +295,7 @@ function PatientCard({patient,onDelete}){
           <div style={{fontSize:13,color:"#b0a898",transform:open?"rotate(90deg)":"none",transition:"transform 0.2s"}}>›</div>
         </div>
       </div>
-        {/* No appointment badge — kart kapalıyken de görünsün */}
+        {/* No appointment badge */}
         {noAppointment&&(
           <div onClick={e=>e.stopPropagation()} style={{padding:"5px 18px",background:"#fef2f2",borderTop:"1px solid #fecaca",display:"flex",alignItems:"center",gap:8}}>
             <div style={{fontSize:10,color:"#dc2626",fontWeight:500}}>✕ Randevu Alınmadı</div>
@@ -590,7 +590,7 @@ function ValueScreen({patients,doctor}){
 }
 
 /* ─── SETTINGS SCREEN ────────────────────────────────────────────────────── */
-function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP2,pwErr,setPwErr,saveNewCreds,confirmClear,setConfirmClear,clearAll}){
+function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP2,pwErr,setPwErr,saveNewCreds,confirmClear,setConfirmClear,clearAll,clinicName,setClinicName,clinicSaved,saveClinicName}){
   const C={border:"#d4cabf",muted:"#b0a898"};
   const cardS={background:"#ece7db",border:"1px solid #d4cabf",borderRadius:10,padding:"18px 20px",marginBottom:12};
   return(
@@ -598,12 +598,28 @@ function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP
       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:300,color:"#1a1510",marginBottom:24,letterSpacing:"-0.01em"}}>Ayarlar</div>
       <div style={cardS}>
         <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:12,fontWeight:500}}>Klinik Bilgileri</div>
-        {[["Doktor",doctor.name],["Kullanıcı Adı",doctor.username],["Klinik",doctor.clinic_name||"—"]].map(([lbl,val])=>(
+        {[["Doktor",doctor.name],["Kullanıcı Adı",doctor.username]].map(([lbl,val])=>(
           <div key={lbl} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #d4cabf"}}>
             <div style={{fontSize:11,color:C.muted}}>{lbl}</div>
             <div style={{fontSize:11,color:"#1a1510",fontWeight:500}}>{val}</div>
           </div>
         ))}
+        {/* Düzenlenebilir klinik adı */}
+        <div style={{padding:"10px 0",borderBottom:"1px solid #d4cabf"}}>
+          <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:C.muted,marginBottom:6}}>Klinik Adı</div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <input
+              value={clinicName}
+              onChange={e=>setClinicName(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&saveClinicName()}
+              placeholder="Klinik adı girin..."
+              style={{flex:1,padding:"8px 10px",background:"#f5f0e8",border:"1px solid #d4cabf",borderRadius:7,fontSize:12,color:"#1a1510",outline:"none"}}
+            />
+            <button onClick={saveClinicName} style={{padding:"8px 14px",background:"#1a1510",border:"none",borderRadius:7,color:"#f5f0e8",fontSize:11,fontWeight:500,cursor:"pointer",whiteSpace:"nowrap"}}>
+              {clinicSaved?"✓ Kaydedildi":"Kaydet"}
+            </button>
+          </div>
+        </div>
         <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0"}}>
           <div style={{fontSize:11,color:C.muted}}>Form Linki</div>
           <button onClick={()=>navigator.clipboard?.writeText(`${window.location.origin}/form/${doctor.id}`)} style={{fontSize:10,color:"#4a1520",border:"none",background:"transparent",cursor:"pointer",textDecoration:"underline"}}>Kopyala</button>
@@ -834,6 +850,8 @@ function DoctorPanel({doctor,onLogout}){
   const [showPw,setShowPw]=useState(false);
   const [newU,setNewU]=useState("");const [newP,setNewP]=useState("");const [newP2,setNewP2]=useState("");const [pwErr,setPwErr]=useState("");
   const [confirmClear,setConfirmClear]=useState(false);
+  const [clinicName,setClinicName]=useState(doctor.clinic_name||"");
+  const [clinicSaved,setClinicSaved]=useState(false);
 
   useEffect(()=>{loadPatients();},[]);
 
@@ -868,6 +886,13 @@ function DoctorPanel({doctor,onLogout}){
     if(newP!==newP2){setPwErr("Şifreler eşleşmiyor.");return;}
     await sb.from("doctors").update({username:newU.trim(),password_hash:newP}).eq("id",doctor.id);
     setShowPw(false);setNewU("");setNewP("");setNewP2("");setPwErr("");
+  }
+
+  async function saveClinicName(){
+    if(!clinicName.trim())return;
+    await sb.from("doctors").update({clinic_name:clinicName.trim()}).eq("id",doctor.id);
+    try{const saved=JSON.parse(sessionStorage.getItem("sculpt_doctor")||"{}");sessionStorage.setItem("sculpt_doctor",JSON.stringify({...saved,clinic_name:clinicName.trim()}));}catch{}
+    setClinicSaved(true);setTimeout(()=>setClinicSaved(false),2500);
   }
 
   const today=new Date().toLocaleDateString("tr-TR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
@@ -918,7 +943,7 @@ function DoctorPanel({doctor,onLogout}){
 
         {tab==="analytics"&&<Analytics patients={patients}/>}
         {tab==="value"&&<ValueScreen patients={patients} doctor={doctor}/>}
-        {tab==="settings"&&<SettingsScreen doctor={doctor} onLogout={onLogout} showPw={showPw} setShowPw={setShowPw} newU={newU} setNewU={setNewU} newP={newP} setNewP={setNewP} newP2={newP2} setNewP2={setNewP2} pwErr={pwErr} setPwErr={setPwErr} saveNewCreds={saveNewCreds} confirmClear={confirmClear} setConfirmClear={setConfirmClear} clearAll={clearAll}/>}
+        {tab==="settings"&&<SettingsScreen doctor={doctor} onLogout={onLogout} showPw={showPw} setShowPw={setShowPw} newU={newU} setNewU={setNewU} newP={newP} setNewP={setNewP} newP2={newP2} setNewP2={setNewP2} pwErr={pwErr} setPwErr={setPwErr} saveNewCreds={saveNewCreds} confirmClear={confirmClear} setConfirmClear={setConfirmClear} clearAll={clearAll} clinicName={clinicName} setClinicName={setClinicName} clinicSaved={clinicSaved} saveClinicName={saveClinicName}/>}
         {tab==="patients"&&<div style={{flex:1,overflowY:"auto",padding:isMobile?"12px 12px 24px":"20px 28px 24px"}}>
           {showPw&&(
             <div style={{background:"#f5f0e8",border:"1px solid #e0d9cc",borderRadius:12,padding:"16px 20px",marginBottom:18,animation:"fadeUp 0.25s ease"}}>
