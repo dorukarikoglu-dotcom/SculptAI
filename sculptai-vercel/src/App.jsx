@@ -391,20 +391,41 @@ function PatientCard({patient,onDelete}){
                 const isTrustSeeker=a.riskKnowledge?.includes("Hiçbir")||a.support?.includes("Kimseye");
 
                 if(isAnalyst){
-                  comms.push(`${name} araştırmacı profil — teknik detayları paylaşmaktan çekinmeyin, boş konuşmayı sevmez`);
-                  comms.push(`Kullandığınız tekniği ve neden seçtiğinizi açıklayın — bu onu güvende hissettirir`);
+                  const multiDoctor=a.doctorCount?.includes("3")||a.doctorCount?.includes("4")||a.doctorCount?.includes("5");
+                  comms.push(`${name} araştırmacı bir profil${multiDoctor?`, ${a.doctorCount} doktora gitmiş`:""} — teknik detayları paylaşmaktan çekinmeyebilirsiniz, genel konuşmadan pek hoşlanmaz`);
+                  const proc=a.procedure||"işlem";
+                  comms.push(`${proc} için tercih ettiğiniz tekniği ve neden seçtiğinizi aktarabilirsiniz — "neden siz" sorusunu sormadan yanıtlamış olursunuz`);
                 } else if(isPragmatic){
-                  comms.push(`${name} hızlı karar veriyor — uzun açıklamalar yerine net takvim ve 3 kritik kural yeterli`);
-                  comms.push(`"İyileşme ${a.procedure?.includes("Botoks")||a.procedure?.includes("Dolgu")?"hemen başlar":"2 haftada normale döner"}" gibi net zaman çerçeveleri verin`);
+                  const recoveryHint=a.procedure?.includes("Botoks")||a.procedure?.includes("Dolgu")?"aynı gün işe dönebileceğini":"2 haftada normale döneceğini";
+                  comms.push(`${name} hızlı karar veren biri — uzun açıklamalar yerine net bir takvim ve birkaç kritik nokta yeterli olabilir`);
+                  comms.push(`${recoveryHint} belirtebilirsiniz${a.jobStatus?.includes("çalış")?" — iş hayatına etkisi açısından bu bilgi özellikle anlamlı olabilir":""}`);
                 } else if(isTrustSeeker){
-                  comms.push(`${name} bilgi düzeyi düşük ve muhtemelen endişeli — yargılamadan, sıcak bir ton kullanın`);
-                  comms.push(`"Tüm sorularınız normal, herkes bunları merak eder" gibi normalleştirici cümleler kurun`);
+                  const hasNoSupport=a.support?.includes("Kimseye");
+                  const hasAnxiety=a.worstCase?.includes("istemiyorum")||a.worstCase?.includes("Düşünmek");
+                  const longDecision=a.decisionAge?.includes("1 yıldan")||a.decisionAge?.includes("2 yıl");
+                  const firstTime=!a.previousProcedure||a.previousProcedure?.includes("Hayır")||a.previousProcedure?.includes("ilk");
+
+                  if(hasNoSupport){
+                    comms.push(`${name} bu kararı çevresine anlatmamış — yargılanmayacağını hissedebilmesi için ilk birkaç dakikayı buna ayırabilirsiniz`);
+                  } else {
+                    comms.push(`${name} bilgi konusunda biraz belirsiz — sorularını küçümsemeden, kısa ve somut yanıtlar verebilirsiniz`);
+                  }
+
+                  if(hasAnxiety){
+                    comms.push(`En kötü senaryoyu düşünmekten kaçınıyor — riskleri "bu çok nadir karşılaşılan bir durum" diye başlayarak aktarabilirsiniz, liste halinde sıralamak yerine`);
+                  } else if(longDecision){
+                    comms.push(`${a.decisionAge} süredir düşünüyor — "bu kadar süre düşünmüşseniz zaten doğru adaylardan birisiniz" gibi onaylayıcı bir cümleyle başlayabilirsiniz`);
+                  } else if(firstTime){
+                    comms.push(`İlk kez konsültasyona geliyor — sürecin nasıl ilerleyeceğini adım adım aktarabilirsiniz, belirsizlik bırakmamak rahatlatıcı olur`);
+                  } else {
+                    comms.push(`Güven arayan bir profil — "Sizin durumunuzda ben de bunu düşünürdüm" gibi kişisel bir yaklaşım etkili olabilir`);
+                  }
                 } else if(isSocial){
-                  comms.push(`${name} sosyal profil güçlü — konsültasyonu olumlu geçerse çevresine anlatacak, bunu aklınızda tutun`);
-                  comms.push(`Sonuç fotoğraflarını paylaşmaya teşvik edin — doğal referans kaynağı olabilir`);
+                  comms.push(`${name} sosyal profili güçlü biri — konsültasyon olumlu geçerse çevresine anlatma ihtimali yüksek`);
+                  comms.push(`Sonuç fotoğraflarını paylaşmayı düşünüp düşünmediğini sorabilirsiniz — doğal bir referans kaynağı olabilir`);
                 } else {
-                  comms.push(`${name} ${a.decisionAge?.includes("1 yıldan") ? "uzun süredir" : "yakın zamanda"} bu kararı düşünüyor — motivasyonunu dinleyin, süreci güvenli hissettirin`);
-                  if(a.imagineAfter?.includes("hayatımın daha iyi")||a.imagineAfter?.includes("Hayatımın")) comms.push(`İşlemden hayatının daha iyi gideceğini umuyor — bu beklentiyi gerçekçi çerçeveleyin`);
+                  comms.push(`${name} ${a.decisionAge?.includes("1 yıldan") ? "uzun süredir" : "yakın zamanda"} bu kararı düşünüyor — motivasyonunu dinleyebilir, süreci güvenli hissettirmeye çalışabilirsiniz`);
+                  if(a.imagineAfter?.includes("hayatımın daha iyi")||a.imagineAfter?.includes("Hayatımın")) comms.push(`İşlemden sonra hayatının daha iyi gideceğini umuyor — bu beklentiyi gerçekçi bir çerçevede ele alabilirsiniz`);
                 }
 
                 return(
