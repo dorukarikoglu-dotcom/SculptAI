@@ -1418,6 +1418,50 @@ YAZIM KURALLARI:
 
   const proc=answers.procedure||"";
   const PI=PROCEDURE_INFO[proc]||PROCEDURE_INFO["default"];
+
+  // Cross-sell haritası — işleme göre tamamlayıcı öneriler
+  const CROSS_SELL_MAP={
+    "Üst Göz Kapağı Estetiği":[
+      {proc:"Kaş Kaldırma",why:"Kaş pozisyonu göz kapağı sonucunu doğrudan etkiliyor — birlikte değerlendirilince çok daha dengeli bir sonuç ortaya çıkabiliyor."},
+      {proc:"Botoks",why:"Göz çevresindeki ince çizgiler için botoks, göz kapağı estetiğini güzel şekilde tamamlayabiliyor."},
+    ],
+    "Alt Göz Kapağı Estetiği":[
+      {proc:"Yüz Germe",why:"Alt göz kapağı ile yüz alt bölgesi aynı seansta değerlendirilebiliyor — bazı hastalarda çok daha bütüncül bir sonuç veriyor."},
+      {proc:"Dolgu",why:"Göz altı çukurluğu için dolgu, ameliyat sonrası görünümü destekleyebilir."},
+    ],
+    "Burun Estetiği":[
+      {proc:"Çene Ucu Estetiği",why:"Çene-burun oranı yüz profilini belirleyen en önemli faktörlerden biri — çene ucu değerlendirmesi sonucu belirgin şekilde güçlendirebiliyor."},
+      {proc:"Çene Dolgusu",why:"Cerrahi olmadan çene hattını güçlendirmek isteyenler için dolgu, burun estetiğiyle birlikte çok daha dengeli bir profil oluşturabiliyor."},
+    ],
+    "Meme Büyütme (Silikon Protez ile)":[
+      {proc:"Meme Dikleştirme",why:"Sarkma varsa meme büyütme ile dikleştirme aynı seansta yapılabiliyor — ikinci ameliyat ihtiyacını ortadan kaldırabiliyor."},
+    ],
+    "Meme Dikleştirme":[
+      {proc:"Meme Büyütme (Silikon Protez ile)",why:"Hacim kaybı da varsa dikleştirme ile birlikte değerlendirilebiliyor — tek seansta çok daha tatmin edici sonuç veriyor."},
+    ],
+    "Meme Küçültme":[
+      {proc:"Liposuction",why:"Koltuk altı ve yan göğüs bölgesi aynı seansta liposuction ile şekillendirilebiliyor."},
+    ],
+    "Karın Germe":[
+      {proc:"Liposuction",why:"Karın germe ile liposuction birlikte yapıldığında bel ve yan hatlar çok daha belirgin hale gelebiliyor."},
+      {proc:"Korse Liposuction",why:"Korse liposuction karın germe sonucunu bütünleyerek daha kadınsı bir siluet oluşturabiliyor."},
+    ],
+    "Liposuction":[
+      {proc:"Karın Germe",why:"Liposuction sonrası deri sarkması oluşabiliyorsa karın germe seçeneği önceden değerlendirilebiliyor."},
+    ],
+    "Yüz Germe":[
+      {proc:"Boyun Germe",why:"Yüz ve boyun birlikte ele alındığında çok daha doğal ve bütüncül bir yenilenme sağlanabiliyor."},
+      {proc:"Dolgu",why:"Yüz germe sonrası hacim kayıplarını dolgu ile desteklemek sonucu belirgin şekilde güçlendirebiliyor."},
+      {proc:"Botoks",why:"Alın ve göz çevresi için botoks, yüz germe sonucunu tamamlayan çok yaygın bir tercih."},
+    ],
+    "Jinekomasti":[
+      {proc:"Liposuction",why:"Jinekomasti ile birlikte göğüs çevresi yağlanması varsa liposuction aynı seansta değerlendirilebiliyor."},
+    ],
+    "Kol Germe":[
+      {proc:"Liposuction",why:"Kol germe ile birlikte liposuction uygulanması kolların hem sıkılaşmasını hem şekillenmesini sağlayabiliyor."},
+    ],
+  };
+  const crossSellSuggestions=CROSS_SELL_MAP[proc]||[];
   const profile=detectProfile(answers);
   const PC=PROFILE_CONTENT[profile];
   const recoveryText=getPersonalizedContent(proc,profile,"recovery");
@@ -1528,6 +1572,25 @@ YAZIM KURALLARI:
           </div>
 
           {/* Sonraki adım */}
+          {/* TAMAMLAYICI İŞLEMLER */}
+          {crossSellSuggestions.length>0&&(
+            <>
+              <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,margin:"14px 0 8px 0"}}>Konsültasyonda Sorabilirsiniz</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
+                {crossSellSuggestions.map((s,i)=>(
+                  <div key={i} style={{border:"1px solid #d4cabf",borderRadius:12,padding:"13px 15px",background:"#faf8f4"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <div style={{width:5,height:5,borderRadius:"50%",background:BORD2,flexShrink:0}}/>
+                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:400,color:"#1a1510"}}>{s.proc}</div>
+                    </div>
+                    <div style={{fontSize:10,color:"#8a7a68",lineHeight:1.65}}>{s.why}</div>
+                  </div>
+                ))}
+                <div style={{fontSize:9,color:"#b0a898",lineHeight:1.5,padding:"0 2px"}}>Bu bilgiler yalnızca ön bilgilendirme amaçlıdır. Son karar konsültasyonunuzda doktorunuzla birlikte değerlendirilecektir.</div>
+              </div>
+            </>
+          )}
+
           <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,margin:"0 0 8px 0"}}>Sonraki Adım</div>
           <div style={{border:"1px solid #d4cabf",borderRadius:12,padding:"13px 15px",display:"flex",alignItems:"center",gap:11,marginBottom:12}}>
             <div style={{width:30,height:30,background:"#ece7db",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>📅</div>
