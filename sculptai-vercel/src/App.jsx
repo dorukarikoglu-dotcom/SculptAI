@@ -1037,7 +1037,7 @@ function ValueScreen({patients,doctor}){
             <div style={{fontSize:16,marginBottom:8}}>{k.icon}</div>
             <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:4,fontWeight:500}}>{k.title}</div>
             <div style={{fontSize:10,color:C.muted,marginBottom:10}}>{k.sub}</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:38,fontWeight:300,color:k.color,lineHeight:1,letterSpacing:"-0.02em",marginBottom:2}}>{k.val}<span style={{fontSize:16}}>{k.unit}</span></div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:38,fontWeight:300,fontVariantNumeric:"lining-nums",color:k.color,lineHeight:1,letterSpacing:"-0.02em",marginBottom:2}}>{k.val}<span style={{fontSize:16}}>{k.unit}</span></div>
             <div style={{fontSize:10,fontWeight:500,color:k.color,marginTop:4}}>{k.note}</div>
           </div>
         ))}
@@ -1060,7 +1060,7 @@ function ValueScreen({patients,doctor}){
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
           {[["Aktif Elçi",ambassadors],["Kod Gönderildi",patients.filter(p=>p.ambassador_sent).length],["Referansla Gelen",patients.filter(p=>p.answers?.referralCode).length]].map(([lbl,val])=>(
             <div key={lbl} style={{background:"#f5f0e8",borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:300,color:"#7c3aed",lineHeight:1,marginBottom:3}}>{val}</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:300,fontVariantNumeric:"lining-nums",color:"#7c3aed",lineHeight:1,marginBottom:3}}>{val}</div>
               <div style={{fontSize:9,color:C.muted}}>{lbl}</div>
             </div>
           ))}
@@ -1459,7 +1459,7 @@ function DoctorPanel({doctor,onLogout}){
             ].map(k=>(
               <div key={k.label} style={{background:"#f5f0e8",border:"1px solid #d4cabf",borderRadius:10,padding:isMobile?"12px 10px":"18px 20px",position:"relative",overflow:"hidden"}}>
                 <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:k.accent}}/>
-                <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?28:36,lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?28:36,fontVariantNumeric:"lining-nums",lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
                 <div style={{fontSize:isMobile?9:11,color:"#1a1510",fontWeight:500}}>{k.label}</div>
                 <div style={{fontSize:isMobile?9:10,color:"#b0a898",marginTop:1}}>{k.note}</div>
               </div>
@@ -2507,7 +2507,7 @@ function AdminPanel(){
             <div key={i} style={{...cardS,position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:k.color}}/>
               <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:C.muted,marginBottom:6,fontWeight:500}}>{k.lbl}</div>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:300,color:k.color,lineHeight:1}}>{k.val}</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:300,fontVariantNumeric:"lining-nums",color:k.color,lineHeight:1}}>{k.val}</div>
             </div>
           ))}
         </div>
