@@ -934,9 +934,6 @@ function ConsultationMode({patient, onClose}){
   if(a.support?.includes("Kimseye")||a.support?.includes("karşılar")) flags.push({txt:"Sosyal destek zayıf — iyileşme sürecinde yalnız kalabilir",sev:"amber"});
   if(flags.length===0) flags.push({txt:"Belirgin risk sinyali saptanmadı",sev:"green"});
 
-  const C={red:"#dc2626",amber:"#d97706",green:"#059669"};
-  const BG={red:"#fef2f2",amber:"#fffbeb",green:"#ecfdf5"};
-
   return(
     <div style={{position:"fixed",inset:0,background:"#f5f0e8",zIndex:1000,display:"flex",flexDirection:"column",fontFamily:"'Inter',sans-serif"}}>
 
