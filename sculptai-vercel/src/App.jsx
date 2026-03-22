@@ -70,23 +70,162 @@ class NN {
   }
 }
 
-/* ─── FEATURE EXTRACTION ─────────────────────────────────────────────────── */
+/* ─── ML AĞIRLIKLARI (pipeline'dan üretildi, outcome verisi arttıkça güncellenir) ── */
+const ML_WEIGHTS = {
+  intercept: 0.03749523781043694,
+  coef: {
+    expectation:     0.20066371691568663,
+    motivation:     -0.613670500317657,
+    doctorCount:    -0.3213802297901736,
+    support:        -0.14830184601283047,
+    revision:       -0.30656550152024914,
+    riskKnow:       -0.0047785712628837795,
+    patience:        0.11574454125727529,
+    compliance:      0.24633245184222272,
+    worstCase:       0.1051866050106543,
+    age_norm:       -0.14830184601283047,
+    motiv_x_support: 0.11197933118143501,
+    exp_x_revision:  0.0, // pipeline'da hesaplanamadı, sıfır
+  },
+  mean: {
+    expectation:     0.3055555555555556,
+    motivation:      0.14666666666666667,
+    doctorCount:     0.2777777777777778,
+    support:         0.1111111111111111,
+    revision:        0.16666666666666666,
+    riskKnow:        0.3888888888888889,
+    patience:        0.1111111111111111,
+    compliance:      0.05555555555555555,
+    worstCase:       0.33723196881091616,
+    age_norm:        0.07333333333333333,
+    motiv_x_support: 0.08333333333333333,
+    exp_x_revision:  0.05,
+  },
+  std: {
+    expectation:     0.2576005137637696,
+    motivation:      0.22602851344219582,
+    doctorCount:     0.3424674446093876,
+    support:         0.31426968052735443,
+    revision:        0.23570226039551584,
+    riskKnow:        0.20786985482077452,
+    patience:        0.20786985482077452,
+    compliance:      0.15713484026367722,
+    worstCase:       0.17520018455065356,
+    age_norm:        0.20741798914805393,
+    motiv_x_support: 0.15590239111558088,
+    exp_x_revision:  0.10,
+  },
+};
+
+/* ─── FEATURE EXTRACTION — pipeline ile aynı mantık ─────────────────────── */
 function extractFeatures(a){
-  const age=Math.min(1,Math.max(0,((parseFloat(a.age)||35)-18)/57));
-  const mot={"Görünümümü iyileştirmek istiyorum":0.1,"Sosyal özgüvenimi artırmak istiyorum":0.35,"Başka insanların yorumları beni kötü etkiliyor":0.8,"Hayatımda büyük bir değişime ihtiyacım var":0.9}[a.motivation]??0.5;
-  const exp={"Küçük iyileştirmeler yeterli":0.05,"Doğal ve dengeli bir sonuç bekliyorum":0.2,"Belirgin bir değişim bekliyorum, işlem yaptırdığım belli olmalı":0.65,"Tamamen farklı görünmek istiyorum":0.95}[a.expectation]??0.5;
-  const prev={"Hayır":0.1,"Evet ve memnunum":0.15,"Evet ama beklentimi karşılamadı":0.7,"Evet ve hiç memnun değilim":0.95}[a.prevSurgery]??0.1;
-  const doc={"Hayır":0.1,"1-2 doktora danıştım":0.45,"Birçok doktora danıştım":0.85}[a.multiDoctor]??0.3;
-  const rk={"Detaylı araştırdım ve biliyorum":0.05,"Genel olarak bilgi sahibiyim":0.4,"Hiçbir bilgim yok":0.9}[a.riskKnowledge]??0.5;
-  const imp={"Evet":0.05,"Sabırlı olmakta zorlanabilirim":0.6,"Hızlı sonuç görmek istiyorum":0.95}[a.patience]??0.5;
-  const sup={"Evet":0.05,"Kararsızlar":0.45,"Bu işleme karşılar":0.8,"Kimseye söylemedim":0.7}[a.support]??0.3;
-  const rev={"Evet, ve olası revizyonu normal kabul ederim":0.05,"Revizyon ihtimali beni çok endişelendiriyor":0.6,"Kusursuz sonuç bekliyorum":0.95}[a.revision]??0.3;
-  const com={"Titizlikle tüm önerilere uyarım":0.05,"Büyük ölçüde uyarım":0.35,"Kendi yöntemlerimi uygulamayı tercih ederim":0.9}[a.compliance]??0.3;
-  const pri={"Kalite için daha fazla öderim":0.1,"Dengeli fiyat/kalite isterim":0.4,"En uygun fiyatı tercih ederim":0.75}[a.price]??0.4;
-  // Prosedüre özel — burun referans sinyali
-  const rhinoRef={"Doktorum benim yüz yapıma en uygun olanı belirlesin":0.05,"Burnumda beni rahatsız eden belirli bir şeyi düzeltmek istiyorum":0.15,"Aklımda net bir görünüm var, buna ulaşmak istiyorum":0.65,"Aklımda belirli bir referans var — bir ünlü veya fotoğraf":0.95}[a.rhinoVision]??0;
-  return [age,mot,exp,prev,doc,rk,imp,sup,rev,com,pri,exp*0.5+mot*0.3+rhinoRef*0.2];
+  // Ham feature'lar — pipeline'daki MAPPINGS ile birebir aynı
+  const raw = {
+    expectation: {
+      "Küçük iyileştirmeler yeterli": 0.0,
+      "Doğal ve dengeli bir sonuç bekliyorum": 0.25,
+      "Belirgin ama doğal değişim": 0.5,
+      "Belirgin bir değişim bekliyorum, ameliyat olduğum belli olmalı": 0.75,
+      "Tamamen farklı görünmek istiyorum": 1.0,
+    }[a.expectation] ?? 0.25,
+
+    motivation: {
+      "Görünümümü iyileştirmek istiyorum": 0.0,
+      "Sosyal özgüvenimi artırmak istiyorum": 0.33,
+      "Hayatımda büyük bir değişime ihtiyacım var": 0.66,
+      "Başka insanların yorumları beni kötü etkiliyor": 1.0,
+    }[a.motivation] ?? 0.0,
+
+    doctorCount: {
+      "Hayır": 0.0,
+      "1-2 doktora danıştım": 0.5,
+      "1–2 doktora danıştım": 0.5,
+      "Birçok doktora danıştım": 1.0,
+    }[a.multiDoctor] ?? 0.0,
+
+    support: {
+      "Evet": 0.0,
+      "Kararsızlar": 0.33,
+      "Kimseye söylemedim": 0.66,
+      "Bu işleme karşılar": 1.0,
+    }[a.support] ?? 0.0,
+
+    revision: {
+      "Evet, ve olası revizyonu normal kabul ederim": 0.0,
+      "Evet, normal kabul ederim": 0.0,
+      "Revizyon ihtimali beni çok endişelendiriyor": 0.5,
+      "Kusursuz sonuç bekliyorum": 1.0,
+    }[a.revision] ?? 0.0,
+
+    riskKnow: {
+      "Detaylı araştırdım ve biliyorum": 0.0,
+      "Genel olarak bilgi sahibiyim": 0.5,
+      "Hiçbir bilgim yok": 1.0,
+    }[a.riskKnowledge] ?? 0.5,
+
+    patience: {
+      "Evet": 0.0,
+      "Sabırlı olmakta zorlanabilirim": 0.5,
+      "Hızlı sonuç görmek istiyorum": 1.0,
+    }[a.patience] ?? 0.0,
+
+    compliance: {
+      "Titizlikle tüm önerilere uyarım": 0.0,
+      "Büyük ölçüde uyarım": 0.5,
+      "Kendi yöntemlerimi uygulamayı tercih ederim": 1.0,
+    }[a.compliance] ?? 0.5,
+
+    worstCase: {
+      "Doktorumla konuşur, birlikte değerlendiririm": 0.0,
+      "Revizyon seçeneğini değerlendiririm": 0.25,
+      "Çok üzülürüm ama kabullenirim": 0.5,
+      "Bu ihtimali düşünmek istemiyorum": 1.0,
+    }[a.worstCase] ?? 0.25,
+
+    age_norm: Math.min(1, Math.max(0, ((parseFloat(a.age)||35) - 18) / 57)),
+  };
+
+  // Etkileşim terimleri
+  raw.motiv_x_support = raw.motivation * raw.support;
+  raw.exp_x_revision  = raw.expectation * raw.revision;
+
+  // Prosedüre özel sinyal — burun
+  const rhinoBoost = (a.procedure === "Burun Estetiği" &&
+    a.rhinoVision === "Aklımda belirli bir referans var — bir ünlü veya fotoğraf") ? 0.3 : 0;
+
+  // Meme simetri sinyali
+  const breastBoost = (["Meme Küçültme","Meme Dikleştirme","Meme Büyütme (Silikon Protez ile)"].includes(a.procedure) &&
+    a.breastSymmetry === "Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor") ? 0.25 : 0;
+
+  // Lojistik regresyon: standardize + linear combination + sigmoid
+  const W = ML_WEIGHTS;
+  let logit = W.intercept;
+  for(const feat of Object.keys(W.coef)){
+    const val = raw[feat] ?? 0;
+    const std = W.std[feat] || 1;
+    const z   = (val - W.mean[feat]) / std;
+    logit    += W.coef[feat] * z;
+  }
+  // Sigmoid → olasılık → 0-100 skor
+  const prob = 1 / (1 + Math.exp(-logit));
+
+  // Düşük = uygun (prob yüksek = randevu alır = düşük risk)
+  // Riski ters çevir: yüksek randevu olasılığı = düşük risk skoru
+  const baseScore = Math.round((1 - prob) * 100);
+
+  // Prosedüre özel boost — kural bazlı sinyaller eklenir
+  const finalScore = Math.min(100, Math.round(baseScore + rhinoBoost * 40 + breastBoost * 30));
+
+  // Eski sinir ağı array formatını korumak için dummy array (classify hâlâ score kullanıyor)
+  return Array(12).fill(finalScore / 100);
 }
+
+/* ─── SCORE HESAPLA — artık extractFeatures yerine direkt kullan ─────────── */
+function computeMLScore(a){
+  const feats = extractFeatures(a);
+  return feats[0] * 100; // tüm elemanlar aynı, ilki yeterli
+}
+
 
 function classify(score,a){
   // Paylaşım sinyalleri — tüm olası cevap metinlerini yakala
@@ -1413,7 +1552,7 @@ const PROCEDURE_INFO = {
   "Jinekomasti":{category:"Erkek Estetiği",desc:"Erkeklerde meme bezi büyümesinin cerrahi veya liposuction ile düzeltilmesi.",stats:[{val:"1–2 saat",lbl:"Süre"},{val:"1 gece",lbl:"Hastane"},{val:"6 hafta",lbl:"İyileşme"}],process:"Ameliyat sonrası kompresyon giysi uygulanır. İlk hafta kol hareketleri kısıtlı. 3. günden şişlik azalır.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel veya sedasyon anestezi. Kompresyon giysi takılır."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Kompresyon giysi sürekli. Kol hareketleri kısıtlı."},{time:"6 hafta",emoji:"✨",color:"#10b981",title:"İyileşme",desc:"Nihai sonuç oturur. Ağır spora dönüş mümkün."}],prep:["Ameliyat öncesi 6–8 saat aç kalın","Kompresyon giysiyi sürekli takın","6 hafta ağır koldan egzersizden kaçının"],normal:["İlk hafta şişlik ve hassasiyet normaldir","Meme başı çevresinde geçici uyuşukluk olabilir","Kesi izi meme başı çevresinde gizli kalır"],followup:"1., 3. ve 6. aylarda kontrol"},
 };
 
-function PatientForm({model,trainPct,doctorId}){
+function PatientForm({doctorId}){
   const [currentQ,setCurrentQ]=useState(0);
   const [answers,setAnswers]=useState({});
   const [submitted,setSubmitted]=useState(false);
@@ -1442,9 +1581,7 @@ function PatientForm({model,trainPct,doctorId}){
   },[doctorId]);
 
   async function handleSubmit(){
-    const feats=extractFeatures(answers);
-    const raw=model?model.forward(feats):0.5;
-    const score=Math.round(raw*100);
+    const score = Math.round(computeMLScore(answers));
     const cls=classify(score,answers);
     const ambCode=cls.ambassador?"REF-"+Math.random().toString(36).substr(2,4).toUpperCase():null;
     const timingData={questionTimes,questionChanges};
@@ -2052,7 +2189,7 @@ YAZIM KURALLARI:
             </div>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:C.navy,letterSpacing:"-0.01em"}}>SculptAI</div>
           </div>
-          {!model&&<div style={{fontSize:11,color:C.muted}}>Model yükleniyor %{trainPct}...</div>}
+          
         </header>
       )}
 
@@ -2113,8 +2250,8 @@ YAZIM KURALLARI:
             const elapsed=Math.round((Date.now()-qStartTime.current)/1000);
             setQuestionTimes(p=>({...p,[QUESTIONS[currentQ].id]:elapsed}));
             qStartTime.current=Date.now();
-            if(currentQ<VISIBLE_QUESTIONS.length-1)setCurrentQ(c=>c+1);else if(model)handleSubmit();
-          }} disabled={!canNext||(!model&&currentQ===VISIBLE_QUESTIONS.length-1)}
+            if(currentQ<VISIBLE_QUESTIONS.length-1)setCurrentQ(c=>c+1);else handleSubmit();
+          }} disabled={!canNext}
             style={{flex:2,padding:"13px",background:canNext?"#1a1510":"#e0d9cc",border:"none",borderRadius:8,color:canNext?"#f5f0e8":"#b0a898",fontSize:12,fontWeight:500,letterSpacing:"0.08em",cursor:canNext?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Inter',sans-serif"}}>
             {currentQ===VISIBLE_QUESTIONS.length-1?(model?"Formu Gönder →":"Model yükleniyor..."):"Devam →"}
           </button>
@@ -2347,15 +2484,9 @@ function Login({onLogin}){
 /* ─── ROOT ───────────────────────────────────────────────────────────────── */
 export default function App(){
   const [view,setView]=useState("loading");
-  const [model,setModel]=useState(null);
-  const [trainPct,setTrainPct]=useState(0);
   const [doctor,setDoctor]=useState(null);
   const [doctorId,setDoctorId]=useState(null);
-  const trained=useRef(false);
 
-  // Detect route: /form/dr-ahmet → patient form for that doctor
-  // /panel → doctor login
-  // / → default patient form (no doctor)
   useEffect(()=>{
     const path=window.location.pathname;
     const formMatch=path.match(/^\/form\/(.+)$/);
@@ -2367,27 +2498,11 @@ export default function App(){
     else{setView("patient");}
   },[]);
 
-  // Train ML
-  useEffect(()=>{
-    if(trained.current)return; trained.current=true;
-    const net=new NN(12,28,1);
-    const aug=[];
-    for(let e=0;e<80;e++) REAL_DATA.forEach(d=>aug.push({f:d.f.map(v=>Math.min(1,Math.max(0,v+(Math.random()-0.5)*0.03))),r:d.r}));
-    for(let i=aug.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[aug[i],aug[j]]=[aug[j],aug[i]];}
-    let idx=0,b=0;
-    function run(){
-      for(let i=0;i<25&&idx<aug.length;i++,idx++) net.train(aug[idx].f,aug[idx].r);
-      b++; setTrainPct(Math.min(100,Math.round((idx/aug.length)*100)));
-      if(idx<aug.length) requestAnimationFrame(run); else setModel(net);
-    }
-    requestAnimationFrame(run);
-  },[]);
-
   if(view==="loading") return null;
 
   if(view==="patient") return(
     <div>
-      <PatientForm model={model} trainPct={trainPct} doctorId={doctorId}/>
+      <PatientForm doctorId={doctorId}/>
       <button onClick={()=>setView("login")} style={{position:"fixed",bottom:16,right:16,padding:"6px 14px",background:"rgba(12,20,40,0.06)",border:"1px solid rgba(12,20,40,0.1)",borderRadius:8,color:"rgba(12,20,40,0.35)",fontSize:11,cursor:"pointer"}}>🔒</button>
     </div>
   );
