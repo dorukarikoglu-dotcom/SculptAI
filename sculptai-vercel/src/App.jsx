@@ -499,7 +499,7 @@ function Sidebar({tab,setTab,onLogout,doctor}){
 }
 
 /* ─── PATIENT CARD ───────────────────────────────────────────────────────── */
-function PatientCard({patient,onDelete,isMobile}){
+function PatientCard({patient,onDelete,isMobile,onConsult}){
   const [open,setOpen]=useState(false);
   const [confirm,setConfirm]=useState(false);
   const [showOutcome,setShowOutcome]=useState(false);
@@ -823,6 +823,12 @@ function PatientCard({patient,onDelete,isMobile}){
             )}
 
             <div style={{borderTop:"1px solid #d4cabf",padding:"10px 16px",display:"flex",gap:7,background:"#f5f0e8"}}>
+              {/* Konsültasyona Başla — en öne */}
+              {onConsult&&(
+                <button onClick={e=>{e.stopPropagation();onConsult(patient);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:500,border:"none",background:"#1a1510",color:"#f5f0e8",letterSpacing:"0.04em",cursor:"pointer"}}>
+                  ◈ Konsültasyon
+                </button>
+              )}
               <button onClick={e=>{e.stopPropagation();setShowOutcome(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:400,border:`1px solid ${outcomeProcedures.length>0?"#059669":"#d4cabf"}`,background:"transparent",color:outcomeProcedures.length>0?"#059669":"#8a7a68",letterSpacing:"0.03em"}}>
                 {outcomeProcedures.length>0?"✓ Randevu Girildi":"Randevu Sonucu"}
               </button>
@@ -842,6 +848,7 @@ function PatientCard({patient,onDelete,isMobile}){
                 :<button onClick={e=>{e.stopPropagation();onDelete(patient.id);}} style={{padding:"8px 12px",borderRadius:7,fontSize:11,border:"none",background:"#ef4444",color:"white",fontWeight:500}}>Emin misin?</button>
               }
             </div>
+
 
 
             {/* SEKRETER MODALI */}
@@ -886,6 +893,121 @@ function PatientCard({patient,onDelete,isMobile}){
             )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── CONSULTATION MODE ──────────────────────────────────────────────────── */
+function ConsultationMode({patient, onClose}){
+  const a=patient.answers||{};
+  const score=patient.risk_score||0;
+  const cls=classify(score,a);
+  const pred=predictOutcomes(score,a);
+  const name=a.name||"Hasta";
+  const proc=a.procedure||"İşlem";
+
+  const C={red:"#dc2626",amber:"#d97706",green:"#059669"}; — risk sinyallerinden otomatik üret
+  const talkingPoints=[];
+  if(a.rhinoVision==="Aklımda belirli bir referans var — bir ünlü veya fotoğraf")
+    talkingPoints.push({text:"Referans beklentisini netleştir",sub:"Aklında belirli bir referans olduğunu belirtti — kendi yüz yapısına uygun sonucu açıkla"});
+  if(a.revision==="Kusursuz sonuç bekliyorum")
+    talkingPoints.push({text:"Revizyon ihtimali konuşması",sub:"Kusursuz sonuç beklentisi var — revizyonun nadir ama olası bir süreç olduğunu çerçeveleyerek aktarabilirsin"});
+  if(a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor")
+    talkingPoints.push({text:"Simetri beklentisini çerçevele",sub:"Mevcut asimetri küçük ama çok rahatsız ediyor — memeler kardeştir, ikiz değildir"});
+  if(a.expectation?.includes("Tamamen farklı"))
+    talkingPoints.push({text:"Beklenti yönetimi",sub:"Tamamen farklı görünmek istiyor — mümkün olan değişimi fotoğraflarla somutlaştır"});
+  if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x))
+    talkingPoints.push({text:"Motivasyonu netleştir",sub:"Dışsal baskı bileşeni var — kendi isteği mi çevre baskısı mı olduğunu anlamak değerli"});
+  if((a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge")||(a.otherConsidered&&a.otherConsidered!=="Hayır"))
+    talkingPoints.push({text:"Ek işlem sinyali",sub:`Cross-sell fırsatı — ${a.otherAreas||a.otherConsidered} ilgisi var, sorabilirsin`});
+  if(talkingPoints.length===0)
+    talkingPoints.push({text:"Standart konsültasyon",sub:"Belirgin risk sinyali yok — beklentiyi teyit et, süreci anlat"});
+
+  // Risk sinyalleri
+  const flags=[];
+  if(a.rhinoVision==="Aklımda belirli bir referans var — bir ünlü veya fotoğraf") flags.push({txt:"Belirli bir referans var — kendi yüzüne uygun sonuç değil, başka birinin özelliğini istiyor olabilir",sev:"red"});
+  if(a.revision==="Kusursuz sonuç bekliyorum") flags.push({txt:"Kusursuz sonuç beklentisi — revizyon ihtimalini kabul etmiyor",sev:"red"});
+  if(a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor") flags.push({txt:"Küçük asimetri bile rahatsız ediyor — postop memnuniyetsizlik riski yüksek",sev:"red"});
+  if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x)) flags.push({txt:"Dışsal motivasyon bileşeni var",sev:"amber"});
+  if(a.multiDoctor==="Birçok doktora danıştım") flags.push({txt:"Birçok doktora danışmış — kararsızlık veya yüksek standart",sev:"amber"});
+  if(a.support?.includes("Kimseye")||a.support?.includes("karşılar")) flags.push({txt:"Sosyal destek zayıf — iyileşme sürecinde yalnız kalabilir",sev:"amber"});
+  if(flags.length===0) flags.push({txt:"Belirgin risk sinyali saptanmadı",sev:"green"});
+
+  const C={red:"#dc2626",amber:"#d97706",green:"#059669"};
+  const BG={red:"#fef2f2",amber:"#fffbeb",green:"#ecfdf5"};
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"#f5f0e8",zIndex:1000,display:"flex",flexDirection:"column",fontFamily:"'Inter',sans-serif"}}>
+
+      {/* TOPBAR */}
+      <div style={{background:"#1a1510",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          <div style={{width:8,height:8,background:"#8a3040",borderRadius:"50%"}}/>
+          <div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:"#f5f0e8",fontWeight:300}}>{name}</div>
+            <div style={{fontSize:10,color:"rgba(245,240,232,0.4)",marginTop:1}}>{a.age&&`${a.age} yaş · `}{proc}</div>
+          </div>
+          <div style={{padding:"3px 10px",borderRadius:20,background:cls.bg,border:`1px solid ${cls.border}`,fontSize:10,fontWeight:500,color:cls.textColor}}>{cls.icon} {cls.label}</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:16}}>
+          <button onClick={onClose} style={{background:"#f5f0e8",color:"#1a1510",border:"none",borderRadius:8,padding:"9px 20px",fontSize:11,fontWeight:500,cursor:"pointer",letterSpacing:"0.04em"}}>
+            ← Geri Dön
+          </button>
+        </div>
+      </div>
+
+      {/* CONTENT */}
+      <div style={{flex:1,overflowY:"auto",padding:"16px 20px",maxWidth:720,margin:"0 auto",width:"100%"}}>
+
+        {/* 3 metrik */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+          {[
+            {val:`${pred.rev}%`,lbl:"Revizyon Riski",color:pred.rev>=50?"#dc2626":pred.rev>=30?"#d97706":"#059669",bg:pred.rev>=50?"#fef2f2":pred.rev>=30?"#fffbeb":"#ecfdf5",border:pred.rev>=50?"#fecaca":pred.rev>=30?"#fde68a":"#a7f3d0"},
+            {val:pred.sat,lbl:"Memnuniyet /100",color:pred.sat>=70?"#059669":pred.sat>=50?"#d97706":"#dc2626",bg:pred.sat>=70?"#ecfdf5":pred.sat>=50?"#fffbeb":"#fef2f2",border:pred.sat>=70?"#a7f3d0":pred.sat>=50?"#fde68a":"#fecaca"},
+            {val:pred.fit,lbl:"Cerrahi Uygunluk",color:pred.fitColor,bg:pred.fitBg,border:`${pred.fitColor}44`},
+          ].map((m,i)=>(
+            <div key={i} style={{background:m.bg,border:`1px solid ${m.border}`,borderRadius:10,padding:"12px 8px",textAlign:"center"}}>
+              <div style={{fontSize:i===2?13:22,fontWeight:600,color:m.color,lineHeight:1.1}}>{m.val}</div>
+              <div style={{fontSize:8,color:m.color,opacity:0.7,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:4}}>{m.lbl}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Yaklaşım önerisi */}
+        <div style={{background:"#f0edff",border:"1px solid #c4b5fd",borderRadius:10,padding:"11px 14px",marginBottom:16,display:"flex",gap:10,alignItems:"flex-start"}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:"#7c3aed",marginTop:5,flexShrink:0}}/>
+          <div>
+            <div style={{fontSize:10,fontWeight:500,color:"#5b21b6",marginBottom:2}}>{pred.approach}</div>
+            <div style={{fontSize:11,color:"#6d28d9",lineHeight:1.55}}>{pred.approachDesc}</div>
+          </div>
+        </div>
+
+        {/* Konuşulacaklar */}
+        <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,marginBottom:8}}>Bugün Konuşulacaklar</div>
+        <div style={{background:"white",border:"1px solid #d4cabf",borderRadius:10,marginBottom:16,overflow:"hidden"}}>
+          {talkingPoints.map((t,i)=>(
+            <div key={i} style={{display:"flex",gap:12,padding:"12px 14px",borderBottom:i<talkingPoints.length-1?"1px solid #ece7db":"none"}}>
+              <div style={{width:22,height:22,borderRadius:"50%",background:"#4a1520",color:"#f5f0e8",fontSize:10,fontWeight:500,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</div>
+              <div>
+                <div style={{fontSize:12,fontWeight:500,color:"#1a1510",marginBottom:2}}>{t.text}</div>
+                <div style={{fontSize:11,color:"#8a7a68",lineHeight:1.55}}>{t.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Risk sinyalleri */}
+        <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,marginBottom:8}}>Risk Sinyalleri</div>
+        <div style={{background:"white",border:"1px solid #d4cabf",borderRadius:10,overflow:"hidden"}}>
+          {flags.map((f,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 14px",borderBottom:i<flags.length-1?"1px solid #ece7db":"none",background:f.sev==="green"?"#f0fdf4":"white"}}>
+              <div style={{width:7,height:7,borderRadius:"50%",background:C[f.sev],marginTop:4,flexShrink:0}}/>
+              <div style={{fontSize:11,color:f.sev==="red"?"#7f1d1d":f.sev==="amber"?"#78350f":"#065f46",lineHeight:1.55}}>{f.txt}</div>
+            </div>
+          ))}
+        </div>
+
+      </div>
     </div>
   );
 }
@@ -1202,6 +1324,7 @@ function DoctorPanel({doctor,onLogout}){
   const [loading,setLoading]=useState(true);
   const [filter,setFilter]=useState("all");
   const [tab,setTab]=useState("patients"); // patients | analytics | value | settings
+  const [consultPatient,setConsultPatient]=useState(null); // konsültasyon modu
   const [isMobile,setIsMobile]=useState(window.innerWidth<768);
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
   useEffect(()=>{
@@ -1270,6 +1393,9 @@ function DoctorPanel({doctor,onLogout}){
 
   return(
     <div style={{display:"flex",flexDirection:isMobile?"column":"row",height:"100vh",overflow:"hidden",fontFamily:"'Inter',sans-serif"}}>
+
+      {/* KONSÜLTASYOn MODU — overlay */}
+      {consultPatient&&<ConsultationMode patient={consultPatient} onClose={()=>setConsultPatient(null)}/>}
 
       {/* DESKTOP: Sol sidebar / MOBİL: Alt nav */}
       {!isMobile&&<Sidebar tab={tab} setTab={setTab} doctor={doctor} onLogout={onLogout}/>}
@@ -1358,7 +1484,7 @@ function DoctorPanel({doctor,onLogout}){
             </div>
           )}
 
-          <div className="f4">{clinical.map(p=><PatientCard key={p.id} patient={p} onDelete={deletePatient} isMobile={isMobile}/>)}</div>
+          <div className="f4">{clinical.map(p=><PatientCard key={p.id} patient={p} onDelete={deletePatient} isMobile={isMobile} onConsult={setConsultPatient}/>)}</div>
 
           {ambassadors.length>0&&(
             <div className="f5">
@@ -1367,7 +1493,7 @@ function DoctorPanel({doctor,onLogout}){
                 <div style={{fontSize:10,color:"#a78bfa",background:"#faf5ff",padding:"2px 10px",borderRadius:10,border:"1px solid #ede9fe",letterSpacing:"0.08em",fontWeight:500}}>Ticari Fırsat</div>
                 <div style={{flex:1,height:1,background:"#f1f3f5"}}/>
               </div>
-              {ambassadors.map(p=><PatientCard key={p.id} patient={p} onDelete={deletePatient} isMobile={isMobile}/>)}
+              {ambassadors.map(p=><PatientCard key={p.id} patient={p} onDelete={deletePatient} isMobile={isMobile} onConsult={setConsultPatient}/>)}
             </div>
           )}
 
