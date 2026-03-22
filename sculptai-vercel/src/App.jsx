@@ -1437,22 +1437,28 @@ function PatientForm({model,trainPct,doctorId}){
     const safeAnswers={...answers,name:encryptedName};
 
     const rec={
-      id:Date.now().toString(),
+      id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),
       doctor_id:doctorId,
-      date:new Date().toISOString(),
+      created_at:new Date().toISOString(),
       risk_score:score,
       segment:cls.label,
-      color:cls.color,
-      icon:cls.icon,
       answers:safeAnswers,
       ai_text:"",
       ai_loading:true,
       ambassador_code:ambCode||"",
       ambassador_sent:false,
       outcome_procedures:[],
+      no_appointment:false,
       question_times:timingData,
     };
-    await sb.from("patients").insert(rec);
+
+    const {error}=await sb.from("patients").insert(rec);
+    if(error){
+      console.error("Insert hatası:",error);
+      alert("Form kaydedilemedi: "+error.message);
+      return;
+    }
+
     setSubmitted(true);
     setAmbassadorCode(ambCode);
     setPatientSegment(cls);
