@@ -906,7 +906,8 @@ function ConsultationMode({patient, onClose}){
   const name=a.name||"Hasta";
   const proc=a.procedure||"İşlem";
 
-  const C={red:"#dc2626",amber:"#d97706",green:"#059669"}; — risk sinyallerinden otomatik üret
+  const C={red:"#dc2626",amber:"#d97706",green:"#059669"};
+  // Konuşulacaklar — risk sinyallerinden otomatik üret
   const talkingPoints=[];
   if(a.rhinoVision==="Aklımda belirli bir referans var — bir ünlü veya fotoğraf")
     talkingPoints.push({text:"Referans beklentisini netleştir",sub:"Aklında belirli bir referans olduğunu belirtti — kendi yüz yapısına uygun sonucu açıkla"});
