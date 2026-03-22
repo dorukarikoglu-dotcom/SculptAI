@@ -83,7 +83,9 @@ function extractFeatures(a){
   const rev={"Evet, ve olası revizyonu normal kabul ederim":0.05,"Revizyon ihtimali beni çok endişelendiriyor":0.6,"Kusursuz sonuç bekliyorum":0.95}[a.revision]??0.3;
   const com={"Titizlikle tüm önerilere uyarım":0.05,"Büyük ölçüde uyarım":0.35,"Kendi yöntemlerimi uygulamayı tercih ederim":0.9}[a.compliance]??0.3;
   const pri={"Kalite için daha fazla öderim":0.1,"Dengeli fiyat/kalite isterim":0.4,"En uygun fiyatı tercih ederim":0.75}[a.price]??0.4;
-  return [age,mot,exp,prev,doc,rk,imp,sup,rev,com,pri,exp*0.6+mot*0.4];
+  // Prosedüre özel — burun referans sinyali
+  const rhinoRef={"Doktorum benim yüz yapıma en uygun olanı belirlesin":0.05,"Burnumda beni rahatsız eden belirli bir şeyi düzeltmek istiyorum":0.15,"Aklımda net bir görünüm var, buna ulaşmak istiyorum":0.65,"Aklımda belirli bir referans var — bir ünlü veya fotoğraf":0.95}[a.rhinoVision]??0;
+  return [age,mot,exp,prev,doc,rk,imp,sup,rev,com,pri,exp*0.5+mot*0.3+rhinoRef*0.2];
 }
 
 function classify(score,a){
@@ -101,7 +103,9 @@ function classify(score,a){
   const noSupport=["Kimseye söylemedim","Bu işleme karşılar"].some(x=>a.support===x);
   const unrealistic=a.revision==="Kusursuz sonuç bekliyorum";
   const worstBad=a.worstCase?.includes("düşünmek istemiyorum");
-  const riskFactors=[bddRisk,highExp&&extMotiv,manyDocs,unrealistic,worstBad].filter(Boolean).length;
+  const rhinoRedFlag=a.procedure==="Burun Estetiği"&&a.rhinoVision==="Aklımda belirli bir referans var — bir ünlü veya fotoğraf";
+  const breastSymRedFlag=["Meme Küçültme","Meme Dikleştirme","Meme Büyütme (Silikon Protez ile)","Meme Asimetrisinin Giderilmesi"].includes(a.procedure)&&a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor";
+  const riskFactors=[bddRisk,highExp&&extMotiv,manyDocs,unrealistic,worstBad,rhinoRedFlag,breastSymRedFlag].filter(Boolean).length;
 
   // Elçi — gevşetilmiş eşik: score<45, iki sosyal sinyal yeterli
   if(socialActive&&score<45&&riskFactors===0)
@@ -119,7 +123,96 @@ function classify(score,a){
   return{cat:"green",label:"Randevuya Hazır",icon:"🟢",color:"#059669",bg:"#ecfdf5",border:"#a7f3d0",textColor:"#047857",obs:"Profil uygun görünüyor",obsBody:"İçsel motivasyon, gerçekçi beklenti ve süreç farkındalığı saptandı. Standart konsültasyon yeterli.",ambassador:false};
 }
 
-const QUESTIONS=[
+function predictOutcomes(score, a){
+  // ── Sinyal tespiti ──────────────────────────────────────────────
+  const bddRisk      = a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor" || a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
+  const unrealistic  = a.revision==="Kusursuz sonuç bekliyorum";
+  const extMotiv     = ["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x);
+  const intMotiv     = ["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
+  const highExp      = a.expectation?.includes("Tamamen farklı");
+  const realisticExp = ["Küçük, doğal bir iyileştirme yeterli","Dengeli ve orantılı bir sonuç bekliyorum"].some(x=>a.expectation===x);
+  const manyDocs     = a.multiDoctor==="Birçok doktorla görüştüm";
+  const noSupport    = ["Kimseye söylemedim","Karşılar"].some(x=>a.support===x);
+  const goodSupport  = a.support==="Evet, destekliyorlar";
+  const impulsive    = a.patience==="Hızlı sonuç görmek istiyorum";
+  const patient      = a.patience==="Evet, sabırlıyım";
+  const worstAvoid   = a.worstCase?.includes("düşünmek istemiyorum");
+  const prevBad      = ["Evet ama beklentimi karşılamadı","Evet ve hiç memnun değilim"].some(x=>a.prevSurgery===x);
+  const prevGood     = a.prevSurgery==="Evet ve memnunum";
+  const detailedKnow = a.riskKnowledge==="Detaylı araştırdım ve biliyorum";
+  const lowSelfEst   = ["Kendimden pek memnun değilim","Hayır, kendimle barışık değilim"].some(x=>a.selfEsteem===x);
+  const lifeExpect   = a.imagineAfter?.includes("Hayatımın daha iyi");
+
+  // ── Revizyon Riski % ───────────────────────────────────────────
+  let rev = 12;
+  const revReasons = [];
+  if(bddRisk)      { rev+=28; revReasons.push({txt:"BDD riski saptandı — revizyon döngüsü olasılığı yüksek",w:"high"}); }
+  if(unrealistic)  { rev+=22; revReasons.push({txt:"Kusursuz sonuç beklentisi — gerçek sonuçla uyumsuzluk riski",w:"high"}); }
+  if(extMotiv)     { rev+=16; revReasons.push({txt:"Dışsal motivasyon — sonuç değerlendirmesi başkalarına bağımlı",w:"med"}); }
+  if(highExp)      { rev+=14; revReasons.push({txt:"Tamamen farklı görünüm beklentisi — hayal kırıklığı riski",w:"med"}); }
+  if(manyDocs)     { rev+=12; revReasons.push({txt:"Birçok doktora gidilmiş — kararsızlık ve yüksek standart",w:"med"}); }
+  if(prevBad)      { rev+=14; revReasons.push({txt:"Geçmiş deneyim memnuniyetsizliği — tekrar riski",w:"med"}); }
+  if(worstAvoid)   { rev+=8;  revReasons.push({txt:"En kötü senaryo kaçınması — gerçekçi süreç planlaması eksik",w:"low"}); }
+  if(noSupport)    { rev+=8;  revReasons.push({txt:"Sosyal destek eksikliği — karar kırılganlığı artar",w:"low"}); }
+  if(lowSelfEst)   { rev+=6;  revReasons.push({txt:"Düşük benlik saygısı — sonuç algısını olumsuz etkileyebilir",w:"low"}); }
+  if(lifeExpect)   { rev+=8;  revReasons.push({txt:"İşlemden hayat değişikliği beklentisi — gerçekçi değil",w:"med"}); }
+  if(prevGood)     { rev-=8;  }
+  if(detailedKnow) { rev-=6;  }
+  if(intMotiv)     { rev-=5;  }
+  if(realisticExp) { rev-=8;  }
+  rev = Math.min(85, Math.max(5, rev));
+
+  // ── Beklenen Memnuniyet (0–100) ────────────────────────────────
+  let sat = 68;
+  const satReasons = [];
+  if(intMotiv)     { sat+=14; satReasons.push({txt:"İçsel motivasyon — sonuç değerlendirmesi kendine dayalı",w:"high",dir:"+"}); }
+  if(realisticExp) { sat+=12; satReasons.push({txt:"Gerçekçi beklenti — sonuç-beklenti uyumu kuvvetli",w:"high",dir:"+"}); }
+  if(goodSupport)  { sat+=8;  satReasons.push({txt:"Güçlü sosyal destek — iyileşme süreci kolaylaşır",w:"med",dir:"+"}); }
+  if(patient)      { sat+=8;  satReasons.push({txt:"Sabırlı profil — süreci olduğu gibi yaşayabilir",w:"med",dir:"+"}); }
+  if(prevGood)     { sat+=10; satReasons.push({txt:"Geçmişte memnuniyetle sonuçlanmış — pozitif referans",w:"med",dir:"+"}); }
+  if(detailedKnow) { sat+=6;  satReasons.push({txt:"Süreci detaylı biliyor — sürpriz riski düşük",w:"low",dir:"+"}); }
+  if(bddRisk)      { sat-=22; satReasons.push({txt:"BDD riski — memnuniyet hiçbir sonuçla gelmeyebilir",w:"high",dir:"-"}); }
+  if(extMotiv)     { sat-=16; satReasons.push({txt:"Dışsal motivasyon — başkalarının tepkisine bağımlı",w:"high",dir:"-"}); }
+  if(highExp)      { sat-=14; satReasons.push({txt:"Aşırı beklenti — gerçek sonuç hayal kırıklığı yaratır",w:"high",dir:"-"}); }
+  if(unrealistic)  { sat-=12; satReasons.push({txt:"Kusursuz sonuç beklentisi — tatminsizlik döngüsü riski",w:"high",dir:"-"}); }
+  if(impulsive)    { sat-=10; satReasons.push({txt:"İyileşme sürecine sabırsız — erken değerlendirme riski",w:"med",dir:"-"}); }
+  if(noSupport)    { sat-=8;  satReasons.push({txt:"Destek eksikliği — zor dönemde yalnız kalabilir",w:"med",dir:"-"}); }
+  if(prevBad)      { sat-=10; satReasons.push({txt:"Geçmiş memnuniyetsizlik — standartlar yüksek",w:"med",dir:"-"}); }
+  if(lowSelfEst)   { sat-=8;  satReasons.push({txt:"Düşük benlik saygısı — sonuç algısını çarpıtabilir",w:"low",dir:"-"}); }
+  if(lifeExpect)   { sat-=10; satReasons.push({txt:"İşlemden hayat değişikliği beklentisi — sürdürülemez",w:"med",dir:"-"}); }
+  sat = Math.min(95, Math.max(15, sat));
+
+  // ── Cerrahi Uygunluk ──────────────────────────────────────────
+  const riskFactors = [bddRisk, highExp&&extMotiv, manyDocs, unrealistic, worstAvoid].filter(Boolean).length;
+  let fit, fitColor, fitBg;
+  if(bddRisk || (score>=72 && riskFactors>=3)){
+    fit="Uygun Değil"; fitColor="#dc2626"; fitBg="#fef2f2";
+  } else if(score>=52 || riskFactors>=2 || (extMotiv&&highExp) || (prevBad&&unrealistic)){
+    fit="Borderline"; fitColor="#d97706"; fitBg="#fffbeb";
+  } else {
+    fit="Uygun"; fitColor="#059669"; fitBg="#ecfdf5";
+  }
+
+  // ── Yaklaşım Önerisi ─────────────────────────────────────────
+  let approach, approachDesc;
+  if(fit==="Uygun Değil" || bddRisk){
+    approach="Ameliyat Önerilmez";
+    approachDesc="Psikolojik değerlendirme önce. Beklenti çerçevesi kurulmadan cerrahi planlanmamalı.";
+  } else if(fit==="Borderline" || extMotiv || unrealistic || highExp){
+    approach="Konservatif";
+    approachDesc="Minimal müdahale planla, beklenti yönetimini önceliklendir. Birden fazla konsültasyon düşün.";
+  } else if(intMotiv && realisticExp && !manyDocs && score<35){
+    approach="Standart / Agresif";
+    approachDesc="Hasta iyi aday. İstenen sonucu doğrudan hedefleyebilirsin.";
+  } else {
+    approach="Standart";
+    approachDesc="Normal konsültasyon akışı yeterli. Beklentileri teyit et, sonra planla.";
+  }
+
+  return { rev, sat, fit, fitColor, fitBg, approach, approachDesc, revReasons, satReasons };
+}
+
+
   {id:"name",section:"Kişisel Bilgiler",label:"İsminiz ve Soyisminiz",type:"text",placeholder:"Ad Soyad"},
   {id:"age",section:"Kişisel Bilgiler",label:"Kaç yaşındasınız?",type:"number",placeholder:"örn. 34"},
   {id:"gender",section:"Kişisel Bilgiler",label:"Cinsiyetiniz nedir?",type:"radio",options:["Kadın","Erkek","Belirtmek istemiyorum"]},
@@ -127,6 +220,11 @@ const QUESTIONS=[
 
   /* ── Cross-sell sinyalleri ── */
   {id:"otherAreas",section:"İşlem Bilgisi",label:"Bunun dışında vücudunuzda rahatsız olduğunuz başka bir bölge var mı?",type:"radio",options:["Hayır, sadece bu bölge","Evet, 1-2 bölge daha var ama önceliğim bu","Evet, birkaç bölge var, hepsini konuşmak isterim","Henüz bilmiyorum, doktorun önerilerine açığım"]},
+
+  /* ── Prosedüre özel sorular ── */
+  {id:"rhinoVision",section:"İşlem Bilgisi",label:"Ameliyat sonucunu hayal ettiğinizde aklınızda ne var?",type:"radio",showIf:(a)=>a.procedure==="Burun Estetiği",options:["Doktorum benim yüz yapıma en uygun olanı belirlesin","Burnumda beni rahatsız eden belirli bir şeyi düzeltmek istiyorum","Aklımda net bir görünüm var, buna ulaşmak istiyorum","Aklımda belirli bir referans var — bir ünlü veya fotoğraf"]},
+
+  {id:"breastSymmetry",section:"İşlem Bilgisi",label:"Şu an iki memeniz arasındaki farkı nasıl tarif edersiniz?",type:"radio",showIf:(a)=>["Meme Küçültme","Meme Dikleştirme","Meme Büyütme (Silikon Protez ile)","Meme Asimetrisinin Giderilmesi"].includes(a.procedure),options:["Fark var ama beni pek rahatsız etmiyor, ameliyatla düzelsin istiyorum","Belirgin bir fark var ve bu beni çok rahatsız ediyor","Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor","Fark olduğunu düşünmüyorum, sadece küçültmek/büyütmek istiyorum"]},
   {id:"otherConsidered",section:"İşlem Bilgisi",label:"Bu işlem dışında daha önce başka bir estetik işlem aklınızdan geçti mi?",type:"radio",options:["Hayır","Evet, düşündüm ama erteledim","Evet, bu işlemle aynı anda değerlendiriyorum","Evet, gelecekte yapmayı planlıyorum"]},
 
   /* ── BDD Taraması ── */
@@ -243,6 +341,8 @@ function PatientCard({patient,onDelete}){
   const [outcomeProcedures,setOutcomeProcedures]=useState(patient.outcome_procedures||[]);
   const [noAppointment,setNoAppointment]=useState(patient.no_appointment||false);
   const [ambassadorSent,setAmbassadorSent]=useState(patient.ambassador_sent||false);
+  const [consultNote,setConsultNote]=useState(patient.consult_note||"");
+  const [showConsultNote,setShowConsultNote]=useState(false);
   const a=patient.answers||{};
   const score=patient.risk_score||0;
   const cls=classify(score,a);
@@ -428,8 +528,64 @@ function PatientCard({patient,onDelete}){
                   if(a.imagineAfter?.includes("hayatımın daha iyi")||a.imagineAfter?.includes("Hayatımın")) comms.push(`İşlemden sonra hayatının daha iyi gideceğini umuyor — bu beklentiyi gerçekçi bir çerçevede ele alabilirsiniz`);
                 }
 
+                const pred=predictOutcomes(score,a);
+
                 return(
                   <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:patient.ai_text?10:0}}>
+
+                    {/* ── KLİNİK TAHMİN BLOĞU ── */}
+                    <div style={{background:"#f8f7ff",border:"1px solid #ddd6fe",borderRadius:9,padding:"11px 13px"}}>
+                      <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#5b21b6",marginBottom:10}}>🧠 Klinik Tahmin</div>
+
+                      {/* 3 metrik yan yana */}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
+                        {/* Revizyon Riski */}
+                        <div style={{background:"white",border:"1px solid #ede9fe",borderRadius:7,padding:"8px 6px",textAlign:"center"}}>
+                          <div style={{fontSize:18,fontWeight:600,color:pred.rev>=50?"#dc2626":pred.rev>=30?"#d97706":"#059669",lineHeight:1}}>{pred.rev}%</div>
+                          <div style={{fontSize:8,color:"#8b5cf6",letterSpacing:"0.08em",textTransform:"uppercase",marginTop:3}}>Revizyon Riski</div>
+                        </div>
+                        {/* Memnuniyet */}
+                        <div style={{background:"white",border:"1px solid #ede9fe",borderRadius:7,padding:"8px 6px",textAlign:"center"}}>
+                          <div style={{fontSize:18,fontWeight:600,color:pred.sat>=70?"#059669":pred.sat>=50?"#d97706":"#dc2626",lineHeight:1}}>{pred.sat}</div>
+                          <div style={{fontSize:8,color:"#8b5cf6",letterSpacing:"0.08em",textTransform:"uppercase",marginTop:3}}>Memnuniyet /100</div>
+                        </div>
+                        {/* Cerrahi Uygunluk */}
+                        <div style={{background:pred.fitBg,border:`1px solid ${pred.fitColor}44`,borderRadius:7,padding:"8px 6px",textAlign:"center"}}>
+                          <div style={{fontSize:11,fontWeight:600,color:pred.fitColor,lineHeight:1.2}}>{pred.fit}</div>
+                          <div style={{fontSize:8,color:"#8b5cf6",letterSpacing:"0.08em",textTransform:"uppercase",marginTop:3}}>Cerrahi Uygunluk</div>
+                        </div>
+                      </div>
+
+                      {/* Yaklaşım önerisi */}
+                      <div style={{background:"white",border:"1px solid #ede9fe",borderRadius:7,padding:"8px 10px",marginBottom:8}}>
+                        <div style={{fontSize:8,letterSpacing:"0.1em",textTransform:"uppercase",color:"#8b5cf6",marginBottom:3}}>Önerilen Yaklaşım</div>
+                        <div style={{fontSize:11,fontWeight:500,color:"#3730a3",marginBottom:2}}>{pred.approach}</div>
+                        <div style={{fontSize:10,color:"#6d28d9",lineHeight:1.5}}>{pred.approachDesc}</div>
+                      </div>
+
+                      {/* Explainable — neden bu skor */}
+                      {(pred.revReasons.length>0||pred.satReasons.length>0)&&(
+                        <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                          <div style={{fontSize:8,letterSpacing:"0.08em",textTransform:"uppercase",color:"#8b5cf6",marginBottom:2}}>Tahmin Gerekçeleri</div>
+                          {pred.revReasons.slice(0,2).map((r,i)=>(
+                            <div key={i} style={{fontSize:10,color:"#7f1d1d",display:"flex",gap:5,lineHeight:1.45}}>
+                              <span style={{flexShrink:0,color:"#dc2626"}}>↑</span>{r.txt}
+                            </div>
+                          ))}
+                          {pred.satReasons.filter(r=>r.dir==="+").slice(0,1).map((r,i)=>(
+                            <div key={i} style={{fontSize:10,color:"#065f46",display:"flex",gap:5,lineHeight:1.45}}>
+                              <span style={{flexShrink:0,color:"#059669"}}>↑</span>{r.txt}
+                            </div>
+                          ))}
+                          {pred.satReasons.filter(r=>r.dir==="-").slice(0,1).map((r,i)=>(
+                            <div key={i} style={{fontSize:10,color:"#7f1d1d",display:"flex",gap:5,lineHeight:1.45}}>
+                              <span style={{flexShrink:0,color:"#dc2626"}}>↓</span>{r.txt}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:9,padding:"10px 13px"}}>
                       <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#991b1b",marginBottom:7}}>⚠ Risk Faktörleri</div>
                       <div style={{display:"flex",flexDirection:"column",gap:5}}>
@@ -496,12 +652,12 @@ function PatientCard({patient,onDelete}){
               {cls.ambassador&&ambassadorSent&&(
                 <div style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,textAlign:"center",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe"}}>✓ Elçi Gönderildi</div>
               )}
-              <button onClick={e=>{e.stopPropagation();}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:11,fontWeight:500,border:"none",background:"#1a1510",color:"#f5f0e8",letterSpacing:"0.04em"}}>Görüşmeye Hazır</button>
               {!confirm
                 ?<button onClick={e=>{e.stopPropagation();setConfirm(true);}} style={{padding:"8px 12px",borderRadius:7,fontSize:11,border:"1px solid #d4cabf",background:"transparent",color:"#b0a898"}}>Sil</button>
                 :<button onClick={e=>{e.stopPropagation();onDelete(patient.id);}} style={{padding:"8px 12px",borderRadius:7,fontSize:11,border:"none",background:"#ef4444",color:"white",fontWeight:500}}>Emin misin?</button>
               }
             </div>
+
 
             {/* SEKRETER MODALI */}
             {showOutcome&&(
@@ -1204,9 +1360,9 @@ const PROCEDURE_INFO = {
 
   "Burun Estetiği":{category:"Estetik Cerrahi",desc:"Burunun boyutu ve şekli düzeltilerek hem görünüm hem de solunum sorunları giderilebilir.",stats:[{val:"1,5–2 saat",lbl:"Süre"},{val:"1–2 hafta",lbl:"İyileşme"},{val:"6–12 ay",lbl:"Sonuç"}],process:"Ameliyat sonrası burnunuzda alçı kalıp ve tampon bulunacak. Tamponlar 1–2. günde alınır. İlk 48 saatte soğuk uygulama şişliği azaltır. 3. günden itibaren şişlikler azalmaya başlar. 1–2 hafta sonra alçı kalıp alınır.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"Ameliyat & Uyanış",desc:"1,5–2 saatlik işlem. Burnunuzda alçı kalıp ve tampon olacak."},{time:"1–2. gün",emoji:"❄️",color:"#6d28d9",title:"Dinlenme & Soğuk Uygulama",desc:"2 saatte bir 15 dk. soğuk uygulama şişliği azaltır. Tamponlar bu dönemde alınır."},{time:"3–7. gün",emoji:"🌤",color:"#0891b2",title:"Morluklar Geçmeye Başlar",desc:"Şişlik ve morluklar hızla azalır. Günlük aktivitelere yavaşça dönülebilir."},{time:"1–2. hafta",emoji:"🩹",color:"#059669",title:"Alçı Alınır",desc:"Alçı kalıp alınır, ince bant ~1 hafta daha uygulanır. Burunun genel şekli görünür."},{time:"6–12. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Burun son şeklini alır. Ameliyat öncesi/sonrası karşılaştırmaları yapılır."}],prep:["Ameliyat öncesi 6–8 saat aç kalmanız gerekecek","İlk 2 haftada vücut teması sporları ve gözlük kullanmayın","8 hafta boyunca sauna, solaryum ve güneş banyosundan kaçının","2. haftadan itibaren yüzme ve bireysel sporlar yapılabilir","Sorularınızı konsültasyon için not alın"],normal:["İlk günlerde hafif bulantı ve baş dönmesi olabilir","Burun deliğinden sızıntı ilk 24–48 saatte normaldir","Sabahları burun daha şiş olabilir, gün içinde azalır","Burun ucunda aylarca sürebilen hafif uyuşukluk olabilir"],followup:"1., 3., 6. ve 12. aylarda kontrol"},
 
-  "Karın Germe":{category:"Vücut Şekillendirme",desc:"Orta ve alt karın bölgesindeki yağ ve sarkık derinin alınarak karın kaslarının gerilerek sağlamlaştırıldığı bir cerrahi girişimdir.",stats:[{val:"2–5 saat",lbl:"Süre"},{val:"2–3 gece",lbl:"Hastane"},{val:"6 hafta",lbl:"İyileşme"}],process:"Ameliyat sonrası V pozisyonunda yatmanız sağlanacak. Karın korsesi uygulanacak. İlk iki gün en zor dönem. 3. günden itibaren şişlik azalır. Drenler 1–3 günde alınır. 2. haftadan itibaren sosyal hayata dönüş.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"2–5 saat. Dren takılır, karın korsesi uygulanır."},{time:"1–2. gün",emoji:"💊",color:"#6d28d9",title:"En Yoğun Dönem",desc:"Ağrı kesici desteği. V pozisyonunda dinlenme. Bacak egzersizleri önemli."},{time:"3–7. gün",emoji:"🌤",color:"#0891b2",title:"Şişlik Azalır",desc:"Drenler alınır. Hareketler kolaylaşır. Sıvı gıdadan normale geçiş."},{time:"2–6. hafta",emoji:"🚶",color:"#059669",title:"Sosyal Hayata Dönüş",desc:"2. haftadan itibaren sosyal aktiviteler. 6 hafta ağır iş yasak."},{time:"6+ ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Kesi izi 6. aydan itibaren solmaya başlar. 2 yıla kadar iyileşir."}],prep:["Ameliyat öncesi 6–8 saat aç kalmanız gerekecek","Sigara içiyorsanız ameliyattan 2 hafta önce bırakın","E vitamini kullanıyorsanız bu dönemde ara verin","4 hafta boyunca havuz ve denize girmeyin","6 hafta sauna, solaryum ve güneş banyosundan kaçının"],normal:["İlk 2 gün vücut su toplar, hareketler zorlaşabilir","İlk kalkmada baş dönmesi olabilir — yavaş kalkın","Dikiş hattı ilk 3–4 ay kırmızı ve kaşıntılı olabilir","Göbek altı bölgesinde geçici uyuşukluk olabilir"],followup:"1., 3., 6. ve 12. aylarda kontrol"},
+  "Karın Germe":{category:"Vücut Şekillendirme",desc:"Orta ve alt karın bölgesindeki yağ ve sarkık derinin alınarak karın kaslarının gerilerek sağlamlaştırıldığı bir cerrahi girişimdir.",stats:[{val:"2–5 saat",lbl:"Süre"},{val:"2–3 gece",lbl:"Hastane"},{val:"6 hafta",lbl:"İyileşme"}],process:"Ameliyat sonrası V pozisyonunda yatmanız sağlanacak. Karın korsesi uygulanacak. İlk iki gün en zor dönem. 3. günden itibaren şişlik azalır. Drenler 1–3 günde alınır. Cilt altı eriyen dikişler atılır, dikiş alma işlemi yapılmaz. 2. haftadan itibaren sosyal hayata dönüş.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"2–5 saat. Dren takılır, karın korsesi uygulanır."},{time:"1–2. gün",emoji:"💊",color:"#6d28d9",title:"En Yoğun Dönem",desc:"Ağrı kesici desteği. V pozisyonunda dinlenme. Bacak egzersizleri önemli."},{time:"3–7. gün",emoji:"🌤",color:"#0891b2",title:"Şişlik Azalır",desc:"Drenler alınır. Hareketler kolaylaşır. Sıvı gıdadan normale geçiş."},{time:"2–6. hafta",emoji:"🚶",color:"#059669",title:"Sosyal Hayata Dönüş",desc:"2. haftadan itibaren sosyal aktiviteler. 6 hafta ağır iş yasak."},{time:"6+ ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Kesi izi 6. aydan itibaren solmaya başlar. 2 yıla kadar iyileşir."}],prep:["Ameliyat öncesi 6–8 saat aç kalmanız gerekecek","Sigara içiyorsanız ameliyattan 2 hafta önce bırakın","E vitamini kullanıyorsanız bu dönemde ara verin","4 hafta boyunca havuz ve denize girmeyin","6 hafta sauna, solaryum ve güneş banyosundan kaçının"],normal:["İlk 2 gün vücut su toplar, hareketler zorlaşabilir","İlk kalkmada baş dönmesi olabilir — yavaş kalkın","Dikiş hattı ilk 3–4 ay kırmızı ve kaşıntılı olabilir","Göbek altı bölgesinde geçici uyuşukluk olabilir"],followup:"1., 3., 6. ve 12. aylarda kontrol"},
 
-  "Üst Göz Kapağı Estetiği":{category:"Yüz Estetiği",desc:"Sarkık ve gevşek üst göz kapağı cildinin düzeltilerek daha genç ve dinç bir görünüm elde edilmesi.",stats:[{val:"Sedasyon",lbl:"Anestezi"},{val:"3–4. gün",lbl:"Bantlar Alınır"},{val:"6 hafta",lbl:"İyileşme"}],process:"İşlem sonrası göz kapağında bantlar olacak. Soğuk uygulama ilk gün saat başı 20 dk, 2. gün 2 saatte bir 20 dk yapılmalı. 3. günden şişlik azalır. 4. günde bantlar alınır.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem & Uyanış",desc:"Sedasyon veya genel anestezi. Göz kapağında bantlar olacak. Eve aynı gün çıkılabilir."},{time:"1–2. gün",emoji:"❄️",color:"#6d28d9",title:"Soğuk Uygulama",desc:"Saat başı 20 dakika soğuk uygulama. Baş yüksek tutularak dinlenin."},{time:"3–4. gün",emoji:"🩹",color:"#0891b2",title:"Bantlar Alınır",desc:"Şişlik azalmaya başlar. 4. günde bantlar alınır. Göz çevresi yıkanabilir."},{time:"2–4. hafta",emoji:"🌤",color:"#059669",title:"Normalleşme",desc:"Morluklar geçer. Gözler açılmaya başlar. Hafif makyaj yapılabilir."},{time:"6+ hafta",emoji:"✨",color:"#10b981",title:"Nihai Görünüm",desc:"6 haftadan sonra son sonuç ortaya çıkar."}],prep:["İşlemden 5 saat önce yemek yemeyin, 4 saat önce sıvı almayın","İşlem sonrası 4 saat yatmayın ve yorucu aktivitelerden kaçının","Güneş gözlüğü kullanın","6 hafta boyunca sauna ve solaryumdan kaçının"],normal:["Göz çevresinde şişlik ve morluk ilk 2–3 gün artabilir","Sabahları gözler daha şişik olabilir, gün içinde azalır","İlk haftalarda rüzgar ve güneşe maruz kalınca gözde gerginlik hissedilebilir","Göz köşesinde hafif çekilme ilk hafta daha belirgin olabilir"],followup:"İşlem sonrası 15. günde kontrol"},
+  "Üst Göz Kapağı Estetiği":{category:"Yüz Estetiği",desc:"Sarkık ve gevşek üst göz kapağı cildinin düzeltilerek daha genç ve dinç bir görünüm elde edilmesi.",stats:[{val:"Lokal Anestezi",lbl:"Anestezi"},{val:"3–4. gün",lbl:"Bantlar Alınır"},{val:"6 hafta",lbl:"İyileşme"}],process:"İşlem lokal anestezi ile yapılır, açlık gerektirmez. İşlem sonrası göz kapağında bantlar olacak. Soğuk uygulama ilk gün saat başı 20 dk, 2. gün 2 saatte bir 20 dk yapılmalı. 3. günden şişlik azalır. 4. günde bantlar alınır.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem & Uyanış",desc:"Lokal anestezi. Göz kapağında bantlar olacak. Eve aynı gün çıkılır."},{time:"1–2. gün",emoji:"❄️",color:"#6d28d9",title:"Soğuk Uygulama",desc:"Saat başı 20 dakika soğuk uygulama. Baş yüksek tutularak dinlenin."},{time:"3–4. gün",emoji:"🩹",color:"#0891b2",title:"Bantlar Alınır",desc:"Şişlik azalmaya başlar. 4. günde bantlar alınır. Göz çevresi yıkanabilir."},{time:"2–4. hafta",emoji:"🌤",color:"#059669",title:"Normalleşme",desc:"Morluklar geçer. Gözler açılmaya başlar. Hafif makyaj yapılabilir."},{time:"6+ hafta",emoji:"✨",color:"#10b981",title:"Nihai Görünüm",desc:"6 haftadan sonra son sonuç ortaya çıkar."}],prep:["Lokal anestezi ile yapıldığı için aç kalmanıza gerek yoktur","İşlem sonrası 4 saat yatmayın ve yorucu aktivitelerden kaçının","Güneş gözlüğü kullanın","6 hafta boyunca sauna ve solaryumdan kaçının"],normal:["Göz çevresinde şişlik ve morluk ilk 2–3 gün artabilir","Sabahları gözler daha şişik olabilir, gün içinde azalır","İlk haftalarda rüzgar ve güneşe maruz kalınca gözde gerginlik hissedilebilir","Göz köşesinde hafif çekilme ilk hafta daha belirgin olabilir"],followup:"İşlem sonrası 15. günde kontrol"},
 
   "Alt Göz Kapağı Estetiği":{category:"Yüz Estetiği",desc:"Alt göz kapağındaki yağ birikimi ve sarkıklığın düzeltilerek daha dinç ve genç bir görünüm elde edilmesi.",stats:[{val:"Sedasyon",lbl:"Anestezi"},{val:"3–4. gün",lbl:"Bantlar Alınır"},{val:"6 hafta",lbl:"İyileşme"}],process:"Alt göz kapağı ameliyatı üst ile benzer süreç izler. İşlem sonrası soğuk uygulama ve dinlenme kritik. 3. günden itibaren şişlik azalır.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Sedasyon altında yapılır. Eve aynı gün çıkılabilir."},{time:"1–3. gün",emoji:"❄️",color:"#6d28d9",title:"Soğuk Uygulama",desc:"Düzenli soğuk uygulama şişliği kontrol altında tutar."},{time:"4–7. gün",emoji:"🩹",color:"#0891b2",title:"Bantlar Alınır",desc:"Şişlik belirgin şekilde azalır. Günlük aktivitelere dönüş başlar."},{time:"6 hafta",emoji:"✨",color:"#10b981",title:"Nihai Görünüm",desc:"Son sonuç ortaya çıkar."}],prep:["İşlemden 5 saat önce yemek yemeyin","İşlem sonrası 4 saat yatmayın","6 hafta sauna ve solaryumdan kaçının","Güneş gözlüğü kullanın"],normal:["Şişlik ve morluk ilk 2–3 gün artabilir","Sabahları gözler daha şişik olabilir","İlk haftalarda göz çevresinde gerginlik hissedilebilir"],followup:"İşlem sonrası 15. günde kontrol"},
 
@@ -1216,11 +1372,11 @@ const PROCEDURE_INFO = {
 
   "Liposuction":{category:"Vücut Şekillendirme",desc:"Diyet ve egzersizle gidemeyen bölgesel yağ birikimlerinin vakumla alınarak vücudun şekillendirilmesi.",stats:[{val:"Değişken",lbl:"Süre"},{val:"2–3 gün",lbl:"Hastane"},{val:"3–6 ay",lbl:"Sonuç"}],process:"Ameliyat sonrası kompresyon giysi uygulanacak. İlk 48 saatte ödem yoğun. 3. günden haraketler kolaylaşır. Konturlar 3–6 ay içinde netleşir.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Kompresyon giysi uygulanır. Drenler takılabilir."},{time:"1–3. gün",emoji:"💊",color:"#6d28d9",title:"Yoğun Ödem",desc:"Vücut su toplar. Kompresyon giysiyi sürekli takın."},{time:"1–2. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Hareketler normalleşir. Sosyal hayata dönüş başlar."},{time:"3–6. ay",emoji:"✨",color:"#10b981",title:"Nihai Kontur",desc:"Vücut yeni şeklini alır. Son sonuç ortaya çıkar."}],prep:["Ameliyat öncesi 6–8 saat aç kalmanız gerekecek","Kompresyon giysi ameliyat sonrası sürekli kullanılacak","4 hafta havuz ve denizden kaçının","6 hafta sauna ve solaryumdan kaçının"],normal:["İlk 2–3 gün belirgin ödem ve morluk olabilir","Cilt yüzeyinde geçici düzensizlikler olabilir","Uyuşukluk veya hassasiyet hissi zamanla geçer"],followup:"1., 3. ve 6. aylarda kontrol"},
 
-  "Meme Dikleştirme":{category:"Meme Estetiği",desc:"Sarkıklık gösteren memelerin yukarı taşınarak yeniden şekillendirilmesi, gerekirse protez eklenmesi.",stats:[{val:"2–4 saat",lbl:"Süre"},{val:"1–2 gece",lbl:"Hastane"},{val:"6 hafta",lbl:"İyileşme"}],process:"Ameliyat sonrası destek sütyeni kullanılacak. İlk birkaç gün kol hareketleri kısıtlanır. 3. günden şişlik azalır. Dikişler 10–14 günde alınır.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Destek sütyeni uygulanır."},{time:"1–3. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Kolları kullanmak kısıtlı. Ağrı kesici desteği."},{time:"1–2. hafta",emoji:"🩹",color:"#0891b2",title:"Dikişler Alınır",desc:"10–14. günde dikişler alınır. Hafif aktivitelere dönüş."},{time:"6 hafta+",emoji:"✨",color:"#10b981",title:"Nihai Görünüm",desc:"Şişlik tamamen geçer, son şekil ortaya çıkar."}],prep:["Ameliyat öncesi 6–8 saat aç kalmanız gerekecek","Destek sütyeni ameliyat sonrası sürekli takın","4 hafta havuzdan kaçının","6 hafta ağır kol egzersizlerinden kaçının"],normal:["Meme başı duyusunda geçici değişiklik olabilir","İlk günlerde meme bölgesinde sertlik ve şişlik normaldir","Kesi izleri ilk 3–4 ay daha belirgin olabilir"],followup:"1., 3. ve 6. aylarda kontrol"},
+  "Meme Dikleştirme":{category:"Meme Estetiği",desc:"Sarkıklık gösteren memelerin yukarı taşınarak yeniden şekillendirilmesi, gerekirse protez eklenmesi.",stats:[{val:"2–4 saat",lbl:"Süre"},{val:"1–2 gece",lbl:"Hastane"},{val:"6 hafta",lbl:"İyileşme"}],process:"Ameliyat sonrası destek sütyeni kullanılacak. İlk birkaç gün kol hareketleri kısıtlanır. 3. günden şişlik azalır. Cilt altı eriyen dikişler atılır, dikiş alma işlemi yapılmaz.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Destek sütyeni uygulanır."},{time:"1–3. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Kolları kullanmak kısıtlı. Ağrı kesici desteği."},{time:"2–4. hafta",emoji:"🌤",color:"#0891b2",title:"Normalleşme",desc:"Şişlik azalır, kol hareketleri normalleşir. Hafif aktivitelere dönüş."},{time:"6 hafta+",emoji:"✨",color:"#10b981",title:"Nihai Görünüm",desc:"Şişlik tamamen geçer, son şekil ortaya çıkar."}],prep:["Ameliyat öncesi 6–8 saat aç kalmanız gerekecek","Destek sütyeni ameliyat sonrası sürekli takın","4 hafta havuzdan kaçının","6 hafta ağır kol egzersizlerinden kaçının"],normal:["Meme başı duyusunda geçici değişiklik olabilir","İlk günlerde meme bölgesinde sertlik ve şişlik normaldir","Kesi izleri ilk 3–4 ay daha belirgin olabilir"],followup:"1., 3. ve 6. aylarda kontrol"},
 
-  "Meme Küçültme":{category:"Meme Estetiği",desc:"Büyük ve sarkık memelerin küçültülerek yeniden şekillendirilmesi, sırt ağrısı ve postür sorunlarını gidermesi.",stats:[{val:"2–4 saat",lbl:"Süre"},{val:"1–2 gece",lbl:"Hastane"},{val:"6 hafta",lbl:"İyileşme"}],process:"Ameliyat sonrası destek sütyeni kullanılacak. İlk birkaç gün kol hareketleri kısıtlanır. Dikişler 10–14 günde alınır. 2. haftadan itibaren sosyal hayata dönüş.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Destek sütyeni uygulanır."},{time:"1–2. hafta",emoji:"🩹",color:"#6d28d9",title:"Dikişler Alınır",desc:"Şişlik azalır. Kol hareketleri normalleşir."},{time:"6 hafta",emoji:"✨",color:"#10b981",title:"Nihai Görünüm",desc:"Yeni meme şekli oturur. İzler solmaya başlar."}],prep:["Ameliyat öncesi 6–8 saat aç kalın","Destek sütyeni sürekli takın","6 hafta ağır spor ve kol egzersizlerinden kaçının"],normal:["Meme başı duyusunda geçici değişiklik olabilir","Kesi izleri ilk aylarda belirgin olabilir","Hafif şişlik ve sertlik normaldir"],followup:"1., 3. ve 6. aylarda kontrol"},
+  "Meme Küçültme":{category:"Meme Estetiği",desc:"Büyük ve sarkık memelerin küçültülerek yeniden şekillendirilmesi, sırt ağrısı ve postür sorunlarını gidermesi.",stats:[{val:"2–4 saat",lbl:"Süre"},{val:"1–2 gece",lbl:"Hastane"},{val:"6 hafta",lbl:"İyileşme"}],process:"Ameliyat sonrası destek sütyeni kullanılacak. İlk birkaç gün kol hareketleri kısıtlanır. Cilt altı eriyen dikişler atılır, dikiş alma işlemi yapılmaz. 2. haftadan itibaren sosyal hayata dönüş.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Destek sütyeni uygulanır."},{time:"1–2. hafta",emoji:"🌤",color:"#6d28d9",title:"İyileşme",desc:"Şişlik azalır. Kol hareketleri normalleşir."},{time:"6 hafta",emoji:"✨",color:"#10b981",title:"Nihai Görünüm",desc:"Yeni meme şekli oturur. İzler solmaya başlar."}],prep:["Ameliyat öncesi 6–8 saat aç kalın","Destek sütyeni sürekli takın","6 hafta ağır spor ve kol egzersizlerinden kaçının"],normal:["Meme başı duyusunda geçici değişiklik olabilir","Kesi izleri ilk aylarda belirgin olabilir","Hafif şişlik ve sertlik normaldir"],followup:"1., 3. ve 6. aylarda kontrol"},
 
-  "Meme Büyütme (Silikon Protez ile)":{category:"Meme Estetiği",desc:"Silikon protez ile meme hacmini artırarak istenen dolgunluk ve şekle ulaşılması.",stats:[{val:"1–2 saat",lbl:"Süre"},{val:"1 gece",lbl:"Hastane"},{val:"3–6 ay",lbl:"Sonuç"}],process:"Ameliyat sonrası destek sütyeni kritik. İlk hafta kol hareketleri kısıtlı. 3. günden şişlik azalır. Protezler 3–6 ay içinde yerleşir.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Destek sütyeni takılır."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Kollar yukarı kaldırmak yasak. Ağrı kesici desteği."},{time:"3–6. ay",emoji:"✨",color:"#10b981",title:"Protez Yerleşir",desc:"Protez doku ile bütünleşir, final şekil ortaya çıkar."}],prep:["Ameliyat öncesi 6–8 saat aç kalın","Destek sütyeni sürekli takın","İlk hafta kolları yukarı kaldırmayın"],normal:["İlk hafta sertlik ve gerginlik hissi normal","Protez bölgesinde geçici uyuşukluk olabilir","Şişlik 3–4 haftada belirgin azalır"],followup:"1., 3. ve 6. aylarda kontrol"},
+  "Meme Büyütme (Silikon Protez ile)":{category:"Meme Estetiği",desc:"Silikon protez ile meme hacmini artırarak istenen dolgunluk ve şekle ulaşılması.",stats:[{val:"1–2 saat",lbl:"Süre"},{val:"1 gece",lbl:"Hastane"},{val:"3–6 ay",lbl:"Sonuç"}],process:"Ameliyat sonrası destek sütyeni kritik. İlk hafta kol hareketleri kısıtlı. 3. günden şişlik azalır. Cilt altı eriyen dikişler atılır, dikiş alma işlemi yapılmaz. Protezler 3–6 ay içinde yerleşir.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Destek sütyeni takılır."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Kollar yukarı kaldırmak yasak. Ağrı kesici desteği."},{time:"3–6. ay",emoji:"✨",color:"#10b981",title:"Protez Yerleşir",desc:"Protez doku ile bütünleşir, final şekil ortaya çıkar."}],prep:["Ameliyat öncesi 6–8 saat aç kalın","Destek sütyeni sürekli takın","İlk hafta kolları yukarı kaldırmayın"],normal:["İlk hafta sertlik ve gerginlik hissi normal","Protez bölgesinde geçici uyuşukluk olabilir","Şişlik 3–4 haftada belirgin azalır"],followup:"1., 3. ve 6. aylarda kontrol"},
 
   "Kol Germe":{category:"Vücut Şekillendirme",desc:"Kol arka ve iç kısmındaki sarkıklık ile yağ fazlalığının alınarak kolun yeniden şekillendirilmesi.",stats:[{val:"Genel Anestezi",lbl:"Anestezi"},{val:"10–14 gün",lbl:"Dikişler"},{val:"6 hafta",lbl:"İyileşme"}],process:"Ameliyat sonrası drenler 24–48 saat içinde alınır. 2–3 hafta günlük aktiviteler kısıtlanır. Dikişler 10–14. günde alınır. 2. haftadan itibaren sosyal hayata dönüş.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Koltukaltından kesi ile deri ve yağ dokusu çıkarılır. Dren takılır."},{time:"1–3. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Drenler alınır. Kol hareketleri kısıtlı."},{time:"1–2. hafta",emoji:"🩹",color:"#0891b2",title:"Dikişler Alınır",desc:"10–14. günde dikişler alınır. Şişlik azalır."},{time:"6 hafta",emoji:"✨",color:"#10b981",title:"İyileşme",desc:"Ağır kol egzersizlerine dönüş mümkün."}],prep:["Ameliyat öncesi 6–8 saat aç kalın","4 hafta havuz ve denizden kaçının","6 hafta ağır kol işlerinden kaçının","Sigara içiyorsanız ameliyat döneminde bırakın"],normal:["İlk 2 gün ödem belirgin olabilir","Kesi izi ilk 3–4 ay kırmızı ve kaşıntılı olabilir","Kolda geçici uyuşukluk hissedilebilir"],followup:"1., 3. ve 6. aylarda kontrol"},
 
@@ -1249,11 +1405,12 @@ function PatientForm({model,trainPct,doctorId}){
   const [questionTimes,setQuestionTimes]=useState({});
   const [questionChanges,setQuestionChanges]=useState({});
   const qStartTime=useRef(Date.now());
-  const q=QUESTIONS[currentQ];
+  const VISIBLE_QUESTIONS=QUESTIONS.filter(q=>!q.showIf||q.showIf(answers));
+  const q=VISIBLE_QUESTIONS[currentQ];
   const canNext=(q?.optional||answers[q?.id]!==undefined&&answers[q?.id]!=="")&&
     !(q?.id==="referralCode"&&answers["source"]!=="Bir hasta beni yönlendirdi (referans kodu var)"&&!answers[q?.id])
     ||(q?.id==="referralCode");
-  const progress=(currentQ/QUESTIONS.length)*100;
+  const progress=(currentQ/VISIBLE_QUESTIONS.length)*100;
   const secIdx=SECTIONS.indexOf(q?.section);
   const accent=doctorInfo?.primary_color||"#1a1510";
   const C={bg:"#f5f0e8",accent:accent,navy:"#1a1510",muted:"#b0a898",border:"#e0d9cc"};
@@ -1427,7 +1584,7 @@ YAZIM KURALLARI:
     ],
     "Alt Göz Kapağı Estetiği":[
       {proc:"Yüz Germe",why:"Alt göz kapağı ile yüz alt bölgesi aynı seansta değerlendirilebiliyor — bazı hastalarda çok daha bütüncül bir sonuç veriyor."},
-      {proc:"Dolgu",why:"Göz altı çukurluğu için dolgu, ameliyat sonrası görünümü destekleyebilir."},
+      {proc:"Dolgu",why:"Göz altı çukurluğu için dolgu, ameliyat sonrası görünümü destekleyebiliyor."},
     ],
     "Burun Estetiği":[
       {proc:"Çene Ucu Estetiği",why:"Çene-burun oranı yüz profilini belirleyen en önemli faktörlerden biri — çene ucu değerlendirmesi sonucu belirgin şekilde güçlendirebiliyor."},
@@ -1435,12 +1592,15 @@ YAZIM KURALLARI:
     ],
     "Meme Büyütme (Silikon Protez ile)":[
       {proc:"Meme Dikleştirme",why:"Sarkma varsa meme büyütme ile dikleştirme aynı seansta yapılabiliyor — ikinci ameliyat ihtiyacını ortadan kaldırabiliyor."},
+      {proc:"Korse Liposuction",why:"Bel hatlarını birlikte şekillendirmek, meme büyütme sonucunun vücutla uyumunu çok daha güçlü kılabiliyor."},
     ],
     "Meme Dikleştirme":[
       {proc:"Meme Büyütme (Silikon Protez ile)",why:"Hacim kaybı da varsa dikleştirme ile birlikte değerlendirilebiliyor — tek seansta çok daha tatmin edici sonuç veriyor."},
+      {proc:"Korse Liposuction",why:"Bel ve yan hat şekillendirme, meme estetiği sonucunu vücutla çok daha uyumlu hale getirebiliyor."},
     ],
     "Meme Küçültme":[
-      {proc:"Liposuction",why:"Koltuk altı ve yan göğüs bölgesi aynı seansta liposuction ile şekillendirilebiliyor."},
+      {proc:"Liposuction",why:"Koltuk altı ve yan göğüs bölgesi aynı seansta liposuction ile şekillendirilebiliyor — bütüncül bir siluet için değerlendirilebilir."},
+      {proc:"Korse Liposuction",why:"Bel ve sırt bölgesiyle birlikte ele alındığında meme küçültme çok daha orantılı bir görünüm yaratıyor."},
     ],
     "Karın Germe":[
       {proc:"Liposuction",why:"Karın germe ile liposuction birlikte yapıldığında bel ve yan hatlar çok daha belirgin hale gelebiliyor."},
@@ -1448,6 +1608,7 @@ YAZIM KURALLARI:
     ],
     "Liposuction":[
       {proc:"Karın Germe",why:"Liposuction sonrası deri sarkması oluşabiliyorsa karın germe seçeneği önceden değerlendirilebiliyor."},
+      {proc:"Korse Liposuction",why:"Bel, sırt ve yan hatları birlikte şekillendiren korse liposuction, standart liposuction'ı tamamlayan bir yaklaşım olabiliyor."},
     ],
     "Yüz Germe":[
       {proc:"Boyun Germe",why:"Yüz ve boyun birlikte ele alındığında çok daha doğal ve bütüncül bir yenilenme sağlanabiliyor."},
@@ -1456,12 +1617,145 @@ YAZIM KURALLARI:
     ],
     "Jinekomasti":[
       {proc:"Liposuction",why:"Jinekomasti ile birlikte göğüs çevresi yağlanması varsa liposuction aynı seansta değerlendirilebiliyor."},
+      {proc:"Karın Germe",why:"Karın bölgesi de rahatsızlık yaratıyorsa aynı seansta ele alınabiliyor — tek iyileşme süreci anlamına geliyor."},
     ],
     "Kol Germe":[
       {proc:"Liposuction",why:"Kol germe ile birlikte liposuction uygulanması kolların hem sıkılaşmasını hem şekillenmesini sağlayabiliyor."},
+      {proc:"Uyluk Germe",why:"Kollar ve uyluklar birlikte ele alındığında bütüncül bir vücut sıkılaştırma sonucu elde edilebiliyor."},
+    ],
+    "Uyluk Germe":[
+      {proc:"Liposuction",why:"Uyluk germe ile birlikte liposuction, bacak konturunu çok daha belirgin şekilde şekillendirebiliyor."},
+      {proc:"Kol Germe",why:"Kol ve uyluk sıkılaştırma birlikte planlandığında tek iyileşme sürecinde kapsamlı bir sonuç alınabiliyor."},
+    ],
+    "Yüz Germe (Mini)":[
+      {proc:"Boyun Germe",why:"Mini yüz germe ile boyun bölgesi birlikte ele alındığında sonuç çok daha kapsamlı ve doğal görünüyor."},
+      {proc:"Dolgu",why:"Mini yüz germe sonrası hacim desteği için dolgu, yüzün gençliğini çok daha uzun süre koruyabiliyor."},
+      {proc:"Botoks",why:"Dinamik çizgiler için botoks, mini yüz germeyi mükemmel şekilde tamamlıyor."},
+    ],
+    "Sıvı Yüz Germe":[
+      {proc:"Botoks",why:"Dolgu ve botoks birlikte uygulandığında 'sıvı yüz germe' etkisi çok daha kapsamlı bir yenilenme sunuyor."},
+      {proc:"İp Askı",why:"İp askı ile birlikte değerlendirildiğinde sarkma ve hacim kaybı aynı anda ele alınabiliyor."},
+    ],
+    "Botoks":[
+      {proc:"Dolgu",why:"Botoks dinamik çizgileri, dolgu ise hacim kayıplarını ele alıyor — ikisi birlikte çok daha bütüncül bir yenilenme sağlıyor."},
+      {proc:"Sıvı Yüz Germe",why:"Cerrahi olmadan kapsamlı bir yenilenme isteyenler için dolgu ve botoks kombinasyonu giderek yaygınlaşıyor."},
+    ],
+    "Dolgu":[
+      {proc:"Botoks",why:"Dolgu hacim için, botoks çizgiler için — ikisi birlikte uygulandığında sonuç çok daha dengeli oluyor."},
+      {proc:"Sıvı Yüz Germe",why:"Yüzün farklı bölgelerini birlikte ele alan kombine yaklaşım, tek işlemden çok daha kapsamlı bir etki yaratıyor."},
+    ],
+    "İp Askı":[
+      {proc:"Dolgu",why:"İp askı ile dolgu birlikte uygulandığında sarkma ve hacim kaybı aynı seansta ele alınabiliyor."},
+      {proc:"Botoks",why:"İp askı sonrası botoks desteği sonucun ömrünü uzatmaya yardımcı olabiliyor."},
     ],
   };
-  const crossSellSuggestions=CROSS_SELL_MAP[proc]||[];
+
+  const crossSellSuggestions=(()=>{
+    const base=CROSS_SELL_MAP[proc]||[];
+    if(base.length===0) return [];
+
+    const a=answers;
+    const age=parseInt(a.age)||30;
+
+    const isAnalyst=a.riskKnowledge?.includes("Detaylı");
+    const isPragmatic=a.patience?.includes("Hızlı");
+    const isTrustSeeker=a.riskKnowledge?.includes("Hiçbir")||a.support?.includes("Kimseye");
+    const isSocial=(a.sharing?.includes("açıkça")||a.sharing?.includes("Evet"))&&a.recommends?.includes("sık");
+    const isExternal=["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x);
+    const isHighExpect=a.expectation?.includes("Tamamen farklı");
+
+    if(isExternal&&isHighExpect) return [];
+
+    const filtered=base.filter(s=>{
+      if(age<30&&(s.proc.includes("Yüz Germe")||s.proc.includes("Boyun Germe"))) return false;
+      if(age<25&&s.proc.includes("Boyun Germe")) return false;
+      if(age>55&&s.proc.includes("Dolgu")&&proc.includes("Meme")) return false;
+      if(age<35&&s.proc.includes("Karın Germe")&&proc.includes("Liposuction")) return false;
+      return true;
+    });
+
+    // Tüm işlemler × 4 profil mesaj tablosu
+    const MESSAGES={
+      analyst:{
+        "Kaş Kaldırma":"Kaş-kapak oranı cerrahi planlamada kritik bir değişken — kaş pozisyonu değerlendirilmeden yapılan göz kapağı girişimleri zaman içinde yetersiz kalabiliyor.",
+        "Botoks":"Nörotoksin uygulaması dinamik çizgiler için altın standart — statik değişikliklerle kombine yaklaşım çok daha kapsamlı bir yenilenme sunuyor.",
+        "Yüz Germe":"Alt göz kapağı ile birlikte ritmidektomi planlandığında tek iyileşme sürecinde çok daha kapsamlı bir sonuç elde ediliyor.",
+        "Dolgu":"Volüm restorasyonu ve yapısal değişiklik farklı patolojiler — ikisi birlikte ele alındığında sonuç anatomik açıdan çok daha bütüncül oluyor.",
+        "Çene Ucu Estetiği":"Fasiyal estetik analizde çene-burun oranı temel referans noktası — profilometrik açıdan çene değerlendirmesi rinoplasti planlamasının ayrılmaz bir parçası.",
+        "Çene Dolgusu":"Cerrahi olmadan çene projeksiyonunu optimize etmek mümkün — rinoplasti öncesi veya sonrasında filler ile profil dengesi çok daha hassas ayarlanabiliyor.",
+        "Meme Dikleştirme":"Silikon yerleşimi ile eş zamanlı mastopexi, cilt zarf kalitesini korurken hacmi optimize ediyor — ayrı seanslara kıyasla iyileşme süreci ve skar yükü azalıyor.",
+        "Korse Liposuction":"Gövde konturunun bütünü ele alındığında estetik sonucun vücutla orantısallığı çok daha güçlü hale geliyor.",
+        "Liposuction":"Kombine yaklaşımda flap kaldırma sırasında lateral hatlar şekillendirilebiliyor — tek seansta çok daha kapsamlı bir kontur elde ediliyor.",
+        "Karın Germe":"Liposuction sonrası deri elastikiyeti değerlendirmesi kritik — sarkma riski varsa önceden planlamak çok daha iyi sonuç veriyor.",
+        "Boyun Germe":"Ritmidektomi ile platismaplasti birlikte yapıldığında alt yüz-boyun geçiş bölgesinde anatomik bütünlük sağlanıyor.",
+        "Uyluk Germe":"Ekstremite konturlamasında bütüncül planlama tek seansta çok daha uyumlu bir sonuç veriyor.",
+        "Sıvı Yüz Germe":"Nonsurgical kombinasyonlarda sinerji etkisi belgelenmiş — tek ajan uygulamasına kıyasla çok daha kapsamlı bir yenilenme sağlanıyor.",
+        "İp Askı":"Mekanik destek ile volüm restorasyonu birlikte planlandığında sonucun sürekliliği çok daha güçlü oluyor.",
+        "Meme Büyütme (Silikon Protez ile)":"Hacim ve ptoz eş zamanlı ele alındığında tek iyileşme sürecinde çok daha tatmin edici bir sonuç elde ediliyor.",
+      },
+      pragmatic:{
+        "Kaş Kaldırma":"Aynı seansta yapılıyor, ek iyileşme süresi yok — sonuç çok daha belirgin çıkıyor.",
+        "Botoks":"Konsültasyon günü bile yapılabiliyor, 15-20 dakika — ayrı randevu gerekmez.",
+        "Yüz Germe":"Aynı anestezi, aynı iyileşme — iki ayrı ameliyat yerine tek seferlik.",
+        "Dolgu":"Aynı seansta tamamlanabiliyor, ek ziyaret gerektirmiyor.",
+        "Çene Ucu Estetiği":"Tek randevuda hem burun hem çene tamamlanıyor, ayrı sefer gerekmez.",
+        "Çene Dolgusu":"20-30 dakikalık bir uygulama — aynı gün yapılabilir, ek süreç yok.",
+        "Meme Dikleştirme":"Tek anestezi, tek iyileşme süreci — ikinci ameliyat planlamak zorunda kalmıyorsunuz.",
+        "Korse Liposuction":"Aynı seansta birleştiriliyor — toplam süreç iki ayrı ameliyattan çok daha kısa.",
+        "Liposuction":"Birlikte planlanınca tek iyileşme süreci — zaman ve maliyet açısından çok daha verimli.",
+        "Karın Germe":"Şimdi değerlendirip planlamak, ileride ikinci bir ameliyat ihtimalini ortadan kaldırıyor.",
+        "Boyun Germe":"Yüz ve boyun aynı anda tamamlanıyor — iki ayrı süreç yerine tek seferlik.",
+        "Uyluk Germe":"Tek iyileşme sürecinde ikisi birlikte tamamlanıyor — çok daha pratik.",
+        "Sıvı Yüz Germe":"Aynı seansta yapılabiliyor, cerrahi gerektirmiyor — hızlı ve pratik bir seçenek.",
+        "İp Askı":"Minimal invaziv, kısa iyileşme — botoks ile aynı gün planlanabiliyor.",
+        "Meme Büyütme (Silikon Protez ile)":"Tek anestezi, tek iyileşme — iki ayrı ameliyat planlamak zorunda kalmıyorsunuz.",
+      },
+      trustSeeker:{
+        "Kaş Kaldırma":"Bunu fark etmeden gelenlerin çoğu konsültasyonda ilk kez duyuyor — sadece sormak bile yeterli, doktorunuz değerlendirsin.",
+        "Botoks":"Merak ediyorsanız sorabilirsiniz — doktorunuz size uygun olup olmadığını zaten söyleyecek.",
+        "Yüz Germe":"Pek çok kişi sonradan 'keşke sorsaydım' diyor — konsültasyonda gündeme getirmek hiçbir şeyi bağlamıyor.",
+        "Dolgu":"Küçük bir soru, büyük fark yaratabilir — konsültasyonda sormak yeterli, karar tamamen size ait.",
+        "Çene Ucu Estetiği":"Pek çok kişinin aklına gelmiyor ama yüz profilinde büyük fark yaratıyor — merak ediyorsanız konsültasyonda bir sorun.",
+        "Çene Dolgusu":"Cerrahi olmadan deneyebilirsiniz — kalıcı bir karar vermeden önce konsültasyonda sormaya değer.",
+        "Meme Dikleştirme":"Bunu merak eden çok kişi var ama çoğu sormaktan çekiniyor — bir soru sormak hiçbir şeyi bağlamıyor.",
+        "Korse Liposuction":"Sadece 'benim için uygun mu' diye sorabilirsiniz — doktorunuz en iyi değerlendireni.",
+        "Liposuction":"Endişelenmeyin, sadece 'bu benim için uygun mu' diye sorabilirsiniz — karar tamamen size ait.",
+        "Karın Germe":"Birçok kişi bunu sonradan keşfediyor — konsültasyonda bir sorup öğrenmek çok daha iyi.",
+        "Boyun Germe":"Pek çok kişi sonradan keşke sorsaydım diyor — konsültasyonda gündeme getirmek hiçbir şeyi bağlamıyor.",
+        "Uyluk Germe":"Merak ediyorsanız sorabilirsiniz — doktorunuz size en uygun planı zaten önerecek.",
+        "Sıvı Yüz Germe":"Cerrahi olmadan ne kadar değişiklik mümkün olduğunu merak ediyorsanız konsültasyonda sorabilirsiniz.",
+        "İp Askı":"Kalıcı bir karar vermeden önce bu seçeneği sormak mantıklı — cerrahi gerektirmiyor.",
+        "Meme Büyütme (Silikon Protez ile)":"Bunu merak eden çok kişi var — konsültasyonda sormak hiçbir şeyi bağlamıyor, karar tamamen sizin.",
+      },
+      social:{
+        "Kaş Kaldırma":"Göz çevresi yüzün en çok dikkat çeken bölgesi — kaş ve kapak birlikte ele alınınca fotoğraflarda fark çok daha belirgin oluyor.",
+        "Botoks":"Işık altında cilt yüzeyi çok daha pürüzsüz görünüyor — sonuçları paylaşmak isteyenlerin büyük çoğunluğu bunu da yaptırıyor.",
+        "Yüz Germe":"Alt göz kapağı ile birlikte yüz gençleşince fotoğraflarda ve videolarda fark inanılmaz oluyor.",
+        "Dolgu":"Hacim ve kontur birlikte ele alındığında sonuçlar çok daha çarpıcı ve paylaşılabilir hale geliyor.",
+        "Çene Ucu Estetiği":"Profil fotoğraflarında en belirleyici detaylardan biri — çene hattı güçlenince tüm yüz çok daha çekici görünüyor.",
+        "Çene Dolgusu":"Selfie açısından büyük fark yaratan bir uygulama — çene hattı profilinizi çok daha belirgin hale getirebiliyor.",
+        "Meme Dikleştirme":"Giyim ve duruş üzerindeki etkisi çok belirgin — ikisi birlikte yapılınca sonuç çok daha göz alıcı oluyor.",
+        "Korse Liposuction":"Siluet bütünüyle şekillenince kıyafetlerin üzerindeki etkisi dramatik biçimde değişiyor.",
+        "Liposuction":"Vücut kontürünün bütünü ele alındığında siluet çok daha çarpıcı ve fotoğrafik bir hal alabiliyor.",
+        "Karın Germe":"Bel ve karın birlikte şekillenince kıyafetler çok farklı oturuyor — etki çok daha belirgin oluyor.",
+        "Boyun Germe":"Yüz ve boyun birlikte gençleşince fotoğraflarda ve videolarda fark inanılmaz oluyor.",
+        "Uyluk Germe":"Bacak ve kol birlikte sıkılaşınca vücudun bütünü çok daha dengeli ve çarpıcı görünüyor.",
+        "Sıvı Yüz Germe":"Kombine uygulamada yüzün her bölgesi birden parlıyor — fotoğraflara yansıması çok güçlü oluyor.",
+        "İp Askı":"Minimal müdahaleyle elde edilen etki fotoğraflarda çok belirgin — sosyal medyada paylaşım için ideal.",
+        "Meme Büyütme (Silikon Protez ile)":"Giyim seçenekleri ve siluet üzerindeki etkisi çok belirgin — çoğu hasta sonuçları paylaşmak istiyor.",
+      },
+    };
+
+    const profileKey=isAnalyst?"analyst":isPragmatic?"pragmatic":isTrustSeeker?"trustSeeker":isSocial?"social":null;
+
+    return filtered.map(s=>{
+      let why=s.why;
+      if(profileKey&&MESSAGES[profileKey][s.proc]){
+        why=MESSAGES[profileKey][s.proc];
+      }
+      return {...s,why};
+    });
+  })();
   const profile=detectProfile(answers);
   const PC=PROFILE_CONTENT[profile];
   const recoveryText=getPersonalizedContent(proc,profile,"recovery");
@@ -1753,7 +2047,7 @@ YAZIM KURALLARI:
         </div>
         <div style={{marginBottom:22}} className="f2">
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-            <span style={{fontSize:10,color:C.muted}}>SORU {currentQ+1} / {QUESTIONS.length}</span>
+            <span style={{fontSize:10,color:C.muted}}>SORU {currentQ+1} / {VISIBLE_QUESTIONS.length}</span>
             <span style={{fontSize:10,color:C.accent,fontWeight:500}}>%{Math.round(progress)}</span>
           </div>
           <div style={{height:1,background:C.border,borderRadius:1}}>
@@ -1793,10 +2087,10 @@ YAZIM KURALLARI:
             const elapsed=Math.round((Date.now()-qStartTime.current)/1000);
             setQuestionTimes(p=>({...p,[QUESTIONS[currentQ].id]:elapsed}));
             qStartTime.current=Date.now();
-            if(currentQ<QUESTIONS.length-1)setCurrentQ(c=>c+1);else if(model)handleSubmit();
-          }} disabled={!canNext||(!model&&currentQ===QUESTIONS.length-1)}
+            if(currentQ<VISIBLE_QUESTIONS.length-1)setCurrentQ(c=>c+1);else if(model)handleSubmit();
+          }} disabled={!canNext||(!model&&currentQ===VISIBLE_QUESTIONS.length-1)}
             style={{flex:2,padding:"13px",background:canNext?"#1a1510":"#e0d9cc",border:"none",borderRadius:8,color:canNext?"#f5f0e8":"#b0a898",fontSize:12,fontWeight:500,letterSpacing:"0.08em",cursor:canNext?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Inter',sans-serif"}}>
-            {currentQ===QUESTIONS.length-1?(model?"Formu Gönder →":"Model yükleniyor..."):"Devam →"}
+            {currentQ===VISIBLE_QUESTIONS.length-1?(model?"Formu Gönder →":"Model yükleniyor..."):"Devam →"}
           </button>
         </div>
       </main>
