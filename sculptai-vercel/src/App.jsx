@@ -2625,6 +2625,12 @@ function AdminPanel(){
 /* ─── LOGIN ──────────────────────────────────────────────────────────────── */
 function Login({onLogin}){
   const [u,setU]=useState("");const [p,setP]=useState("");const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
+  const [isMobile,setIsMobile]=useState(window.innerWidth<640);
+  useEffect(()=>{
+    const fn=()=>setIsMobile(window.innerWidth<640);
+    window.addEventListener("resize",fn);
+    return()=>window.removeEventListener("resize",fn);
+  },[]);
   async function attempt(){
     setLoading(true);setErr("");
     const {data}=await sb.from("doctors").select("*").eq("username",u).eq("password_hash",p).single();
@@ -2633,57 +2639,60 @@ function Login({onLogin}){
     setLoading(false);
   }
   return(
-    <div style={{minHeight:"100vh",background:"#f5f0e8",fontFamily:"'Nunito',sans-serif",display:"flex"}}>
+    <div style={{minHeight:"100vh",background:"#f5f0e8",fontFamily:"'Nunito',sans-serif",display:"flex",flexDirection:isMobile?"column":"row"}}>
 
-      {/* SOL — Görsel */}
-      <div style={{flex:"0 0 52%",position:"relative",overflow:"hidden",display:"flex"}}>
-        <img src="/login-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
-          onError={e=>{e.target.parentElement.style.background="#ece7db";e.target.style.display="none"}}/>
-        {/* Gradient sağa doğru */}
-        <div style={{position:"absolute",inset:0,background:"linear-gradient(to right, rgba(245,240,232,0) 50%, rgba(245,240,232,1) 100%)"}}/>
-        {/* Sol alt — tagline */}
-        <div style={{position:"absolute",bottom:40,left:40,right:"30%"}}>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:"white",lineHeight:1.4,textShadow:"0 2px 20px rgba(0,0,0,0.3)",fontStyle:"italic"}}>
-            "Her hasta bir ilişki.<br/>Her ilişki bir güven."
+      {/* SOL — Görsel (sadece masaüstü) */}
+      {!isMobile&&(
+        <div style={{flex:"0 0 52%",position:"relative",overflow:"hidden",display:"flex"}}>
+          <img src="/login-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
+            onError={e=>{e.target.parentElement.style.background="#ece7db";e.target.style.display="none"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to right, rgba(245,240,232,0) 50%, rgba(245,240,232,1) 100%)"}}/>
+          <div style={{position:"absolute",bottom:40,left:40,right:"30%"}}>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:"white",lineHeight:1.4,textShadow:"0 2px 20px rgba(0,0,0,0.3)",fontStyle:"italic"}}>
+              "Her hasta bir ilişki.<br/>Her ilişki bir güven."
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* SAĞ — Form */}
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:"40px 48px"}}>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?"32px 24px":"40px 48px",minHeight:isMobile?"100vh":"auto"}}>
         <div style={{width:"100%",maxWidth:360}}>
 
           {/* Logo */}
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:52}}>
-            <div style={{width:22,height:22,border:"1px solid #c8bfb0",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <div style={{width:7,height:7,background:"#1a1510",borderRadius:"50%"}}/>
+          <div style={{display:"flex",flexDirection:"column",alignItems:isMobile?"center":"flex-start",gap:2,marginBottom:isMobile?32:52}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:22,height:22,border:"1px solid #c8bfb0",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <div style={{width:7,height:7,background:"#1a1510",borderRadius:"50%"}}/>
+              </div>
+              <div style={{fontSize:13,fontWeight:500,color:"#1a1510",letterSpacing:"0.04em"}}>SculptAI</div>
             </div>
-            <div style={{fontSize:13,fontWeight:500,color:"#1a1510",letterSpacing:"0.04em"}}>SculptAI</div>
+            {isMobile&&<div style={{fontSize:11,color:"#b0a898",letterSpacing:"0.08em"}}>Hacettepe Plastik Cerrahi</div>}
           </div>
 
           {/* Title */}
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:300,color:"#1a1510",lineHeight:1.1,marginBottom:14,letterSpacing:"-0.02em"}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?32:44,fontWeight:300,color:"#1a1510",lineHeight:1.1,marginBottom:10,letterSpacing:"-0.02em",textAlign:isMobile?"center":"left"}}>
             Görünmeyeni<br/><em>görmek.</em>
           </div>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:300,fontStyle:"italic",color:"#b0a898",lineHeight:1.7,marginBottom:44}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?14:17,fontWeight:300,fontStyle:"italic",color:"#b0a898",lineHeight:1.7,marginBottom:isMobile?28:44,textAlign:isMobile?"center":"left"}}>
             Hasta beklentisi, karar kalitesini<br/><span style={{color:"#1a1510",fontStyle:"normal",fontWeight:400}}>doğrudan etkiler.</span>
           </div>
 
           {/* Fields */}
           {[["KULLANICI ADI",u,setU,"text"],["ŞİFRE",p,setP,"password"]].map(([label,val,set,type])=>(
-            <div key={label} style={{marginBottom:16}}>
-              <div style={{fontSize:12,color:"#b0a898",letterSpacing:"0.15em",marginBottom:7}}>{label}</div>
-              <input type={type} value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} style={{width:"100%",padding:"13px 15px",background:"#ece7db",border:"1px solid #d4cabf",borderRadius:8,color:"#1a1510",fontSize:14,outline:"none",fontFamily:"'Nunito',sans-serif"}}/>
+            <div key={label} style={{marginBottom:14}}>
+              <div style={{fontSize:11,color:"#b0a898",letterSpacing:"0.15em",marginBottom:6}}>{label}</div>
+              <input type={type} value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} style={{width:"100%",padding:"12px 14px",background:"#ece7db",border:"1px solid #d4cabf",borderRadius:8,color:"#1a1510",fontSize:14,outline:"none",fontFamily:"'Nunito',sans-serif",boxSizing:"border-box"}}/>
             </div>
           ))}
 
           {err&&<div style={{marginBottom:14,padding:"9px 12px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:13,color:"#dc2626"}}>{err}</div>}
 
-          <button onClick={attempt} disabled={loading} style={{width:"100%",padding:"14px",background:"#1a1510",border:"none",borderRadius:8,color:"#f5f0e8",fontSize:13,fontWeight:500,letterSpacing:"0.1em",cursor:"pointer",opacity:loading?0.7:1,fontFamily:"'Nunito',sans-serif",marginTop:4}}>
+          <button onClick={attempt} disabled={loading} style={{width:"100%",padding:"13px",background:"#1a1510",border:"none",borderRadius:8,color:"#f5f0e8",fontSize:13,fontWeight:500,letterSpacing:"0.1em",cursor:"pointer",opacity:loading?0.7:1,fontFamily:"'Nunito',sans-serif",marginTop:4}}>
             {loading?"GİRİŞ YAPILIYOR...":"GİRİŞ YAP"}
           </button>
 
-          <div style={{textAlign:"center",fontSize:12,color:"#c8bfb0",marginTop:20,letterSpacing:"0.06em"}}>
+          <div style={{textAlign:"center",fontSize:11,color:"#c8bfb0",marginTop:20,letterSpacing:"0.06em"}}>
             Hacettepe Üniversitesi · Plastik Cerrahi
           </div>
         </div>
