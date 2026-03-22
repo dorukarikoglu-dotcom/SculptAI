@@ -1148,20 +1148,31 @@ function Analytics({patients}){
     </div>
   );
 
-  // Compute stats
-  const red=patients.filter(p=>(p.risk_score||0)>=68).length;
-  const amber=patients.filter(p=>{const s=p.risk_score||0;return s>=48&&s<68;}).length;
-  const green=patients.filter(p=>{const s=p.risk_score||0;const a=p.answers||{};const amb=a.sharing==="Evet paylaşırım"&&a.recommends==="Evet, sık öneririm"&&a.socialMedia==="Sık paylaşırım"&&s<35;return !amb&&s<48;}).length;
-  const amb=patients.filter(p=>{const s=p.risk_score||0;const a=p.answers||{};return a.sharing==="Evet paylaşırım"&&a.recommends==="Evet, sık öneririm"&&a.socialMedia==="Sık paylaşırım"&&s<35;}).length;
+  // Segment — classify() ile tutarlı
+  const segCounts={red:0,amber:0,green:0,ambassador:0};
+  patients.forEach(p=>{
+    const c=classify(p.risk_score||0,p.answers||{});
+    segCounts[c.cat]=(segCounts[c.cat]||0)+1;
+  });
+  const red=segCounts.red;
+  const amber=segCounts.amber;
+  const green=segCounts.green;
+  const amb=segCounts.ambassador;
+
   const avgRisk=total?Math.round(patients.reduce((s,p)=>s+(p.risk_score||0),0)/total):0;
   const fitRate=total?Math.round((green+amb)/total*100):0;
 
-  // Procedure counts
+  // Outcome metrikleri
+  const withOutcome=patients.filter(p=>p.outcome_procedures?.length>0);
+  const donusum=total?Math.round(withOutcome.length/total*100):0;
+  const crossSellCount=patients.filter(p=>p.outcome_procedures?.length>0&&p.outcome_procedures.some(x=>x!==(p.answers?.procedure||""))).length;
+
+  // Prosedür
   const procMap={};
   patients.forEach(p=>{const pr=p.answers?.procedure||"Diğer";procMap[pr]=(procMap[pr]||0)+1;});
   const procs=Object.entries(procMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
-  // Source counts
+  // Kaynak
   const srcMap={};
   patients.forEach(p=>{
     const s=p.answers?.source||"Diğer";
@@ -1170,7 +1181,7 @@ function Analytics({patients}){
   });
   const sources=Object.entries(srcMap).sort((a,b)=>b[1]-a[1]);
 
-  // Weekly bins (last 7 days)
+  // Son 7 gün
   const now=Date.now();
   const dayMs=86400000;
   const bins=Array(7).fill(0);
@@ -1181,13 +1192,55 @@ function Analytics({patients}){
   });
   const maxBin=Math.max(...bins,1);
 
-  // Auto insights
+  // Motivasyon dağılımı
+  const extMotivCount=patients.filter(p=>
+    ["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>p.answers?.motivation===x)
+  ).length;
+  const intMotivCount=patients.filter(p=>
+    ["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum"].some(x=>p.answers?.motivation===x)
+  ).length;
+
+  // Revizyon riski dağılımı
+  const kusursuzCount=patients.filter(p=>p.answers?.revision==="Kusursuz sonuç bekliyorum").length;
+  const noSupportCount=patients.filter(p=>["Kimseye söylemedim","Karşılar"].some(x=>p.answers?.support===x)).length;
+
+  // Sistem içgörüleri — gerçek veriden
   const insights=[];
-  if(fitRate>=70) insights.push({type:"green",title:"Uygun profil oranı yüksek",body:`Hastaların %${fitRate}'i uygun veya marka elçisi profilinde. Klinik hasta seçimi başarılı.`});
-  if(red/total>0.2) insights.push({type:"warn",title:"Yüksek risk oranı dikkat çekiyor",body:`Hastaların %${Math.round(red/total*100)}'i dikkat gerektiriyor. Konsültasyon öncesi ek değerlendirme faydalı olabilir.`});
-  if(amb>0) insights.push({type:"info",title:`${amb} marka elçisi adayı`,body:"Bu hastaları sadakat programına davet ederek organik büyümeye katkı sağlayabilirsiniz."});
-  const topProc=procs[0];
-  if(topProc&&topProc[1]/total>0.25) insights.push({type:"info",title:`${topProc[0]} en sık prosedür`,body:`Toplam hastaların %${Math.round(topProc[1]/total*100)}'i bu prosedür için başvuruyor.`});
+
+  if(total>=5){
+    if(fitRate>=70)
+      insights.push({type:"green",title:"Uygun profil oranı güçlü",body:`Hastaların %${fitRate}'i uygun veya marka elçisi segmentinde. Klinik profil seçimi başarılı görünüyor.`});
+    else if(fitRate<40)
+      insights.push({type:"warn",title:"Uygun profil oranı düşük",body:`Hastaların yalnızca %${fitRate}'i düşük riskli segmente giriyor. Hasta yönlendirme kanalları gözden geçirilebilir.`});
+
+    if(red/total>0.25)
+      insights.push({type:"warn",title:`Yüksek riskli hasta oranı dikkat çekiyor`,body:`Hastaların %${Math.round(red/total*100)}'i kritik segmente giriyor. Konsültasyon öncesi ek beklenti yönetimi faydalı olabilir.`});
+
+    if(kusursuzCount>0)
+      insights.push({type:"warn",title:`${kusursuzCount} hasta kusursuz sonuç bekliyor`,body:"Bu hastalarda revizyon konuşması konsültasyonun önceliği olmalı — beklenti yönetimi kritik."});
+
+    if(extMotivCount>0&&total>=5)
+      insights.push({type:"warn",title:`${extMotivCount} hastada dışsal motivasyon sinyali`,body:`%${Math.round(extMotivCount/total*100)} oranında dışsal baskı tespit edildi. Bu profil revizyon riskiyle ilişkili.`});
+
+    if(amb>0)
+      insights.push({type:"info",title:`${amb} marka elçisi adayı`,body:"Bu hastaları referans programına davet etmek organik büyümeye katkı sağlayabilir."});
+
+    if(noSupportCount>0)
+      insights.push({type:"warn",title:`${noSupportCount} hasta kararını çevresinden saklıyor`,body:"Bu hastalarda iyileşme sürecinde yalnız kalma riski var — konsültasyonda destek sistemi konuşulabilir."});
+
+    if(withOutcome.length>0)
+      insights.push({type:"green",title:`%${donusum} dönüşüm oranı`,body:`${withOutcome.length} hastada randevu outcome'u girilmiş. Daha doğru analiz için tüm hastaların outcome'unu girmek değerli.`});
+
+    if(crossSellCount>0)
+      insights.push({type:"green",title:`${crossSellCount} cross-sell gerçekleşti`,body:"Birden fazla işlem planlanan hastalar sistemdeki form sinyalleriyle örtüşüyor mu karşılaştırılabilir."});
+
+    const topProc=procs[0];
+    if(topProc&&topProc[1]/total>0.3)
+      insights.push({type:"info",title:`${topProc[0]} dominant prosedür`,body:`Hastaların %${Math.round(topProc[1]/total*100)}'i bu işlem için başvuruyor. Segmente özel optimizasyon düşünülebilir.`});
+  }
+
+  if(insights.length===0)
+    insights.push({type:"info",title:"Veri birikiminde",body:"İçgörüler en az 5 hasta kaydından sonra otomatik oluşmaya başlar."});
 
   const days=["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"];
   const today=new Date().getDay();
