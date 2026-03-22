@@ -1457,16 +1457,13 @@ function DoctorPanel({doctor,onLogout}){
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#f5f0e8"}}>
         <div style={{padding:isMobile?"12px 16px":"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,background:"#f5f0e8",borderBottom:"1px solid #d4cabf"}} className="f1">
           {/* Logo + Karşılama */}
-          <div style={{display:"flex",alignItems:"center",gap:isMobile?10:16}}>\
+          <div style={{display:"flex",alignItems:"center",gap:isMobile?10:16}}>
             <div style={{display:"flex",alignItems:"center",gap:8,paddingRight:isMobile?10:16,borderRight:"1px solid #d4cabf"}}>
-              {/* SculptAI Wordmark */}
-              <div style={{display:"flex",alignItems:"center",gap:0}}>
-                <div style={{background:"#4a1520",borderRadius:"6px 2px 2px 6px",padding:"4px 8px 4px 9px",display:"flex",alignItems:"center"}}>
-                  <span style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:500,color:"#f5f0e8",letterSpacing:"0.01em"}}>Sculpt</span>
-                </div>
-                <div style={{background:"#1a1510",borderRadius:"2px 6px 6px 2px",padding:"4px 9px 4px 7px",display:"flex",alignItems:"center"}}>
-                  <span style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:300,color:"#f5f0e8",letterSpacing:"0.04em",fontStyle:"italic"}}>AI</span>
-                </div>
+              {/* SculptAI Wordmark — Option D */}
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2}}>
+                <span style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:400,color:"#1a1510",lineHeight:1,letterSpacing:"-0.02em"}}>SculptAI</span>
+                <div style={{width:"100%",height:1,background:"linear-gradient(90deg,#4a1520,transparent)"}}/>
+                <span style={{fontSize:8,letterSpacing:"0.22em",color:"#b0a898",textTransform:"uppercase"}}>Klinik Karar Desteği</span>
               </div>
             </div>
             <div>
