@@ -447,26 +447,52 @@ function exportCSV(records){
 }
 
 /* ─── SIDEBAR ────────────────────────────────────────────────────────────── */
-function Sidebar({tab,setTab}){
+function Sidebar({tab,setTab,onLogout,doctor}){
   const items=[
-    {id:"patients",icon:(on)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.2)"} strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>},
-    {id:"analytics",icon:(on)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.2)"} strokeWidth="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
-    {id:"value",icon:(on)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.2)"} strokeWidth="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>},
-    {id:"settings",icon:(on)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.2)"} strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>},
+    {id:"patients",  label:"Hastalar",
+     icon:(on)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.35)"} strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>},
+    {id:"analytics", label:"Analitik",
+     icon:(on)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.35)"} strokeWidth="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
+    {id:"value",     label:"Kazanç",
+     icon:(on)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.35)"} strokeWidth="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>},
+    {id:"settings",  label:"Ayarlar",
+     icon:(on)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={on?"#f5f0e8":"rgba(255,255,255,0.35)"} strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>},
   ];
+  const initials=(doctor?.name||"DR").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
   return(
-    <aside style={{width:52,background:"#1a1510",display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 0",gap:4,flexShrink:0}}>
-      <div style={{width:22,height:22,border:"1px solid rgba(255,255,255,0.12)",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:18}}>
-        <div style={{width:7,height:7,background:"#4a1520",borderRadius:"50%",boxShadow:"0 0 8px rgba(74,21,32,0.8)"}}/>
+    <aside style={{width:56,background:"#1a1510",display:"flex",flexDirection:"column",alignItems:"center",padding:"14px 0",gap:2,flexShrink:0,borderRight:"1px solid rgba(255,255,255,0.05)"}}>
+      <div onClick={()=>setTab("patients")} title="SculptAI — Ana Sayfa"
+        style={{width:32,height:32,background:"#4a1520",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:16,cursor:"pointer",flexShrink:0}}
+        onMouseEnter={e=>e.currentTarget.style.background="#5c1f2a"}
+        onMouseLeave={e=>e.currentTarget.style.background="#4a1520"}>
+        <div style={{width:10,height:10,background:"#f5f0e8",borderRadius:"50%",opacity:0.9}}/>
       </div>
-      {items.map(({id,icon})=>(
-        <div key={id} onClick={()=>setTab(id)} style={{width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:tab===id?"rgba(245,240,232,0.08)":"transparent",transition:"background 0.15s"}}>
-          {icon(tab===id)}
-        </div>
-      ))}
+      {items.map(({id,icon,label})=>{
+        const active=tab===id;
+        return(
+          <div key={id} onClick={()=>setTab(id)} title={label}
+            style={{width:40,height:40,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",position:"relative",
+              background:active?"rgba(245,240,232,0.1)":"transparent",transition:"background 0.15s"}}
+            onMouseEnter={e=>{if(!active)e.currentTarget.style.background="rgba(245,240,232,0.05)";}}
+            onMouseLeave={e=>{if(!active)e.currentTarget.style.background="transparent";}}>
+            {active&&<div style={{position:"absolute",left:0,top:"50%",transform:"translateY(-50%)",width:3,height:20,background:"#8a3040",borderRadius:"0 2px 2px 0"}}/>}
+            {icon(active)}
+          </div>
+        );
+      })}
       <div style={{flex:1}}/>
-      <div style={{width:36,height:36,borderRadius:"50%",background:"#2a2018",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:500,color:"#f5f0e8",letterSpacing:"0.04em",marginBottom:6,cursor:"pointer"}}>
-        AK
+      {onLogout&&(
+        <div onClick={onLogout} title="Çıkış Yap"
+          style={{width:40,height:40,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",marginBottom:4,transition:"background 0.15s"}}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(220,38,38,0.12)"}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </div>
+      )}
+      <div title={doctor?.name||""} style={{width:32,height:32,borderRadius:"50%",background:"#2a2018",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:500,color:"rgba(245,240,232,0.6)",marginBottom:4}}>
+        {initials}
       </div>
     </aside>
   );
@@ -1246,7 +1272,7 @@ function DoctorPanel({doctor,onLogout}){
     <div style={{display:"flex",flexDirection:isMobile?"column":"row",height:"100vh",overflow:"hidden",fontFamily:"'Inter',sans-serif"}}>
 
       {/* DESKTOP: Sol sidebar / MOBİL: Alt nav */}
-      {!isMobile&&<Sidebar tab={tab} setTab={setTab}/>}
+      {!isMobile&&<Sidebar tab={tab} setTab={setTab} doctor={doctor} onLogout={onLogout}/>}
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#f5f0e8"}}>
         <div style={{padding:isMobile?"12px 16px":"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,background:"#f5f0e8",borderBottom:"1px solid #d4cabf"}} className="f1">
