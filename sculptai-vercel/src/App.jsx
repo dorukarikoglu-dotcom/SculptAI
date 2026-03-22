@@ -1439,6 +1439,7 @@ function PatientForm({model,trainPct,doctorId}){
     const rec={
       id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),
       doctor_id:doctorId,
+      date:new Date().toISOString(),
       created_at:new Date().toISOString(),
       risk_score:score,
       segment:cls.label,
@@ -1449,7 +1450,6 @@ function PatientForm({model,trainPct,doctorId}){
       ambassador_sent:false,
       outcome_procedures:[],
       no_appointment:false,
-      question_times:timingData,
     };
 
     const {error}=await sb.from("patients").insert(rec);
