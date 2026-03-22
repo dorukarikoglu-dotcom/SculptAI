@@ -37,10 +37,10 @@ async function decryptName(cipher,doctorId){
 /* ─── FONTS & STYLES ─────────────────────────────────────────────────────── */
 const FL = document.createElement("link");
 FL.rel = "stylesheet";
-FL.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap";
+FL.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito:wght@300;400;500;600&display=swap";
 document.head.appendChild(FL);
 const SE = document.createElement("style");
-SE.textContent = `*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#f5f0e8;color:#1a1510;font-size:13px;line-height:1.5}input,button,select{font-family:'Inter',sans-serif}button{cursor:pointer}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#d4cabf;border-radius:2px}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}.f1{animation:fadeUp 0.35s ease 0.05s both}.f2{animation:fadeUp 0.35s ease 0.12s both}.f3{animation:fadeUp 0.35s ease 0.19s both}.f4{animation:fadeUp 0.35s ease 0.26s both}.f5{animation:fadeUp 0.35s ease 0.33s both}`;
+SE.textContent = `*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Nunito',sans-serif;background:#f5f0e8;color:#1a1510;font-size:13px;line-height:1.5}input,button,select{font-family:'Nunito',sans-serif}button{cursor:pointer}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#d4cabf;border-radius:2px}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}.f1{animation:fadeUp 0.35s ease 0.05s both}.f2{animation:fadeUp 0.35s ease 0.12s both}.f3{animation:fadeUp 0.35s ease 0.19s both}.f4{animation:fadeUp 0.35s ease 0.26s both}.f5{animation:fadeUp 0.35s ease 0.33s both}`;
 document.head.appendChild(SE);
 
 /* ─── TRAINING DATA ──────────────────────────────────────────────────────── */
@@ -551,7 +551,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
         </div>
         {/* Name + procedure — flex:1 minWidth:0 kritik */}
         <div style={{flex:1,minWidth:0,overflow:"hidden"}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:400,color:"#1a1510",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name||"İsimsiz Hasta"}</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:400,color:"#1a1510",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name||"İsimsiz Hasta"}</div>
           <div style={{fontSize:10,color:"#b0a898",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.age?`${a.age} yaş · `:""}{a.procedure}</div>
           {noAppointment&&<div style={{fontSize:8,color:"#dc2626",fontWeight:500,marginTop:1,whiteSpace:"nowrap"}}>✕ Randevu Yok</div>}
         </div>
@@ -583,7 +583,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
             {signals.map((s,i)=>(
               <div key={i} style={{padding:"10px 16px",borderRight:i<2?"1px solid #d4cabf":"none"}}>
                 <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#b0a898",marginBottom:3}}>{s.label}</div>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510"}}>{s.val}</div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1a1510"}}>{s.val}</div>
               </div>
             ))}
           </div>
@@ -611,7 +611,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
           {a.openStory&&(
             <div style={{padding:"12px 18px",borderBottom:"1px solid #d4cabf",background:"#ece7db"}}>
               <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"#4a1520",marginBottom:6,fontWeight:500}}>Sabah Aynaya Bakış — Kendi Sözleriyle</div>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:300,color:"#1a1510",lineHeight:1.8,fontStyle:"italic"}}>"{a.openStory}"</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:300,color:"#1a1510",lineHeight:1.8,fontStyle:"italic"}}>"{a.openStory}"</div>
             </div>
           )}
 
@@ -935,14 +935,14 @@ function ConsultationMode({patient, onClose}){
   if(flags.length===0) flags.push({txt:"Belirgin risk sinyali saptanmadı",sev:"green"});
 
   return(
-    <div style={{position:"fixed",inset:0,background:"#f5f0e8",zIndex:1000,display:"flex",flexDirection:"column",fontFamily:"'Inter',sans-serif"}}>
+    <div style={{position:"fixed",inset:0,background:"#f5f0e8",zIndex:1000,display:"flex",flexDirection:"column",fontFamily:"'Nunito',sans-serif"}}>
 
       {/* TOPBAR */}
       <div style={{background:"#1a1510",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:14}}>
           <div style={{width:8,height:8,background:"#8a3040",borderRadius:"50%"}}/>
           <div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:"#f5f0e8",fontWeight:300}}>{name}</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"#f5f0e8",fontWeight:300}}>{name}</div>
             <div style={{fontSize:10,color:"rgba(245,240,232,0.4)",marginTop:1}}>{a.age&&`${a.age} yaş · `}{proc}</div>
           </div>
           <div style={{padding:"3px 10px",borderRadius:20,background:cls.bg,border:`1px solid ${cls.border}`,fontSize:10,fontWeight:500,color:cls.textColor}}>{cls.icon} {cls.label}</div>
@@ -1023,7 +1023,7 @@ function ValueScreen({patients,doctor}){
   return(
     <div style={{flex:1,overflowY:"auto",padding:"24px 32px"}}>
       <div style={{marginBottom:24}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:300,color:"#1a1510",letterSpacing:"-0.01em",marginBottom:4}}>SculptAI'ın <em>Katkısı</em></div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:300,color:"#1a1510",letterSpacing:"-0.01em",marginBottom:4}}>SculptAI'ın <em>Katkısı</em></div>
         <div style={{fontSize:11,color:C.muted}}>Bu ay · {total} hasta · Piyasa ortalamalarına göre tahmini</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
@@ -1037,7 +1037,7 @@ function ValueScreen({patients,doctor}){
             <div style={{fontSize:16,marginBottom:8}}>{k.icon}</div>
             <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:4,fontWeight:500}}>{k.title}</div>
             <div style={{fontSize:10,color:C.muted,marginBottom:10}}>{k.sub}</div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:38,fontWeight:300,color:k.color,lineHeight:1,letterSpacing:"-0.02em",marginBottom:2}}>{k.val}<span style={{fontSize:16}}>{k.unit}</span></div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:38,fontWeight:300,color:k.color,lineHeight:1,letterSpacing:"-0.02em",marginBottom:2}}>{k.val}<span style={{fontSize:16}}>{k.unit}</span></div>
             <div style={{fontSize:10,fontWeight:500,color:k.color,marginTop:4}}>{k.note}</div>
           </div>
         ))}
@@ -1047,10 +1047,10 @@ function ValueScreen({patients,doctor}){
           <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:12,fontWeight:500}}>Cross-Sell Detayı</div>
           {patients.filter(p=>p.outcome_procedures?.length>0&&p.outcome_procedures.some(x=>x!==(p.answers?.procedure||""))).slice(0,5).map((p,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:12,paddingBottom:10,marginBottom:10,borderBottom:"1px solid #d4cabf"}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510",flex:1}}>{p.answers?.name||"Hasta"}</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1a1510",flex:1}}>{p.answers?.name||"Hasta"}</div>
               <div style={{fontSize:10,color:C.muted,flex:1}}>{p.answers?.procedure} →</div>
               <div style={{fontSize:10,color:"#059669",flex:1}}>{p.outcome_procedures.filter(x=>x!==p.answers?.procedure).join(", ")}</div>
-              <div style={{fontSize:12,color:"#059669",fontFamily:"'Cormorant Garamond',serif"}}>+₺{Math.round(avgProc*0.4/1000)}K tahmini</div>
+              <div style={{fontSize:12,color:"#059669",fontFamily:"'Playfair Display',serif"}}>+₺{Math.round(avgProc*0.4/1000)}K tahmini</div>
             </div>
           ))}
         </div>
@@ -1060,7 +1060,7 @@ function ValueScreen({patients,doctor}){
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
           {[["Aktif Elçi",ambassadors],["Kod Gönderildi",patients.filter(p=>p.ambassador_sent).length],["Referansla Gelen",patients.filter(p=>p.answers?.referralCode).length]].map(([lbl,val])=>(
             <div key={lbl} style={{background:"#f5f0e8",borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:300,color:"#7c3aed",lineHeight:1,marginBottom:3}}>{val}</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:300,color:"#7c3aed",lineHeight:1,marginBottom:3}}>{val}</div>
               <div style={{fontSize:9,color:C.muted}}>{lbl}</div>
             </div>
           ))}
@@ -1077,7 +1077,7 @@ function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP
   const cardS={background:"#ece7db",border:"1px solid #d4cabf",borderRadius:10,padding:"18px 20px",marginBottom:12};
   return(
     <div style={{flex:1,overflowY:"auto",padding:"24px 32px",maxWidth:520}}>
-      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:300,color:"#1a1510",marginBottom:24,letterSpacing:"-0.01em"}}>Ayarlar</div>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:300,color:"#1a1510",marginBottom:24,letterSpacing:"-0.01em"}}>Ayarlar</div>
       <div style={cardS}>
         <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:12,fontWeight:500}}>Klinik Bilgileri</div>
         {[["Doktor",doctor.name],["Kullanıcı Adı",doctor.username]].map(([lbl,val])=>(
@@ -1211,7 +1211,7 @@ function Analytics({patients}){
         ].map(k=>(
           <div key={k.lbl} style={{...card(),position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:k.grad}}/>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
             <div style={{fontSize:10,color:C.muted,marginBottom:4}}>{k.lbl}</div>
             <div style={{fontSize:11,fontWeight:500,color:k.color}}>{k.note}</div>
           </div>
@@ -1305,7 +1305,7 @@ function Analytics({patients}){
         <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
           {sources.map(([src,cnt])=>(
             <div key={src} style={{background:"#ece7db",border:"1.5px solid #e0d9cc",borderRadius:10,padding:"10px 14px",textAlign:"center",minWidth:90}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:C.navy,lineHeight:1}}>{cnt}</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:C.navy,lineHeight:1}}>{cnt}</div>
               <div style={{fontSize:10,color:C.muted,marginTop:3}}>{src}</div>
               <div style={{fontSize:10,fontWeight:600,color:"#1a1510",marginTop:2}}>{Math.round(cnt/total*100)}%</div>
             </div>
@@ -1396,7 +1396,7 @@ function DoctorPanel({doctor,onLogout}){
   const ambassadors=displayed.filter(p=>classify(p.risk_score||0,p.answers||{}).ambassador);
 
   return(
-    <div style={{display:"flex",flexDirection:isMobile?"column":"row",height:"100vh",overflow:"hidden",fontFamily:"'Inter',sans-serif"}}>
+    <div style={{display:"flex",flexDirection:isMobile?"column":"row",height:"100vh",overflow:"hidden",fontFamily:"'Nunito',sans-serif"}}>
 
       {/* KONSÜLTASYOn MODU — overlay */}
       {consultPatient&&<ConsultationMode patient={consultPatient} onClose={()=>setConsultPatient(null)}/>}
@@ -1412,10 +1412,10 @@ function DoctorPanel({doctor,onLogout}){
               <div style={{width:20,height:20,border:"1px solid #c8bfb0",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <div style={{width:6,height:6,background:"#1a1510",borderRadius:"50%"}}/>
               </div>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510",fontWeight:400}}>SculptAI</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1a1510",fontWeight:400}}>SculptAI</div>
             </div>
             <div>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?17:22,color:"#1a1510",fontWeight:300,letterSpacing:"-0.01em"}}>Günaydın, <em>Dr. {doctor.name.split(" ").slice(-1)[0]}</em></div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?17:22,color:"#1a1510",fontWeight:300,letterSpacing:"-0.01em"}}>Günaydın, <em>Dr. {doctor.name.split(" ").slice(-1)[0]}</em></div>
               {!isMobile&&<div style={{fontSize:10,color:"#b0a898",marginTop:1,letterSpacing:"0.03em"}}>{today}</div>}
             </div>
           </div>
@@ -1459,7 +1459,7 @@ function DoctorPanel({doctor,onLogout}){
             ].map(k=>(
               <div key={k.label} style={{background:"#f5f0e8",border:"1px solid #d4cabf",borderRadius:10,padding:isMobile?"12px 10px":"18px 20px",position:"relative",overflow:"hidden"}}>
                 <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:k.accent}}/>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?28:36,lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?28:36,lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
                 <div style={{fontSize:isMobile?9:11,color:"#1a1510",fontWeight:500}}>{k.label}</div>
                 <div style={{fontSize:isMobile?9:10,color:"#b0a898",marginTop:1}}>{k.note}</div>
               </div>
@@ -2085,14 +2085,14 @@ YAZIM KURALLARI:
   const BORD2="#8a3040";
 
   if(submitted) return(
-    <div style={{minHeight:"100vh",background:"#f5f0e8",fontFamily:"'Inter',sans-serif",display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:"100vh",background:"#f5f0e8",fontFamily:"'Nunito',sans-serif",display:"flex",flexDirection:"column"}}>
       {/* Header */}
       <div style={{padding:"16px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"#f5f0e8",borderBottom:"1px solid #d4cabf",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:7}}>
           <div style={{width:18,height:18,border:"1px solid #c8bfb0",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
             <div style={{width:5,height:5,background:BORD,borderRadius:"50%"}}/>
           </div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510",letterSpacing:"0.02em"}}>SculptAI</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1a1510",letterSpacing:"0.02em"}}>SculptAI</div>
         </div>
         <div style={{fontSize:9,color:"#b0a898",letterSpacing:"0.06em"}}>{doctorInfo?.name||""}</div>
       </div>
@@ -2106,7 +2106,7 @@ YAZIM KURALLARI:
             <div style={{position:"absolute",bottom:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(245,240,232,0.03)"}}/>
             <div style={{width:34,height:34,borderRadius:"50%",border:"1px solid rgba(245,240,232,0.15)",display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(245,240,232,0.5)",fontSize:13,marginBottom:14}}>✓</div>
             <div style={{fontSize:9,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(245,240,232,0.28)",marginBottom:8}}>Değerlendirme tamamlandı</div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:300,color:"#f5f0e8",lineHeight:1.15,marginBottom:8,letterSpacing:"-0.01em"}}>Teşekkürler,<br/><em>iyi ki geldiniz.</em></div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:300,color:"#f5f0e8",lineHeight:1.15,marginBottom:8,letterSpacing:"-0.01em"}}>Teşekkürler,<br/><em>iyi ki geldiniz.</em></div>
             <div style={{fontSize:11,color:"rgba(245,240,232,0.35)",lineHeight:1.7}}>Bilgileriniz alındı. Aşağıda size özel rehber ve prosedür bilgileri.</div>
           </div>
 
@@ -2117,26 +2117,26 @@ YAZIM KURALLARI:
 
               {/* Header */}
               <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(245,240,232,0.28)",marginBottom:8}}>Marka Elçisi Programı</div>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:300,color:"#f5f0e8",lineHeight:1.2,marginBottom:8,letterSpacing:"-0.01em"}}>Sizi aramızda<br/><em>görmekten mutluluk.</em></div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:300,color:"#f5f0e8",lineHeight:1.2,marginBottom:8,letterSpacing:"-0.01em"}}>Sizi aramızda<br/><em>görmekten mutluluk.</em></div>
               <div style={{fontSize:10,color:"rgba(245,240,232,0.42)",lineHeight:1.7,marginBottom:14}}>{PC.ambassadorMsg}</div>
 
               {/* Kod + butonlar */}
               <div style={{background:"rgba(245,240,232,0.07)",border:"1px solid rgba(245,240,232,0.1)",borderRadius:9,padding:"11px 13px",marginBottom:8}}>
                 <div style={{fontSize:8,color:"rgba(245,240,232,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:3}}>Referans Kodunuz</div>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,color:"#f5f0e8",letterSpacing:"0.1em",fontWeight:300}}>{ambassadorCode}</div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,color:"#f5f0e8",letterSpacing:"0.1em",fontWeight:300}}>{ambassadorCode}</div>
               </div>
 
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
                 <button onClick={()=>{
                   const msg=`Merhaba! Hacettepe Üniversitesi Plastik Cerrahi'de çok iyi bir deneyim yaşadım. Seni de yönlendirmek istedim — formu doldurursan doktor seni çok daha hazırlıklı karşılıyor. İşte bağlantı: ${window.location.origin}/form/${doctorInfo?.id||""}%0AReferans kodum: ${ambassadorCode}`;
                   window.open(`https://wa.me/?text=${msg}`,"_blank");
-                }} style={{padding:"10px",background:"#25D366",border:"none",borderRadius:8,color:"white",fontSize:10,fontWeight:500,cursor:"pointer",fontFamily:"'Inter',sans-serif",letterSpacing:"0.04em",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                }} style={{padding:"10px",background:"#25D366",border:"none",borderRadius:8,color:"white",fontSize:10,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.04em",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.116 1.528 5.845L0 24l6.335-1.508A11.93 11.93 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.853 0-3.601-.5-5.112-1.374l-.366-.217-3.76.896.951-3.666-.239-.379A9.946 9.946 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
                   WhatsApp'ta Paylaş
                 </button>
                 <button onClick={()=>{
                   navigator.clipboard?.writeText(`${window.location.origin}/form/${doctorInfo?.id||""} — Referans: ${ambassadorCode}`);
-                }} style={{padding:"10px",background:"rgba(245,240,232,0.08)",border:"1px solid rgba(245,240,232,0.15)",borderRadius:8,fontSize:10,color:"rgba(245,240,232,0.7)",cursor:"pointer",fontFamily:"'Inter',sans-serif",letterSpacing:"0.04em"}}>
+                }} style={{padding:"10px",background:"rgba(245,240,232,0.08)",border:"1px solid rgba(245,240,232,0.15)",borderRadius:8,fontSize:10,color:"rgba(245,240,232,0.7)",cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.04em"}}>
                   Linki Kopyala
                 </button>
               </div>
@@ -2147,7 +2147,7 @@ YAZIM KURALLARI:
           <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,margin:"0 0 8px 0"}}>Size Özel Rehber</div>
           {guideLoading&&(
             <div style={{background:"#ece7db",border:"1px solid #d4cabf",borderRadius:12,padding:"20px 16px",marginBottom:10,textAlign:"center"}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#b0a898",fontStyle:"italic",animation:"pulse 1.5s infinite"}}>Kişisel rehberiniz hazırlanıyor...</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:"#b0a898",fontStyle:"italic",animation:"pulse 1.5s infinite"}}>Kişisel rehberiniz hazırlanıyor...</div>
               <div style={{fontSize:10,color:"#d4cabf",marginTop:6}}>Yapay zeka form cevaplarınızı analiz ediyor</div>
             </div>
           )}
@@ -2162,7 +2162,7 @@ YAZIM KURALLARI:
                 {parsed.map((s,i)=>(
                   <div key={i} style={{padding:"13px 15px",borderBottom:i<parsed.length-1?"1px solid #ece7db":"none"}}>
                     <div style={{fontSize:8,letterSpacing:"0.14em",textTransform:"uppercase",color:BORD2,fontWeight:500,marginBottom:5}}>{s.title}</div>
-                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:300,color:"#1a1510",lineHeight:1.8}}>{s.body}</div>
+                    <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:300,color:"#1a1510",lineHeight:1.8}}>{s.body}</div>
                   </div>
                 ))}
               </div>
@@ -2172,12 +2172,12 @@ YAZIM KURALLARI:
           <div style={{fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#b0a898",fontWeight:500,margin:"14px 0 8px 0"}}>Seçtiğiniz Prosedür</div>
           <div style={{border:"1px solid #d4cabf",borderRadius:12,padding:15,marginBottom:12}}>
             <div style={{fontSize:8,letterSpacing:"0.14em",textTransform:"uppercase",color:BORD2,marginBottom:5}}>◈ {PI.category}</div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:19,fontWeight:300,color:"#1a1510",marginBottom:6,letterSpacing:"-0.01em"}}>{proc||"İşlem"}</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:19,fontWeight:300,color:"#1a1510",marginBottom:6,letterSpacing:"-0.01em"}}>{proc||"İşlem"}</div>
             <div style={{fontSize:10,color:"#8a7a68",lineHeight:1.65,marginBottom:11}}>{PI.desc}</div>
             <div style={{display:"flex",gap:5}}>
               {PI.stats.map((s,i)=>(
                 <div key={i} style={{flex:1,background:"#ece7db",borderRadius:7,padding:"8px 5px",textAlign:"center"}}>
-                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,color:"#1a1510",lineHeight:1}}>{s.val}</div>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:13,color:"#1a1510",lineHeight:1}}>{s.val}</div>
                   <div style={{fontSize:7,color:"#b0a898",marginTop:3,letterSpacing:"0.08em",textTransform:"uppercase"}}>{s.lbl}</div>
                 </div>
               ))}
@@ -2194,7 +2194,7 @@ YAZIM KURALLARI:
                   <div key={i} style={{border:"1px solid #d4cabf",borderRadius:12,padding:"13px 15px",background:"#faf8f4"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                       <div style={{width:5,height:5,borderRadius:"50%",background:BORD2,flexShrink:0}}/>
-                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontWeight:400,color:"#1a1510"}}>{s.proc}</div>
+                      <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:400,color:"#1a1510"}}>{s.proc}</div>
                     </div>
                     <div style={{fontSize:10,color:"#8a7a68",lineHeight:1.65}}>{s.why}</div>
                   </div>
@@ -2208,7 +2208,7 @@ YAZIM KURALLARI:
           <div style={{border:"1px solid #d4cabf",borderRadius:12,padding:"13px 15px",display:"flex",alignItems:"center",gap:11,marginBottom:12}}>
             <div style={{width:30,height:30,background:"#ece7db",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>📅</div>
             <div>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,color:"#1a1510",marginBottom:1}}>Konsültasyon randevusu</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1a1510",marginBottom:1}}>Konsültasyon randevusu</div>
               <div style={{fontSize:10,color:"#b0a898",lineHeight:1.4}}>{doctorInfo?.name||"Doktorunuz"} ekibi sizinle iletişime geçecek.</div>
             </div>
           </div>
@@ -2218,7 +2218,7 @@ YAZIM KURALLARI:
           {/* Kişiselleştirilmiş giriş — EN ÜSTTE */}
           <div style={{background:"linear-gradient(135deg,#ece7db,#e8e3d8)",border:"1px solid #d4cabf",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
             <div style={{fontSize:9,letterSpacing:"0.15em",textTransform:"uppercase",color:"#b0a898",marginBottom:6,fontWeight:500}}>Size özel not</div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:300,color:"#1a1510",lineHeight:1.75,fontStyle:"italic"}}>{PC.recoveryIntro}</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:300,color:"#1a1510",lineHeight:1.75,fontStyle:"italic"}}>{PC.recoveryIntro}</div>
           </div>
 
           {/* Recovery timeline */}
@@ -2230,7 +2230,7 @@ YAZIM KURALLARI:
                 <div style={{width:9,height:9,borderRadius:"50%",flexShrink:0,marginTop:4,position:"relative",left:-16,marginRight:-6,border:"1.5px solid #f5f0e8",background:BORD,opacity:1-i*0.18,zIndex:1}}/>
                 <div style={{flex:1,border:"1px solid #d4cabf",borderRadius:9,padding:"9px 11px"}}>
                   <div style={{fontSize:7,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:600,color:BORD2,marginBottom:2,opacity:1-i*0.15}}>{t.time}</div>
-                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,color:"#1a1510",marginBottom:1}}>{t.title}</div>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:13,color:"#1a1510",marginBottom:1}}>{t.title}</div>
                   <div style={{fontSize:9,color:"#8a7a68",lineHeight:1.55}}>{t.desc}</div>
                 </div>
               </div>
@@ -2306,15 +2306,15 @@ YAZIM KURALLARI:
       {/* Bottom CTA */}
       <div style={{padding:"10px 22px 22px",flexShrink:0,background:"#f5f0e8",borderTop:"1px solid #d4cabf"}}>
         {infoPage===0
-          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f5f0e8",fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"'Inter',sans-serif",letterSpacing:"0.08em"}}>Hazırlık bilgilerini gör →</button>
-          :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f5f0e8",fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"'Inter',sans-serif",letterSpacing:"0.08em"}}>Anladım, teşekkürler</button>
+          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f5f0e8",fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>Hazırlık bilgilerini gör →</button>
+          :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f5f0e8",fontSize:11,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>Anladım, teşekkürler</button>
         }
       </div>
     </div>
   );
 
   return(
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Inter',sans-serif",color:C.navy}}>
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Nunito',sans-serif",color:C.navy}}>
       {/* Hero grid — sadece ilk soru (karşılama) */}
       {currentQ===0&&(
         <div style={{width:"100%",height:280,display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:2,position:"relative",overflow:"hidden",flexShrink:0}}>
@@ -2343,7 +2343,7 @@ YAZIM KURALLARI:
             <div style={{width:20,height:20,border:"1px solid #c8bfb0",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
               <div style={{width:6,height:6,background:"#1a1510",borderRadius:"50%"}}/>
             </div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:C.navy,letterSpacing:"-0.01em"}}>SculptAI</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:C.navy,letterSpacing:"-0.01em"}}>SculptAI</div>
           </div>
           
         </header>
@@ -2354,7 +2354,7 @@ YAZIM KURALLARI:
           <div style={{textAlign:"center",marginBottom:32,paddingTop:8}} className="f1">
             {doctorInfo?.photo_url&&<img src={doctorInfo.photo_url} alt={doctorInfo.name} style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",margin:"0 auto 12px",display:"block",border:`3px solid ${accent}`}}/>}
             <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:10,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>Hoş Geldiniz</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>Hoş Geldiniz</div>
             <div style={{fontSize:14,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.</div>
             {doctorInfo?.name&&<div style={{fontSize:13,color:accent,fontWeight:500}}>Dr. görüşmesi: {doctorInfo.name}</div>}
           </div>
@@ -2375,7 +2375,7 @@ YAZIM KURALLARI:
         </div>
         <div style={{background:"#f5f0e8",border:`1.5px solid ${C.border}`,borderRadius:14,padding:"24px 22px",marginBottom:14}} className="f3">
           <div style={{fontSize:9,color:"#b0a898",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:9,fontWeight:400}}>{q.section}</div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:300,color:C.navy,marginBottom:20,lineHeight:1.35,letterSpacing:"-0.01em"}}>{q.label}</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:C.navy,marginBottom:20,lineHeight:1.35,letterSpacing:"-0.01em"}}>{q.label}</div>
           {q.type==="text"&&<input type="text" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#ece7db",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:14,outline:"none"}}/>}
           {q.type==="number"&&<input type="number" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#ece7db",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:14,outline:"none"}}/>}
           {q.type==="radio"&&(
@@ -2408,7 +2408,7 @@ YAZIM KURALLARI:
             qStartTime.current=Date.now();
             if(currentQ<VISIBLE_QUESTIONS.length-1)setCurrentQ(c=>c+1);else handleSubmit();
           }} disabled={!canNext}
-            style={{flex:2,padding:"13px",background:canNext?"#1a1510":"#e0d9cc",border:"none",borderRadius:8,color:canNext?"#f5f0e8":"#b0a898",fontSize:12,fontWeight:500,letterSpacing:"0.08em",cursor:canNext?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Inter',sans-serif"}}>
+            style={{flex:2,padding:"13px",background:canNext?"#1a1510":"#e0d9cc",border:"none",borderRadius:8,color:canNext?"#f5f0e8":"#b0a898",fontSize:12,fontWeight:500,letterSpacing:"0.08em",cursor:canNext?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Nunito',sans-serif"}}>
             {currentQ===VISIBLE_QUESTIONS.length-1?(model?"Formu Gönder →":"Model yükleniyor..."):"Devam →"}
           </button>
         </div>
@@ -2448,7 +2448,7 @@ function AdminPanel(){
   if(!authed) return(
     <div style={{minHeight:"100vh",background:C.ivory,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',sans-serif"}}>
       <div style={{width:360,background:C.ivory2,border:`1px solid ${C.border}`,borderRadius:12,padding:"32px 28px"}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:300,color:"#1a1510",marginBottom:4}}>Admin Paneli</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:300,color:"#1a1510",marginBottom:4}}>Admin Paneli</div>
         <div style={{fontSize:11,color:C.muted,marginBottom:24}}>SculptAI · Sadece sistem yöneticisi</div>
         <input type="password" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()} placeholder="Şifre" style={{width:"100%",padding:"11px 13px",background:C.ivory,border:`1px solid ${C.border}`,borderRadius:7,fontSize:12,outline:"none",marginBottom:10,fontFamily:"'Outfit',sans-serif"}}/>
         {err&&<div style={{fontSize:11,color:"#dc2626",marginBottom:8}}>{err}</div>}
@@ -2488,7 +2488,7 @@ function AdminPanel(){
         {/* Header */}
         <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:28}}>
           <div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontWeight:300,color:"#1a1510",letterSpacing:"-0.02em"}}>SculptAI <em>Admin</em></div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:300,color:"#1a1510",letterSpacing:"-0.02em"}}>SculptAI <em>Admin</em></div>
             <div style={{fontSize:11,color:C.muted,marginTop:2}}>{doctors.length} klinik · {patients.length} toplam rapor</div>
           </div>
           <button onClick={loadData} style={{padding:"7px 16px",border:`1px solid ${C.border}`,borderRadius:7,background:"transparent",fontSize:11,color:C.muted,cursor:"pointer"}}>↻ Yenile</button>
@@ -2507,7 +2507,7 @@ function AdminPanel(){
             <div key={i} style={{...cardS,position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:k.color}}/>
               <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:C.muted,marginBottom:6,fontWeight:500}}>{k.lbl}</div>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontWeight:300,color:k.color,lineHeight:1}}>{k.val}</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:300,color:k.color,lineHeight:1}}>{k.val}</div>
             </div>
           ))}
         </div>
@@ -2529,9 +2529,9 @@ function AdminPanel(){
             <tbody>
               {stats.map((s,i)=>(
                 <tr key={s.id} style={{borderBottom:i<stats.length-1?`1px solid ${C.border}`:"none",background:i%2===0?"transparent":C.ivory2}}>
-                  <td style={{padding:"11px 16px",fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:"#1a1510"}}>{s.clinic_name||"—"}</td>
+                  <td style={{padding:"11px 16px",fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1a1510"}}>{s.clinic_name||"—"}</td>
                   <td style={{padding:"11px 16px",fontSize:11,color:C.muted}}>{s.name}</td>
-                  <td style={{padding:"11px 16px",fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:"#1a1510",fontWeight:400}}>{s.reports}</td>
+                  <td style={{padding:"11px 16px",fontFamily:"'Playfair Display',serif",fontSize:18,color:"#1a1510",fontWeight:400}}>{s.reports}</td>
                   <td style={{padding:"11px 16px"}}><span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:s.critical>0?"#fef2f2":"transparent",color:s.critical>0?"#991b1b":C.muted,border:s.critical>0?"1px solid #fecaca":"none"}}>{s.critical}</span></td>
                   <td style={{padding:"11px 16px",fontSize:11,color:s.noAppt>0?"#dc2626":C.muted,fontWeight:s.noAppt>0?500:400}}>{s.noAppt}</td>
                   <td style={{padding:"11px 16px",fontSize:11,color:s.crossSell>0?"#059669":C.muted,fontWeight:s.crossSell>0?500:400}}>{s.crossSell}</td>
@@ -2544,12 +2544,12 @@ function AdminPanel(){
             <tfoot>
               <tr style={{background:"#1a1510"}}>
                 <td colSpan={2} style={{padding:"11px 16px",fontSize:10,fontWeight:500,color:"rgba(245,240,232,0.5)",letterSpacing:"0.06em",textTransform:"uppercase"}}>TOPLAM</td>
-                <td style={{padding:"11px 16px",fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:"#f5f0e8",fontWeight:300}}>{total.reports}</td>
-                <td style={{padding:"11px 16px",fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#f5f0e8"}}>{total.critical}</td>
-                <td style={{padding:"11px 16px",fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#f5f0e8"}}>{total.noAppt}</td>
-                <td style={{padding:"11px 16px",fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#f5f0e8"}}>{total.crossSell}</td>
-                <td style={{padding:"11px 16px",fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#f5f0e8"}}>{total.ambassadors}</td>
-                <td style={{padding:"11px 16px",fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#f5f0e8"}}>{total.refs}</td>
+                <td style={{padding:"11px 16px",fontFamily:"'Playfair Display',serif",fontSize:20,color:"#f5f0e8",fontWeight:300}}>{total.reports}</td>
+                <td style={{padding:"11px 16px",fontFamily:"'Playfair Display',serif",fontSize:16,color:"#f5f0e8"}}>{total.critical}</td>
+                <td style={{padding:"11px 16px",fontFamily:"'Playfair Display',serif",fontSize:16,color:"#f5f0e8"}}>{total.noAppt}</td>
+                <td style={{padding:"11px 16px",fontFamily:"'Playfair Display',serif",fontSize:16,color:"#f5f0e8"}}>{total.crossSell}</td>
+                <td style={{padding:"11px 16px",fontFamily:"'Playfair Display',serif",fontSize:16,color:"#f5f0e8"}}>{total.ambassadors}</td>
+                <td style={{padding:"11px 16px",fontFamily:"'Playfair Display',serif",fontSize:16,color:"#f5f0e8"}}>{total.refs}</td>
                 <td style={{padding:"11px 16px"}}></td>
               </tr>
             </tfoot>
@@ -2578,7 +2578,7 @@ function Login({onLogin}){
     setLoading(false);
   }
   return(
-    <div style={{minHeight:"100vh",background:"#f5f0e8",fontFamily:"'Inter',sans-serif",display:"flex"}}>
+    <div style={{minHeight:"100vh",background:"#f5f0e8",fontFamily:"'Nunito',sans-serif",display:"flex"}}>
 
       {/* SOL — Görsel */}
       <div style={{flex:"0 0 52%",position:"relative",overflow:"hidden",display:"flex"}}>
@@ -2588,7 +2588,7 @@ function Login({onLogin}){
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to right, rgba(245,240,232,0) 50%, rgba(245,240,232,1) 100%)"}}/>
         {/* Sol alt — tagline */}
         <div style={{position:"absolute",bottom:40,left:40,right:"30%"}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:300,color:"white",lineHeight:1.4,textShadow:"0 2px 20px rgba(0,0,0,0.3)",fontStyle:"italic"}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:300,color:"white",lineHeight:1.4,textShadow:"0 2px 20px rgba(0,0,0,0.3)",fontStyle:"italic"}}>
             "Her hasta bir ilişki.<br/>Her ilişki bir güven."
           </div>
         </div>
@@ -2607,10 +2607,10 @@ function Login({onLogin}){
           </div>
 
           {/* Title */}
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:300,color:"#1a1510",lineHeight:1.1,marginBottom:14,letterSpacing:"-0.02em"}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:44,fontWeight:300,color:"#1a1510",lineHeight:1.1,marginBottom:14,letterSpacing:"-0.02em"}}>
             Görünmeyeni<br/><em>görmek.</em>
           </div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:300,fontStyle:"italic",color:"#b0a898",lineHeight:1.7,marginBottom:44}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:300,fontStyle:"italic",color:"#b0a898",lineHeight:1.7,marginBottom:44}}>
             Hasta beklentisi, karar kalitesini<br/><span style={{color:"#1a1510",fontStyle:"normal",fontWeight:400}}>doğrudan etkiler.</span>
           </div>
 
@@ -2618,13 +2618,13 @@ function Login({onLogin}){
           {[["KULLANICI ADI",u,setU,"text"],["ŞİFRE",p,setP,"password"]].map(([label,val,set,type])=>(
             <div key={label} style={{marginBottom:16}}>
               <div style={{fontSize:10,color:"#b0a898",letterSpacing:"0.15em",marginBottom:7}}>{label}</div>
-              <input type={type} value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} style={{width:"100%",padding:"13px 15px",background:"#ece7db",border:"1px solid #d4cabf",borderRadius:8,color:"#1a1510",fontSize:13,outline:"none",fontFamily:"'Inter',sans-serif"}}/>
+              <input type={type} value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} style={{width:"100%",padding:"13px 15px",background:"#ece7db",border:"1px solid #d4cabf",borderRadius:8,color:"#1a1510",fontSize:13,outline:"none",fontFamily:"'Nunito',sans-serif"}}/>
             </div>
           ))}
 
           {err&&<div style={{marginBottom:14,padding:"9px 12px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:12,color:"#dc2626"}}>{err}</div>}
 
-          <button onClick={attempt} disabled={loading} style={{width:"100%",padding:"14px",background:"#1a1510",border:"none",borderRadius:8,color:"#f5f0e8",fontSize:12,fontWeight:500,letterSpacing:"0.1em",cursor:"pointer",opacity:loading?0.7:1,fontFamily:"'Inter',sans-serif",marginTop:4}}>
+          <button onClick={attempt} disabled={loading} style={{width:"100%",padding:"14px",background:"#1a1510",border:"none",borderRadius:8,color:"#f5f0e8",fontSize:12,fontWeight:500,letterSpacing:"0.1em",cursor:"pointer",opacity:loading?0.7:1,fontFamily:"'Nunito',sans-serif",marginTop:4}}>
             {loading?"GİRİŞ YAPILIYOR...":"GİRİŞ YAP"}
           </button>
 
