@@ -1379,8 +1379,14 @@ function DoctorPanel({doctor,onLogout}){
   }
 
   const today=new Date().toLocaleDateString("tr-TR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  const redCount=patients.filter(p=>p.risk_score>=68).length;
-  const convRate=patients.length?Math.round((patients.filter(p=>p.risk_score<68).length/patients.length)*100):0;
+
+  // Anlamlı KPI hesapları
+  const total=patients.length;
+  const kritik=patients.filter(p=>{const c=classify(p.risk_score||0,p.answers||{});return c.cat==="red";}).length;
+  const randevuAlan=patients.filter(p=>p.outcome_procedures?.length>0).length;
+  const donusum=total?Math.round(randevuAlan/total*100):0;
+  const elci=patients.filter(p=>classify(p.risk_score||0,p.answers||{}).ambassador).length;
+  const crossSell=patients.filter(p=>p.outcome_procedures?.length>0&&p.outcome_procedures.some(x=>x!==(p.answers?.procedure||""))).length;
 
   const displayed=filter==="all"?patients:patients.filter(p=>{
     const cls=classify(p.risk_score||0,p.answers||{});
@@ -1445,17 +1451,17 @@ function DoctorPanel({doctor,onLogout}){
           )}
 
           {/* KPI */}
-          <div style={{display:"grid",gridTemplateColumns:isMobile?"repeat(3,1fr)":"repeat(3,1fr)",gap:isMobile?8:12,marginBottom:isMobile?16:24}} className="f2">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:isMobile?8:12,marginBottom:isMobile?16:24}} className="f2">
             {[
-              {val:redCount,label:"Dikkat",note:"Riskli",color:"#dc2626",grad:"linear-gradient(90deg,#4a1520,#7a2535)"},
-              {val:convRate+"%",label:"Uygun",note:"Profil",color:"#059669",grad:"linear-gradient(90deg,#059669,#0a6640)"},
-              {val:patients.length,label:"Toplam",note:"Hasta",color:"#1a1510",grad:"linear-gradient(90deg,#1a1510,#2a2018)"},
+              {val:total,label:"Toplam Hasta",note:elci>0?`${elci} marka elçisi`:"Tüm kayıtlar",color:"#1a1510",accent:"#4a1520"},
+              {val:randevuAlan>0?`%${donusum}`:"—",label:"Dönüşüm",note:randevuAlan>0?`${randevuAlan}/${total} randevu`:"Henüz outcome yok",color:donusum>=60?"#059669":donusum>=40?"#d97706":"#8a7a68",accent:donusum>=60?"#059669":donusum>=40?"#d97706":"#8a7a68"},
+              {val:kritik,label:"Kritik Profil",note:kritik>0?`%${Math.round(kritik/total*100||0)} oranında`:"Belirgin risk yok",color:kritik>0?"#dc2626":"#059669",accent:kritik>0?"#dc2626":"#059669"},
             ].map(k=>(
               <div key={k.label} style={{background:"#f5f0e8",border:"1px solid #d4cabf",borderRadius:10,padding:isMobile?"12px 10px":"18px 20px",position:"relative",overflow:"hidden"}}>
-                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:k.grad}}/>
+                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:k.accent}}/>
                 <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:isMobile?28:36,lineHeight:1,marginBottom:3,color:k.color}}>{k.val}</div>
-                <div style={{fontSize:isMobile?9:11,color:"#b0a898"}}>{k.label}</div>
-                <div style={{fontSize:isMobile?9:10,fontWeight:500,color:k.color}}>{k.note}</div>
+                <div style={{fontSize:isMobile?9:11,color:"#1a1510",fontWeight:500}}>{k.label}</div>
+                <div style={{fontSize:isMobile?9:10,color:"#b0a898",marginTop:1}}>{k.note}</div>
               </div>
             ))}
           </div>
