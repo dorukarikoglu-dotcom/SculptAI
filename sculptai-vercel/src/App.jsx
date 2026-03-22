@@ -228,10 +228,12 @@ function computeMLScore(a){
 
 
 function classify(score,a){
-  // Marka elçisi — sosyal sorular kaldırıldı, düşük risk + içsel motivasyon + destek var
-  const intMotiv=["Görünümümü iyileştirmek istiyorum","Özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
+  // Marka elçisi — yeni sorular + düşük risk
+  const sharesFreely=a.sharing==="Evet, açıkça paylaşırım";
+  const socialInfluencer=["Evet, sık sık danışırlar","Bazen danışanlar olur"].some(x=>a.socialInfluence===x);
+  const intMotiv=["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
   const hasSupport=a.support==="Evet, destekliyorlar";
-  const socialActive=intMotiv&&hasSupport&&score<40;
+  const socialActive=(sharesFreely||socialInfluencer)&&intMotiv&&hasSupport&&score<45;
 
   // Risk sinyalleri
   const bddRisk=a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor"||a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
@@ -392,6 +394,10 @@ const QUESTIONS=[
 
 
   /* ── Açık Uçlu ── */
+  /* ── Marka Elçisi Sinyalleri ── */
+  {id:"sharing",section:"Hasta Profili",label:"Memnun kaldığınız bir deneyimi çevrenizle paylaşır mısınız?",type:"radio",options:["Evet, açıkça paylaşırım","Sadece çok yakınlarımla","Hayır, paylaşmam"]},
+  {id:"socialInfluence",section:"Hasta Profili",label:"Çevreniz estetik kararlarında size danışır mı?",type:"radio",options:["Evet, sık sık danışırlar","Bazen danışanlar olur","Hayır, danışmazlar"]},
+
   {id:"openStory",section:"Size Bir Sorum Var",label:"Bu işlemden sonra hayatınızda ne değişmesini istiyorsunuz? Kendi cümlelerinizle anlatır mısınız.",type:"text",placeholder:"İstediğiniz kadar az veya çok yazabilirsiniz...",optional:true},
 ];
 const SECTIONS=[...new Set(QUESTIONS.map(q=>q.section))];
@@ -422,8 +428,9 @@ function getSignals(a,cat){
     {label:"Önceki Danışma",val:a.multiDoctor||"—"},
   ];
   if(cat==="ambassador") return [
-
-    {label:"Ek Prosedür",val:a.crossSell||"—"},
+    {label:"Paylaşım",val:a.sharing||"—"},
+    {label:"Sosyal Etki",val:a.socialInfluence||"—"},
+    {label:"Ek Prosedür",val:a.otherConsidered||"—"},
   ];
   return [
     {label:"Motivasyon",val:a.motivation?.split(" ").slice(0,3).join(" ")||"—"},
