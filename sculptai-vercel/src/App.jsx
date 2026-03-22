@@ -334,7 +334,7 @@ function Sidebar({tab,setTab}){
 }
 
 /* ─── PATIENT CARD ───────────────────────────────────────────────────────── */
-function PatientCard({patient,onDelete}){
+function PatientCard({patient,onDelete,isMobile}){
   const [open,setOpen]=useState(false);
   const [confirm,setConfirm]=useState(false);
   const [showOutcome,setShowOutcome]=useState(false);
@@ -423,6 +423,25 @@ function PatientCard({patient,onDelete}){
             ))}
           </div>
 
+          {/* CROSS-SELL SİNYALİ */}
+          {((a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge")||(a.otherConsidered&&a.otherConsidered!=="Hayır"))&&(
+            <div style={{padding:"10px 18px",borderBottom:"1px solid #d4cabf",background:"#f0fdf4"}}>
+              <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#059669",marginBottom:5,fontWeight:500}}>↗ Ek İşlem İlgisi</div>
+              <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                {a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge"&&(
+                  <div style={{fontSize:11,color:"#065f46",lineHeight:1.5}}>
+                    <span style={{color:"#b0a898",marginRight:5}}>Başka bölge:</span>{a.otherAreas}
+                  </div>
+                )}
+                {a.otherConsidered&&a.otherConsidered!=="Hayır"&&(
+                  <div style={{fontSize:11,color:"#065f46",lineHeight:1.5}}>
+                    <span style={{color:"#b0a898",marginRight:5}}>Başka işlem düşünmüş:</span>{a.otherConsidered}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* AÇIK UÇLU SORU — Ayna */}
           {a.openStory&&(
             <div style={{padding:"12px 18px",borderBottom:"1px solid #d4cabf",background:"#ece7db"}}>
@@ -474,14 +493,14 @@ function PatientCard({patient,onDelete}){
                 const comms=[];
 
                 // ── RİSK FAKTÖRLERİ — spesifik ──
-                if(a.motivation?.includes("Yakınlarımın yorumları")||a.motivation?.includes("Başka insanların")) risks.push(`${name} dışsal baskıyla karar veriyor — kendi isteği mi yoksa çevre baskısı mı netleştirin`);
-                if(a.expectation?.includes("Tamamen farklı")) risks.push(`"Tamamen farklı görünmek" beklentisi ${proc} ile karşılanamayabilir — fotoğraflarla sınır çizin`);
-                if(a.multiDoctor?.includes("Birçok")) risks.push(`Birden fazla doktora danışmış — önceki konsültasyonlarda ne duyduğunu sorun, neden ikna olmadığını anlayın`);
-                if(a.support?.includes("Kimseye söylemedim")) risks.push(`${name} bu kararı tek başına veriyor, sosyal desteği yok — iyileşme sürecinde yalnız kalma riski`);
-                if(a.revision?.includes("Kusursuz")) risks.push(`Revizyon ihtimalini kabul etmiyor — kusursuz sonuç beklentisi var, bunu mutlaka konuşun`);
+                if(a.motivation?.includes("Yakınlarımın yorumları")||a.motivation?.includes("Başka insanların")) risks.push(`${name} dışsal baskıyla karar veriyor — kendi isteği mi yoksa çevre baskısı mı olduğunu netleştirmek değerli olabilir`);
+                if(a.expectation?.includes("Tamamen farklı")) risks.push(`"Tamamen farklı görünmek" beklentisi ${proc} ile karşılanamayabilir — fotoğraflarla sınırları çerçevelemek faydalı olabilir`);
+                if(a.multiDoctor?.includes("Birçok")) risks.push(`Birden fazla doktora danışmış — önceki konsültasyonlarda ne duyduğunu sormak, neden ikna olmadığını anlamak için yardımcı olabilir`);
+                if(a.support?.includes("Kimseye söylemedim")) risks.push(`${name} bu kararı tek başına veriyor, sosyal desteği yok — iyileşme sürecinde yalnız kalma riski göz önünde bulundurulabilir`);
+                if(a.revision?.includes("Kusursuz")) risks.push(`Revizyon ihtimalini kabul etmiyor — kusursuz sonuç beklentisi var, bunu konsültasyonda ele almak önemli olabilir`);
                 if(a.worstCase?.includes("düşünmek istemiyorum")) risks.push(`En kötü senaryoyu düşünmekten kaçınıyor — gerçekçi risk konuşması dirençle karşılaşabilir`);
                 if(a.bodyFocus?.includes("işimi gücümü etkiliyor")) risks.push(`Bu bölge günlük işleyişini etkiliyor — BDD değerlendirmesi düşünülebilir`);
-                if(a.prevSurgery?.includes("beklentimi karşılamadı")||a.prevSurgery?.includes("hiç memnun değilim")) risks.push(`Önceki işlemden memnun kalmamış — bu sefer beklentisi daha yüksek olabilir, geçmiş deneyimi derinleştirin`);
+                if(a.prevSurgery?.includes("beklentimi karşılamadı")||a.prevSurgery?.includes("hiç memnun değilim")) risks.push(`Önceki işlemden memnun kalmamış — bu sefer beklentisi daha yüksek olabilir, geçmiş deneyimi derinleştirmek yardımcı olabilir`);
                 if(a.selfEsteem?.includes("barışık değilim")) risks.push(`Benlik saygısı düşük — işlem sonrası psikolojik iyileşme yavaş olabilir`);
                 if(risks.length===0) risks.push(`${name} için belirgin risk sinyali saptanmadı — standart konsültasyon yeterli`);
 
@@ -538,8 +557,8 @@ function PatientCard({patient,onDelete}){
                     <div style={{background:"#f8f7ff",border:"1px solid #ddd6fe",borderRadius:9,padding:"11px 13px"}}>
                       <div style={{fontSize:9,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#5b21b6",marginBottom:10}}>🧠 Klinik Tahmin</div>
 
-                      {/* 3 metrik yan yana */}
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:10}}>
+                      {/* 3 metrik — mobilde 1 sütun, masaüstünde 3 */}
+                      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr 1fr",gap:6,marginBottom:10}}>
                         {/* Revizyon Riski */}
                         <div style={{background:"white",border:"1px solid #ede9fe",borderRadius:7,padding:"8px 6px",textAlign:"center"}}>
                           <div style={{fontSize:18,fontWeight:600,color:pred.rev>=50?"#dc2626":pred.rev>=30?"#d97706":"#059669",lineHeight:1}}>{pred.rev}%</div>
@@ -1174,7 +1193,7 @@ function DoctorPanel({doctor,onLogout}){
             </div>
           )}
 
-          <div className="f4">{clinical.map(p=><PatientCard key={p.id} patient={p} onDelete={deletePatient}/>)}</div>
+          <div className="f4">{clinical.map(p=><PatientCard key={p.id} patient={p} onDelete={deletePatient} isMobile={isMobile}/>)}</div>
 
           {ambassadors.length>0&&(
             <div className="f5">
@@ -1183,7 +1202,7 @@ function DoctorPanel({doctor,onLogout}){
                 <div style={{fontSize:10,color:"#a78bfa",background:"#faf5ff",padding:"2px 10px",borderRadius:10,border:"1px solid #ede9fe",letterSpacing:"0.08em",fontWeight:500}}>Ticari Fırsat</div>
                 <div style={{flex:1,height:1,background:"#f1f3f5"}}/>
               </div>
-              {ambassadors.map(p=><PatientCard key={p.id} patient={p} onDelete={deletePatient}/>)}
+              {ambassadors.map(p=><PatientCard key={p.id} patient={p} onDelete={deletePatient} isMobile={isMobile}/>)}
             </div>
           )}
 
