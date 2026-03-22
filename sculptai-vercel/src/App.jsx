@@ -228,23 +228,27 @@ function computeMLScore(a){
 
 
 function classify(score,a){
-  // Paylaşım sinyalleri — tüm olası cevap metinlerini yakala
-  const sf=["Evet, açıkça paylaşırım","Evet paylaşırım","Sık paylaşırım"].some(x=>a.sharing===x);
-  const rec=["Evet, sık sık öneririm","Evet, sık öneririm"].some(x=>a.recommends===x);
-  const inf=a.socialMedia==="Sık paylaşırım";
-  const socialActive=(sf&&rec)||(sf&&inf)||(rec&&inf);
+  // Marka elçisi — sosyal sorular kaldırıldı, düşük risk + içsel motivasyon + destek var
+  const intMotiv=["Görünümümü iyileştirmek istiyorum","Özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
+  const hasSupport=a.support==="Evet, destekliyorlar";
+  const socialActive=intMotiv&&hasSupport&&score<40;
 
   // Risk sinyalleri
   const bddRisk=a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor"||a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
   const highExp=a.expectation?.includes("Tamamen farklı");
   const extMotiv=["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x);
-  const manyDocs=a.multiDoctor==="Birçok doktora danıştım";
-  const noSupport=["Kimseye söylemedim","Bu işleme karşılar"].some(x=>a.support===x);
+  const manyDocs=a.multiDoctor==="Birçok doktorla görüştüm";
+  const noSupport=["Kimseye söylemedim","Karşılar"].some(x=>a.support===x);
   const unrealistic=a.revision==="Kusursuz sonuç bekliyorum";
-  const worstBad=a.worstCase?.includes("düşünmek istemiyorum");
   const rhinoRedFlag=a.procedure==="Burun Estetiği"&&a.rhinoVision==="Aklımda belirli bir referans var — bir ünlü veya fotoğraf";
   const breastSymRedFlag=["Meme Küçültme","Meme Dikleştirme","Meme Büyütme (Silikon Protez ile)","Meme Asimetrisinin Giderilmesi"].includes(a.procedure)&&a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor";
-  const riskFactors=[bddRisk,highExp&&extMotiv,manyDocs,unrealistic,worstBad,rhinoRedFlag,breastSymRedFlag].filter(Boolean).length;
+
+  // Açık uçlu cevap — red flag keyword taraması
+  const storyLower=(a.openStory||"").toLowerCase();
+  const redKeywords=["mükemmel","kusursuz","herkes fark","herkes görsün","tamamen değiş","özgüvenim tamamen","hayatım değiş","bambaşka biri","tanınamaz","artık ben olam"];
+  const storyRedFlag=redKeywords.some(kw=>storyLower.includes(kw));
+
+  const riskFactors=[bddRisk,highExp&&extMotiv,manyDocs,unrealistic,rhinoRedFlag,breastSymRedFlag,storyRedFlag].filter(Boolean).length;
 
   // Elçi — gevşetilmiş eşik: score<45, iki sosyal sinyal yeterli
   if(socialActive&&score<45&&riskFactors===0)
@@ -273,9 +277,9 @@ function predictOutcomes(score, a){
   const manyDocs     = a.multiDoctor==="Birçok doktorla görüştüm";
   const noSupport    = ["Kimseye söylemedim","Karşılar"].some(x=>a.support===x);
   const goodSupport  = a.support==="Evet, destekliyorlar";
-  const impulsive    = a.patience==="Hızlı sonuç görmek istiyorum";
-  const patient      = a.patience==="Evet, sabırlıyım";
-  const worstAvoid   = a.worstCase?.includes("düşünmek istemiyorum");
+  const impulsive    = false; // soru kaldırıldı
+  const patient      = true;  // varsayılan
+  const worstAvoid   = false; // soru kaldırıldı
   const prevBad      = ["Evet ama beklentimi karşılamadı","Evet ve hiç memnun değilim"].some(x=>a.prevSurgery===x);
   const prevGood     = a.prevSurgery==="Evet ve memnunum";
   const detailedKnow = a.riskKnowledge==="Detaylı araştırdım ve biliyorum";
@@ -378,23 +382,17 @@ const QUESTIONS=[
 
   /* ── Karar Kalitesi ── */
   {id:"imagineAfter",section:"Karar Süreci",label:"Bu işlem sonrasını hayal ettiğinizde ne görüyorsunuz?",type:"radio",options:["Kendimi daha özgüvenli ve hafif hayal ediyorum","Belirli bir fiziksel değişikliği hayal ediyorum","Hayatımın daha iyi gideceğini hayal ediyorum","Çevremin tepkisini ve beğenisini hayal ediyorum"]},
-  {id:"worstCase",section:"Karar Süreci",label:"En kötü ihtimalde sonuç beklediğiniz gibi olmazsa ne yaparsınız?",type:"radio",options:["Doktorumla konuşur, birlikte değerlendiririm","Revizyon seçeneğini değerlendiririm","Çok üzülürüm ama kabullenirim","Bu ihtimali düşünmek istemiyorum"]},
   {id:"prevSurgery",section:"Geçmiş Deneyimler",label:"Daha önce estetik bir işlem yaptırdınız mı?",type:"radio",options:["Hayır","Evet ve memnunum","Evet ama beklentimi karşılamadı","Evet ve hiç memnun değilim"]},
   {id:"multiDoctor",section:"Geçmiş Deneyimler",label:"Bu konuyu daha önce başka doktorlarla görüştünüz mü?",type:"radio",options:["Hayır","1-2 doktorla görüştüm","Birçok doktorla görüştüm"]},
 
   /* ── Süreç Farkındalığı ── */
   {id:"riskKnowledge",section:"Süreç Farkındalığı",label:"Bu işlemin riskleri ve iyileşme süreci hakkında bilginiz ne düzeyde?",type:"radio",options:["Hiçbir bilgim yok","Genel olarak bilgi sahibiyim","Detaylı araştırdım ve biliyorum"]},
-  {id:"patience",section:"Süreç Farkındalığı",label:"İyileşme sürecinde sabırlı olabileceğinizi düşünüyor musunuz?",type:"radio",options:["Evet, sabırlıyım","Zorlanabilirim ama başarırım","Hızlı sonuç görmek istiyorum"]},
   {id:"support",section:"Süreç Farkındalığı",label:"Yakın çevreniz bu kararınızı biliyor mu ve destekliyor mu?",type:"radio",options:["Evet, destekliyorlar","Biliyorlar ama kararsızlar","Karşılar","Kimseye söylemedim"]},
   {id:"revision",section:"Süreç Farkındalığı",label:"Revizyon ihtimali olabileceğini biliyor musunuz?",type:"radio",options:["Evet, olası revizyonu normal karşılarım","Revizyon beni endişelendiriyor","Kusursuz sonuç bekliyorum"]},
 
-  /* ── Sosyal Profil ── */
-  {id:"sharing",section:"Hasta Profili",label:"Yaptırdığınız işlemleri çevrenizle paylaşır mısınız?",type:"radio",options:["Evet, açıkça paylaşırım","Sadece çok yakınlarımla","Hayır, paylaşmam"]},
-  {id:"recommends",section:"Hasta Profili",label:"Memnun kaldığınız bir deneyimi aktif olarak başkalarına önerir misiniz?",type:"radio",options:["Evet, sık sık öneririm","Bazen","Önermem"]},
-  {id:"socialMedia",section:"Hasta Profili",label:"Sosyal medyada kişisel deneyimlerinizi paylaşma sıklığınız nedir?",type:"radio",options:["Sık paylaşırım","Ara sıra","Genelde paylaşmam"]},
 
   /* ── Açık Uçlu ── */
-  {id:"openStory",section:"Size Bir Sorum Var",label:"Bu formu doldurmadan önce bugün sabah aynaya baktığınızda ne hissettiniz?",type:"text",placeholder:"İstediğiniz kadar az veya çok yazabilirsiniz...",optional:true},
+  {id:"openStory",section:"Size Bir Sorum Var",label:"Bu işlemden sonra hayatınızda ne değişmesini istiyorsunuz? Kendi cümlelerinizle anlatır mısınız.",type:"text",placeholder:"İstediğiniz kadar az veya çok yazabilirsiniz...",optional:true},
 ];
 const SECTIONS=[...new Set(QUESTIONS.map(q=>q.section))];
 
@@ -403,7 +401,7 @@ function getFlags(a,cat){
   if(["Başka insanların yorumları beni kötü etkiliyor","Hayatımda büyük bir değişime ihtiyacım var"].includes(a.motivation)) flags.push("Dış kaynaklı motivasyon");
   if(a.expectation==="Tamamen farklı görünmek istiyorum") flags.push("Yüksek beklenti düzeyi");
   if(a.multiDoctor==="Birçok doktora danıştım") flags.push("Birden fazla doktor görüşmesi");
-  if(a.patience==="Hızlı sonuç görmek istiyorum") flags.push("Hızlı sonuç beklentisi");
+
   if(["Bu işleme karşılar","Kimseye söylemedim"].includes(a.support)) flags.push("Sosyal destek belirsiz");
   if(a.revision==="Kusursuz sonuç bekliyorum") flags.push("Kusursuz sonuç beklentisi");
   if(cat==="green"||cat==="ambassador"){
@@ -412,8 +410,7 @@ function getFlags(a,cat){
     if(a.support==="Evet") flags.push("Ailesi destekliyor");
   }
   if(cat==="ambassador"){
-    if(a.socialMedia==="Sık paylaşırım") flags.push("Yüksek sosyal etki potansiyeli");
-    if(a.recommends==="Evet, sık öneririm") flags.push("Aktif tavsiye eğilimi");
+
   }
   return flags.slice(0,2);
 }
@@ -425,8 +422,7 @@ function getSignals(a,cat){
     {label:"Önceki Danışma",val:a.multiDoctor||"—"},
   ];
   if(cat==="ambassador") return [
-    {label:"Sosyal Medya",val:a.socialMedia||"—"},
-    {label:"Tavsiye Eğilimi",val:a.recommends||"—"},
+
     {label:"Ek Prosedür",val:a.crossSell||"—"},
   ];
   return [
@@ -610,8 +606,13 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
           {/* AÇIK UÇLU SORU — Ayna */}
           {a.openStory&&(
             <div style={{padding:"12px 18px",borderBottom:"1px solid #d4cabf",background:"#ece7db"}}>
-              <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:"#4a1520",marginBottom:6,fontWeight:500}}>Sabah Aynaya Bakış — Kendi Sözleriyle</div>
+              <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:"#4a1520",marginBottom:6,fontWeight:500}}>Değişim Beklentisi — Kendi Sözleriyle</div>
               <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:300,color:"#1a1510",lineHeight:1.8,fontStyle:"italic"}}>"{a.openStory}"</div>
+              {storyRedFlag&&(
+                <div style={{marginTop:8,padding:"5px 10px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:6,fontSize:11,color:"#dc2626",fontWeight:500}}>
+                  ⚠ Yüksek beklenti sinyali — cevabında dikkat çekici ifadeler var
+                </div>
+              )}
             </div>
           )}
 
@@ -663,7 +664,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                 if(a.multiDoctor?.includes("Birçok")) risks.push(`Birden fazla doktora danışmış — önceki konsültasyonlarda ne duyduğunu sormak, neden ikna olmadığını anlamak için yardımcı olabilir`);
                 if(a.support?.includes("Kimseye söylemedim")) risks.push(`${name} bu kararı tek başına veriyor, sosyal desteği yok — iyileşme sürecinde yalnız kalma riski göz önünde bulundurulabilir`);
                 if(a.revision?.includes("Kusursuz")) risks.push(`Revizyon ihtimalini kabul etmiyor — kusursuz sonuç beklentisi var, bunu konsültasyonda ele almak önemli olabilir`);
-                if(a.worstCase?.includes("düşünmek istemiyorum")) risks.push(`En kötü senaryoyu düşünmekten kaçınıyor — gerçekçi risk konuşması dirençle karşılaşabilir`);
+
                 if(a.bodyFocus?.includes("işimi gücümü etkiliyor")) risks.push(`Bu bölge günlük işleyişini etkiliyor — BDD değerlendirmesi düşünülebilir`);
                 if(a.prevSurgery?.includes("beklentimi karşılamadı")||a.prevSurgery?.includes("hiç memnun değilim")) risks.push(`Önceki işlemden memnun kalmamış — bu sefer beklentisi daha yüksek olabilir, geçmiş deneyimi derinleştirmek yardımcı olabilir`);
                 if(a.selfEsteem?.includes("barışık değilim")) risks.push(`Benlik saygısı düşük — işlem sonrası psikolojik iyileşme yavaş olabilir`);
@@ -671,8 +672,8 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
 
                 // ── İLETİŞİM TARZI — spesifik ──
                 const isAnalyst=a.riskKnowledge?.includes("Detaylı");
-                const isSocial=(a.sharing?.includes("açıkça")||a.sharing?.includes("Evet"))&&a.recommends?.includes("sık");
-                const isPragmatic=a.patience?.includes("Hızlı");
+                const isSocial=false; // soru kaldırıldı
+                const isPragmatic=false; // soru kaldırıldı
                 const isTrustSeeker=a.riskKnowledge?.includes("Hiçbir")||a.support?.includes("Kimseye");
 
                 if(isAnalyst){
@@ -686,7 +687,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                   comms.push(`${recoveryHint} belirtebilirsiniz${a.jobStatus?.includes("çalış")?" — iş hayatına etkisi açısından bu bilgi özellikle anlamlı olabilir":""}`);
                 } else if(isTrustSeeker){
                   const hasNoSupport=a.support?.includes("Kimseye");
-                  const hasAnxiety=a.worstCase?.includes("istemiyorum")||a.worstCase?.includes("Düşünmek");
+                  const hasAnxiety=false; // soru kaldırıldı
                   const longDecision=a.decisionAge?.includes("1 yıldan")||a.decisionAge?.includes("2 yıl");
                   const firstTime=!a.previousProcedure||a.previousProcedure?.includes("Hayır")||a.previousProcedure?.includes("ilk");
 
@@ -1598,12 +1599,11 @@ function detectProfile(answers){
   const patience=answers.patience||"";
 
   const isAnalyst=knowledge.includes("Detaylı")&&(motivation.includes("iyileştirmek")||motivation.includes("özgüven"));
-  const isSocial=(sharing.includes("Sık")||sharing.includes("sık"))&&(recommends.includes("sık")||recommends.includes("Sık"));
-  const isPragmatic=patience.includes("Hızlı")&&!knowledge.includes("Detaylı");
+  const isSocial=false; // soru kaldırıldı
+  const isPragmatic=false; // soru kaldırıldı
   const isTrustSeeker=knowledge.includes("Hiçbir")||knowledge.includes("Genel");
 
   if(isAnalyst) return "analyst";
-  if(isSocial) return "social";
   if(isPragmatic) return "pragmatic";
   return "trustseeker";
 }
@@ -1857,9 +1857,7 @@ KİŞİ HAKKINDA BİLDİKLERİN:
 - Motivasyon: ${a.motivation}
 - Beklenti: ${a.expectation}
 - Hayal ettiği: ${a.imagineAfter||"belirtmedi"}
-- En kötü ihtimal: ${a.worstCase||"belirtmedi"}
 - Süreci ne kadar biliyor: ${a.riskKnowledge}
-- Sabır: ${a.patience}
 - Sosyal destek: ${a.support}
 - Revizyon tutumu: ${a.revision}
 - Önceki işlem: ${a.prevSurgery}
@@ -1867,7 +1865,7 @@ KİŞİ HAKKINDA BİLDİKLERİN:
 - Kaçınma davranışı: ${a.avoidance||"belirtmedi"}
 - Uzun düşündüğü sorular: ${slowQ.length>0?slowQ.join(", "):"yok"}
 - Cevap değiştirdiği: ${changedQ.length>0?changedQ.join(", "):"yok"}
-- Sabah aynaya bakış: "${a.openStory||"boş bıraktı"}"
+- Değişim beklentisi: "${a.openStory||"boş bıraktı"}"
 - Risk segmenti: ${cls.cat} (${cls.label})
 
 SEGMENT'E GÖRE ODAK:
@@ -1913,19 +1911,19 @@ FORM CEVAPLARI:
 · Kaç doktora danıştı: ${a.multiDoctor}
 · Önceki işlem: ${a.prevSurgery}
 · Revizyon tutumu: ${a.revision}
-· Sabır: ${a.patience}
+
 · Benlik saygısı: ${a.selfEsteem||"belirtmedi"}
 · Gelecek bakışı: ${a.futureOptimism||"belirtmedi"}
 · Bölgeyle meşguliyet: ${a.bodyFocus||"belirtmedi"}
 · Sosyal kaçınma: ${a.avoidance||"belirtmedi"}
 · Hayal ettiği: ${a.imagineAfter||"belirtmedi"}
-· En kötü ihtimal tutumu: ${a.worstCase||"belirtmedi"}
+
 · ML risk skoru: ${score}/100
 
 FORM DAVRANIŞI:
 · Uzun düşündüğü sorular: ${slowQ.length>0?slowQ.join(", "):"yok"}
 · Cevap değiştirdiği sorular: ${changedQ.length>0?changedQ.join(", "):"yok"}
-· Sabah aynaya bakış (kendi sözleriyle): "${a.openStory||"boş bıraktı"}"
+· Değişim beklentisi (kendi sözleriyle): "${a.openStory||"boş bıraktı"}"
 
 YAZIM KURALLARI:
 - Tam olarak 3 kısa paragraf yaz, başlık yok, liste yok
@@ -2029,9 +2027,9 @@ YAZIM KURALLARI:
     const age=parseInt(a.age)||30;
 
     const isAnalyst=a.riskKnowledge?.includes("Detaylı");
-    const isPragmatic=a.patience?.includes("Hızlı");
+    const isPragmatic=false; // soru kaldırıldı
     const isTrustSeeker=a.riskKnowledge?.includes("Hiçbir")||a.support?.includes("Kimseye");
-    const isSocial=(a.sharing?.includes("açıkça")||a.sharing?.includes("Evet"))&&a.recommends?.includes("sık");
+    const isSocial=false; // soru kaldırıldı
     const isExternal=["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x);
     const isHighExpect=a.expectation?.includes("Tamamen farklı");
 
@@ -2146,7 +2144,7 @@ YAZIM KURALLARI:
           </div>
           <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1a1510",letterSpacing:"0.02em"}}>SculptAI</div>
         </div>
-        <div style={{fontSize:11,color:"#b0a898",letterSpacing:"0.06em"}}>{doctorInfo?.name||""}</div>
+        <div style={{fontSize:11,color:"#b0a898",letterSpacing:"0.06em"}}>Hacettepe Plastik Cerrahi</div>
       </div>
 
       {/* Scrollable content */}
@@ -2404,11 +2402,9 @@ YAZIM KURALLARI:
       <main style={{maxWidth:580,margin:"0 auto",padding:currentQ===0?"0 20px 36px":"36px 20px"}}>
         {currentQ===0&&(
           <div style={{textAlign:"center",marginBottom:32,paddingTop:8}} className="f1">
-            {doctorInfo?.photo_url&&<img src={doctorInfo.photo_url} alt={doctorInfo.name} style={{width:72,height:72,borderRadius:"50%",objectFit:"cover",margin:"0 auto 12px",display:"block",border:`3px solid ${accent}`}}/>}
-            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:12,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:12,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ Hacettepe Plastik Cerrahi Kliniği</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>Hoş Geldiniz</div>
             <div style={{fontSize:15,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.</div>
-            {doctorInfo?.name&&<div style={{fontSize:14,color:accent,fontWeight:500}}>Dr. görüşmesi: {doctorInfo.name}</div>}
           </div>
         )}
         <div style={{display:"flex",gap:5,marginBottom:20,flexWrap:"wrap"}} className="f2">
