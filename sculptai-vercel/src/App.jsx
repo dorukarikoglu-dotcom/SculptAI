@@ -938,35 +938,33 @@ function ConsultationMode({patient, onClose}){
     <div style={{position:"fixed",inset:0,background:"#f5f0e8",zIndex:1000,display:"flex",flexDirection:"column",fontFamily:"'Nunito',sans-serif"}}>
 
       {/* TOPBAR */}
-      <div style={{background:"#1a1510",padding:"12px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:14}}>
-          <div style={{width:8,height:8,background:"#8a3040",borderRadius:"50%"}}/>
-          <div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:"#f5f0e8",fontWeight:300}}>{name}</div>
-            <div style={{fontSize:10,color:"rgba(245,240,232,0.4)",marginTop:1}}>{a.age&&`${a.age} yaş · `}{proc}</div>
+      <div style={{background:"#1a1510",padding:"10px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+          <div style={{width:7,height:7,background:"#8a3040",borderRadius:"50%",flexShrink:0}}/>
+          <div style={{minWidth:0}}>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:"#f5f0e8",fontWeight:300,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</div>
+            <div style={{fontSize:9,color:"rgba(245,240,232,0.4)",marginTop:1}}>{a.age&&`${a.age} yaş · `}{proc}</div>
           </div>
-          <div style={{padding:"3px 10px",borderRadius:20,background:cls.bg,border:`1px solid ${cls.border}`,fontSize:10,fontWeight:500,color:cls.textColor}}>{cls.icon} {cls.label}</div>
+          <div style={{padding:"2px 8px",borderRadius:20,background:cls.bg,border:`1px solid ${cls.border}`,fontSize:9,fontWeight:500,color:cls.textColor,flexShrink:0}}>{cls.icon}</div>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:16}}>
-          <button onClick={onClose} style={{background:"#f5f0e8",color:"#1a1510",border:"none",borderRadius:8,padding:"9px 20px",fontSize:11,fontWeight:500,cursor:"pointer",letterSpacing:"0.04em"}}>
-            ← Geri Dön
-          </button>
-        </div>
+        <button onClick={onClose} style={{background:"rgba(245,240,232,0.12)",color:"#f5f0e8",border:"1px solid rgba(245,240,232,0.2)",borderRadius:8,padding:"7px 14px",fontSize:11,fontWeight:500,cursor:"pointer",flexShrink:0,marginLeft:8}}>
+          ← Geri
+        </button>
       </div>
 
       {/* CONTENT */}
-      <div style={{flex:1,overflowY:"auto",padding:"16px 20px",maxWidth:720,margin:"0 auto",width:"100%"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"14px 14px",maxWidth:720,margin:"0 auto",width:"100%"}}>
 
         {/* 3 metrik */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:14}}>
           {[
             {val:`${pred.rev}%`,lbl:"Revizyon Riski",color:pred.rev>=50?"#dc2626":pred.rev>=30?"#d97706":"#059669",bg:pred.rev>=50?"#fef2f2":pred.rev>=30?"#fffbeb":"#ecfdf5",border:pred.rev>=50?"#fecaca":pred.rev>=30?"#fde68a":"#a7f3d0"},
             {val:pred.sat,lbl:"Memnuniyet /100",color:pred.sat>=70?"#059669":pred.sat>=50?"#d97706":"#dc2626",bg:pred.sat>=70?"#ecfdf5":pred.sat>=50?"#fffbeb":"#fef2f2",border:pred.sat>=70?"#a7f3d0":pred.sat>=50?"#fde68a":"#fecaca"},
-            {val:pred.fit,lbl:"Cerrahi Uygunluk",color:pred.fitColor,bg:pred.fitBg,border:`${pred.fitColor}44`},
+            {val:pred.fit,lbl:"Uygunluk",color:pred.fitColor,bg:pred.fitBg,border:`${pred.fitColor}44`},
           ].map((m,i)=>(
-            <div key={i} style={{background:m.bg,border:`1px solid ${m.border}`,borderRadius:10,padding:"12px 8px",textAlign:"center"}}>
-              <div style={{fontSize:i===2?13:22,fontWeight:600,color:m.color,lineHeight:1.1}}>{m.val}</div>
-              <div style={{fontSize:8,color:m.color,opacity:0.7,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:4}}>{m.lbl}</div>
+            <div key={i} style={{background:m.bg,border:`1px solid ${m.border}`,borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
+              <div style={{fontSize:i===2?11:20,fontWeight:600,color:m.color,lineHeight:1.1,fontVariantNumeric:"lining-nums"}}>{m.val}</div>
+              <div style={{fontSize:7,color:m.color,opacity:0.7,textTransform:"uppercase",letterSpacing:"0.06em",marginTop:3}}>{m.lbl}</div>
             </div>
           ))}
         </div>
