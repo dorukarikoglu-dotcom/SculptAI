@@ -1457,12 +1457,17 @@ function DoctorPanel({doctor,onLogout}){
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:"#f5f0e8"}}>
         <div style={{padding:isMobile?"12px 16px":"14px 28px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,background:"#f5f0e8",borderBottom:"1px solid #d4cabf"}} className="f1">
           {/* Logo + Karşılama */}
-          <div style={{display:"flex",alignItems:"center",gap:isMobile?10:16}}>
-            <div style={{display:"flex",alignItems:"center",gap:7,paddingRight:isMobile?10:16,borderRight:"1px solid #d4cabf"}}>
-              <div style={{width:20,height:20,border:"1px solid #c8bfb0",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <div style={{width:6,height:6,background:"#1a1510",borderRadius:"50%"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:isMobile?10:16}}>\
+            <div style={{display:"flex",alignItems:"center",gap:8,paddingRight:isMobile?10:16,borderRight:"1px solid #d4cabf"}}>
+              {/* SculptAI Wordmark */}
+              <div style={{display:"flex",alignItems:"center",gap:0}}>
+                <div style={{background:"#4a1520",borderRadius:"6px 2px 2px 6px",padding:"4px 8px 4px 9px",display:"flex",alignItems:"center"}}>
+                  <span style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:500,color:"#f5f0e8",letterSpacing:"0.01em"}}>Sculpt</span>
+                </div>
+                <div style={{background:"#1a1510",borderRadius:"2px 6px 6px 2px",padding:"4px 9px 4px 7px",display:"flex",alignItems:"center"}}>
+                  <span style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:300,color:"#f5f0e8",letterSpacing:"0.04em",fontStyle:"italic"}}>AI</span>
+                </div>
               </div>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1a1510",fontWeight:400}}>SculptAI</div>
             </div>
             <div>
               <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?17:22,color:"#1a1510",fontWeight:300,letterSpacing:"-0.01em"}}>Günaydın, <em>Dr. {doctor.name.split(" ").slice(-1)[0]}</em></div>
