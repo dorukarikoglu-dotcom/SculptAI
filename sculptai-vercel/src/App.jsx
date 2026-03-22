@@ -1014,21 +1014,21 @@ function ValueScreen({patients,doctor}){
   const crossSells=patients.filter(p=>p.outcome_procedures&&p.outcome_procedures.length>0&&p.outcome_procedures.some(x=>x!==(p.answers?.procedure||""))).length;
   const noAppt=patients.filter(p=>p.no_appointment).length;
   const ambassadors=patients.filter(p=>p.ambassador_code&&p.ambassador_code!=="").length;
-  const avgProc=22000;
-  const timeSaved=total*13;
+  const withOutcome=patients.filter(p=>p.outcome_procedures?.length>0).length;
+  const donusum=total?Math.round(withOutcome/total*100):0;
   const C={border:"#d4cabf",muted:"#b0a898"};
   const cardS={background:"#ece7db",border:"1px solid #d4cabf",borderRadius:10,padding:"16px 20px"};
   return(
     <div style={{flex:1,overflowY:"auto",padding:"24px 32px"}}>
       <div style={{marginBottom:24}}>
         <div style={{fontFamily:"'Playfair Display',serif",fontSize:32,fontWeight:300,color:"#1a1510",letterSpacing:"-0.01em",marginBottom:4}}>SculptAI'ın <em>Katkısı</em></div>
-        <div style={{fontSize:11,color:C.muted}}>Bu ay · {total} hasta · Piyasa ortalamalarına göre tahmini</div>
+        <div style={{fontSize:11,color:C.muted}}>{total} hasta · Gerçek veriye dayalı</div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
         {[
-          {accent:"#059669",icon:"↗",title:"Cross-Sell",sub:"Ek prosedür randevusu",val:crossSells,unit:" hasta",note:`Tahmini +₺${Math.round(crossSells*avgProc*0.4/1000)}K`,color:"#059669"},
-          {accent:"#4a1520",icon:"🛡",title:"Risk Filtresi",sub:"Randevu alınmadı",val:noAppt,unit:" hasta",note:"Revizyon riski önlendi",color:"#4a1520"},
-          {accent:"#1a1510",icon:"⏱",title:"Zaman Tasarrufu",sub:"Toplam kazanılan",val:timeSaved,unit:" dk",note:`${total} konsültasyon × 13dk`,color:"#1a1510"},
+          {accent:"#059669",icon:"↗",title:"Cross-Sell",sub:"Ek prosedür planlanan",val:crossSells,unit:" hasta",note:total?`Hastaların %${Math.round(crossSells/total*100)}'inde`:"Veri yok",color:"#059669"},
+          {accent:"#4a1520",icon:"🛡",title:"Risk Filtresi",sub:"Randevu alınmadı",val:noAppt,unit:" hasta",note:noAppt>0?"Konsültasyon boşa gitmedi":"Henüz işaretlenmedi",color:"#4a1520"},
+          {accent:"#1a1510",icon:"📋",title:"Dönüşüm",sub:"Randevu girilmiş",val:withOutcome>0?`%${donusum}`:"—",unit:"",note:withOutcome>0?`${withOutcome}/${total} hasta`:"Outcome girilince hesaplanır",color:"#1a1510"},
         ].map((k,i)=>(
           <div key={i} style={{...cardS,position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:k.accent}}/>
@@ -1045,10 +1045,10 @@ function ValueScreen({patients,doctor}){
           <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:12,fontWeight:500}}>Cross-Sell Detayı</div>
           {patients.filter(p=>p.outcome_procedures?.length>0&&p.outcome_procedures.some(x=>x!==(p.answers?.procedure||""))).slice(0,5).map((p,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:12,paddingBottom:10,marginBottom:10,borderBottom:"1px solid #d4cabf"}}>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1a1510",flex:1}}>{p.answers?.name||"Hasta"}</div>
-              <div style={{fontSize:10,color:C.muted,flex:1}}>{p.answers?.procedure} →</div>
-              <div style={{fontSize:10,color:"#059669",flex:1}}>{p.outcome_procedures.filter(x=>x!==p.answers?.procedure).join(", ")}</div>
-              <div style={{fontSize:12,color:"#059669",fontFamily:"'Playfair Display',serif"}}>+₺{Math.round(avgProc*0.4/1000)}K tahmini</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1a1510",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.answers?.name||"Hasta"}</div>
+              <div style={{fontSize:10,color:C.muted,flexShrink:0}}>{p.answers?.procedure}</div>
+              <div style={{fontSize:10,color:C.muted,flexShrink:0}}>→</div>
+              <div style={{fontSize:10,color:"#059669",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.outcome_procedures.filter(x=>x!==p.answers?.procedure).join(", ")}</div>
             </div>
           ))}
         </div>
@@ -1063,7 +1063,6 @@ function ValueScreen({patients,doctor}){
             </div>
           ))}
         </div>
-        <div style={{marginTop:10,padding:"9px 11px",background:"#f5f0e8",borderRadius:7,fontSize:10,color:C.muted,fontStyle:"italic"}}>Rakamlar piyasa ortalamalarına göre tahminidir.</div>
       </div>
     </div>
   );
