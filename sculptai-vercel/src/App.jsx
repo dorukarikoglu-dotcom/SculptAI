@@ -517,6 +517,9 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
   const cls=classify(score,a);
   const flags=getFlags(a,cls.cat);
   const signals=getSignals(a,cls.cat);
+  const storyLower=(a.openStory||"").toLowerCase();
+  const redKeywords=["mükemmel","kusursuz","herkes fark","herkes görsün","tamamen değiş","özgüvenim tamamen","hayatım değiş","bambaşka biri","tanınamaz","artık ben olam"];
+  const storyRedFlag=redKeywords.some(kw=>storyLower.includes(kw));
 
   const ALL_PROCS=["Burun Estetiği","Meme Küçültme","Meme Büyütme","Meme Dikleştirme","Karın Germe","Liposuction","Üst Göz Kapağı","Alt Göz Kapağı","Botoks","Dolgu","Kol Germe","Yüz Germe","Uyluk Germe","Popo Estetiği","Jinekomasti"];
 
