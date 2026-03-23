@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SculptAI — Klinik Karar Desteği</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Nunito:wght@300;400;500;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{--white:#ffffff;--bg:#f8fafd;--bg2:#eef3f9;--blue:#1e3a5f;--blue2:#2d5a8e;--blue3:#4a80b5;--blue-lt:#dbeafe;--blue-lt2:#eff6ff;--accent:#1d4ed8;--muted:#7b9ab5;--border:#d4e1ef;--green:#059669;--red:#dc2626}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{background:var(--white);color:var(--blue);font-family:'Nunito',sans-serif;overflow-x:hidden}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 60px;background:rgba(255,255,255,0.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.logo-word{font-family:'Playfair Display',serif;font-size:18px;font-weight:400;color:var(--blue);letter-spacing:-0.01em}
+.logo-word em{color:var(--accent);font-style:italic}
+.logo-line{width:100%;height:1px;background:linear-gradient(90deg,var(--accent),transparent)}
+.logo-sub{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted)}
+.nav-cta{background:var(--blue-lt2);color:var(--accent);border:1.5px solid var(--blue-lt);border:none;padding:10px 26px;border-radius:8px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.08em;cursor:pointer;text-decoration:none;transition:all 0.2s}
+.nav-cta:hover{background:var(--blue-lt2);color:var(--blue);transform:translateY(-1px)}
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;padding-top:80px;overflow:hidden}
+.hero-left{padding:80px 60px 80px 80px;display:flex;flex-direction:column;justify-content:center;background:var(--white)}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;border:1px solid var(--blue-lt);background:var(--blue-lt2);font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent);margin-bottom:28px;width:fit-content}
+.hero-eyebrow::before{content:'';width:5px;height:5px;background:var(--accent);border-radius:50%}
+.hero-title{font-family:'Playfair Display',serif;font-size:clamp(36px,4.5vw,60px);font-weight:300;line-height:1.08;letter-spacing:-0.02em;margin-bottom:24px;color:var(--blue)}
+.hero-title em{font-style:italic;color:var(--accent)}
+.hero-desc{font-size:15px;line-height:1.85;color:var(--blue2);max-width:440px;margin-bottom:40px}
+.hero-actions{display:flex;align-items:center;gap:16px;margin-bottom:52px}
+.btn-primary{background:var(--blue-lt2);color:var(--blue);border:1.5px solid var(--blue-lt);padding:14px 32px;border-radius:9px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.06em;cursor:pointer;text-decoration:none;transition:all 0.2s}
+.btn-primary:hover{background:var(--blue-lt);color:var(--blue);transform:translateY(-1px)}
+.btn-ghost{color:var(--blue2);font-size:13px;font-weight:500;text-decoration:none;opacity:0.7;transition:opacity 0.2s}
+.btn-ghost:hover{opacity:1}
+.hero-stats{display:flex;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg)}
+.stat-item{flex:1;padding:16px 20px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:4px}
+.stat-item:last-child{border-right:none}
+.stat-num{font-family:'Playfair Display',serif;font-size:26px;font-weight:300;color:var(--accent);line-height:1;font-variant-numeric:lining-nums}
+.stat-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);line-height:1.4}
+.hero-right{background:var(--bg);border-left:1px solid var(--border);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:60px 40px}
+.mock-card{background:white;border-radius:14px;width:100%;max-width:360px;overflow:hidden;position:relative;z-index:1;box-shadow:0 16px 48px rgba(30,58,95,0.15);animation:floatCard 5s ease-in-out infinite}
+@keyframes floatCard{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.mock-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:13px 16px;display:flex;align-items:center;justify-content:space-between}
+.mock-title{font-family:'Playfair Display',serif;font-size:13px;font-weight:300;color:var(--blue)}
+.mock-badge{padding:2px 8px;border-radius:10px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em}
+.mock-body{padding:14px}
+.mock-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px}
+.mock-metric{border-radius:7px;padding:8px 6px;text-align:center}
+.mock-metric-val{font-size:14px;font-weight:600;line-height:1;margin-bottom:2px}
+.mock-metric-lbl{font-size:7px;text-transform:uppercase;letter-spacing:0.06em;opacity:0.7}
+.mock-lbl{font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-weight:600}
+.mock-point{display:flex;gap:8px;padding:7px 10px;border-radius:7px;background:var(--bg);margin-bottom:5px}
+.mock-num-badge{width:16px;height:16px;border-radius:50%;background:var(--blue-lt2);color:var(--accent);font-size:8px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mock-point-txt{font-size:9px;color:var(--blue);line-height:1.45}
+.floating-chip{position:absolute;z-index:2;background:white;border-radius:10px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,0.18);font-size:11px}
+.chip-1{top:14%;right:6%;animation:f1 4s ease-in-out infinite}
+.chip-2{bottom:18%;left:4%;animation:f2 3.5s ease-in-out infinite}
+@keyframes f1{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-6px) rotate(-2deg)}}
+@keyframes f2{0%,100%{transform:translateY(0) rotate(1.5deg)}50%{transform:translateY(-8px) rotate(1.5deg)}}
+.section{padding:100px 80px}
+.section-label{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;font-weight:600}
+.section-title{font-family:'Playfair Display',serif;font-size:clamp(28px,3.5vw,46px);font-weight:300;line-height:1.1;letter-spacing:-0.02em;margin-bottom:14px;color:var(--blue)}
+.section-title em{font-style:italic;color:var(--accent)}
+.section-desc{font-size:15px;line-height:1.85;color:var(--blue2);max-width:520px;margin-bottom:52px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--border);border-radius:14px;overflow:hidden}
+.step{background:white;padding:36px 30px;position:relative}
+.step-accent{position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent)}
+.step-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:0.12em;margin-bottom:18px;opacity:0.7}
+.step-icon{width:44px;height:44px;background:var(--blue-lt2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;border:1px solid var(--blue-lt)}
+.step-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:400;color:var(--blue);margin-bottom:10px}
+.step-desc{font-size:13px;line-height:1.75;color:var(--blue2)}
+.result-section{padding:100px 80px;background:var(--bg);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);border-radius:16px;overflow:hidden;margin-top:52px}
+.result-card{background:white;padding:36px 32px}
+.result-card.highlighted{background:var(--blue-lt2)}
+.result-card-icon{font-size:28px;margin-bottom:16px;display:block}
+.result-card-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;color:var(--blue);margin-bottom:10px}
+.result-card-desc{font-size:13px;line-height:1.75;color:var(--blue2);margin-bottom:16px}
+.result-example{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px 14px;font-size:12px;color:var(--blue2);line-height:1.7}
+.result-example.red-ex{background:#fef2f2;border-color:#fecaca}
+.result-example.green-ex{background:#f0fdf4;border-color:#a7f3d0}
+.result-example strong{color:var(--blue);font-weight:600}
+.result-example.red-ex strong{color:#991b1b}
+.result-example.green-ex strong{color:#065f46}
+.result-tag{display:inline-block;padding:3px 10px;border-radius:10px;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;background:var(--blue-lt2);color:var(--accent)}
+.features-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);border-radius:14px;overflow:hidden}
+.feature-card{background:white;padding:36px 32px}
+.feature-card.accent{background:white;border:2px solid var(--blue-lt)}
+.feature-icon{font-size:26px;margin-bottom:14px;display:block}
+.feature-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400;margin-bottom:10px;color:var(--blue)}
+.feature-card.accent .feature-title{color:var(--blue)}
+.feature-desc{font-size:13px;line-height:1.75;color:var(--blue2)}
+.feature-card.accent .feature-desc{color:var(--blue2)}
+.feature-tag{display:inline-block;margin-top:14px;padding:3px 10px;border-radius:10px;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;background:var(--blue-lt2);color:var(--accent)}
+.feature-card.accent .feature-tag{background:var(--blue-lt);color:var(--accent)}
+.data-band{background:var(--bg);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 80px;display:grid;grid-template-columns:repeat(4,1fr)}
+.data-band-item{padding:28px 24px;border-right:1px solid var(--border)}
+.data-band-item:last-child{border-right:none}
+.data-band-icon{font-size:22px;margin-bottom:10px;display:block}
+.data-band-val{font-family:'Playfair Display',serif;font-size:14px;font-weight:400;color:var(--blue);line-height:1.3;margin-bottom:6px}
+.data-band-label{font-size:11px;color:var(--muted);line-height:1.5}
+.demo-section{padding:100px 80px;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+.demo-form{background:var(--bg);border-radius:16px;padding:40px;border:1px solid var(--border)}
+.demo-form h3{font-family:'Playfair Display',serif;font-size:26px;font-weight:300;color:var(--blue);margin-bottom:6px}
+.demo-form p{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+.form-group{margin-bottom:14px}
+.form-label{font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;font-weight:600}
+.form-input{width:100%;padding:11px 14px;background:white;border:1px solid var(--border);border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--blue);outline:none;transition:border-color 0.2s;box-sizing:border-box}
+.form-input:focus{border-color:var(--accent)}
+.form-input::placeholder{color:var(--muted)}
+.form-submit{width:100%;padding:13px;background:var(--blue-lt2);color:var(--blue);border:1.5px solid var(--blue-lt);border:none;border-radius:9px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.08em;cursor:pointer;margin-top:8px;transition:all 0.2s}
+.form-submit:hover{background:var(--blue-lt);transform:translateY(-1px)}
+.form-note{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
+footer{background:var(--bg);border-top:1px solid var(--border);padding:36px 80px;display:flex;align-items:center;justify-content:space-between}
+.footer-logo{font-family:'Playfair Display',serif;font-size:15px;color:var(--blue);font-weight:300}
+.footer-logo em{color:var(--accent);font-style:italic}
+.footer-text{font-size:11px;color:var(--muted)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{opacity:0;animation:fadeUp 0.7s ease forwards}
+.fade-up:nth-child(1){animation-delay:0.1s}.fade-up:nth-child(2){animation-delay:0.2s}.fade-up:nth-child(3){animation-delay:0.3s}.fade-up:nth-child(4){animation-delay:0.4s}.fade-up:nth-child(5){animation-delay:0.5s}
+@media(max-width:900px){nav{padding:16px 24px}.hero{grid-template-columns:1fr}.hero-right{display:none}.hero-left{padding:52px 24px}.section,.result-section,.demo-section{padding:60px 24px}.steps,.result-grid,.features-grid{grid-template-columns:1fr}.data-band{padding:48px 24px;grid-template-columns:1fr 1fr}.demo-section{grid-template-columns:1fr;gap:40px}.hero-stats{flex-direction:column}.stat-item{border-right:none;border-bottom:1px solid var(--border)}.stat-item:last-child{border-bottom:none}footer{padding:28px 24px;flex-direction:column;gap:10px;text-align:center}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div>
+    <div class="logo-word">Sculpt<em>AI</em></div>
+    <div class="logo-line"></div>
+    <div class="logo-sub">Klinik Karar Desteği</div>
+  </div>
+  <a href="#demo" class="nav-cta">Demo İste</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-left">
+    <div class="fade-up hero-eyebrow">Plastik Cerrahi için Karar Desteği</div>
+    <h1 class="fade-up hero-title">Doğru hastayı,<br>doğru hazırlıkla<br><em>karşıla.</em></h1>
+    <p class="fade-up hero-desc">Konsültasyon öncesi 3 dakikada doldurulan form. Klinik analiz. Doktora özel risk özeti, konuşulacaklar listesi ve akıllı ek hizmet önerileri.</p>
+    <div class="fade-up hero-actions">
+      <a href="#demo" class="btn-primary">Demo İste →</a>
+      <a href="#nasil-calisir" class="btn-ghost">Nasıl çalışır? ↓</a>
+    </div>
+    <div class="fade-up hero-stats">
+      <div class="stat-item">
+        <span class="stat-num">3dk</span>
+        <span class="stat-label">Form doldurma</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">Yüksek</span>
+        <span class="stat-label">Tahmin doğruluğu</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">Gerçek</span>
+        <span class="stat-label">Hasta verisiyle eğitildi</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="floating-chip chip-1">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px">Risk</div>
+      <div style="font-size:16px;font-family:'Playfair Display',serif;font-weight:300;color:#dc2626">Kritik</div>
+    </div>
+    <div class="floating-chip chip-2">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px">Sistem</div>
+      <div style="font-size:16px;font-family:'Playfair Display',serif;font-weight:300;color:#059669">Aktif ✓</div>
+    </div>
+    <div class="mock-card">
+      <div class="mock-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:7px;height:7px;background:var(--accent);border-radius:50%"></div>
+          <span class="mock-title" style="color:var(--blue)">Aylin D. · Burun Estetiği</span>
+        </div>
+        <span class="mock-badge" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca">🔴 Kritik</span>
+      </div>
+      <div class="mock-body">
+        <div class="mock-metrics">
+          <div class="mock-metric" style="background:#fef2f2"><div class="mock-metric-val" style="color:#dc2626">Yüksek</div><div class="mock-metric-lbl" style="color:#991b1b">Revizyon</div></div>
+          <div class="mock-metric" style="background:#fffbeb"><div class="mock-metric-val" style="color:#d97706">Orta</div><div class="mock-metric-lbl" style="color:#92400e">Memnuniyet</div></div>
+          <div class="mock-metric" style="background:#fef2f2"><div class="mock-metric-val" style="color:#dc2626;font-size:11px">Borderline</div><div class="mock-metric-lbl" style="color:#991b1b">Uygunluk</div></div>
+        </div>
+        <div class="mock-lbl">Bugün Konuşulacaklar</div>
+        <div class="mock-point"><div class="mock-num-badge">1</div><div class="mock-point-txt">Referans beklentisini netleştir</div></div>
+        <div class="mock-point"><div class="mock-num-badge">2</div><div class="mock-point-txt">Revizyon ihtimalini konuş</div></div>
+        <div style="margin-top:8px;padding:7px 10px;background:#f0fdf4;border-radius:7px;border:1px solid #a7f3d0">
+          <div style="font-size:7px;letter-spacing:0.12em;text-transform:uppercase;color:#065f46;margin-bottom:2px;font-weight:600">↗ Ek Hizmet Fırsatı</div>
+          <div style="font-size:9px;color:#065f46;line-height:1.4">Çene dolgusu veya çene ucu estetiği sorulabilir</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="nasil-calisir">
+  <div class="section-label">Süreç</div>
+  <h2 class="section-title">Konsültasyon öncesi<br><em>3 adım.</em></h2>
+  <p class="section-desc">Hasta kliniğe gelmeden formu dolduruyor. Sistem analiz ediyor. Doktor hazırlıklı giriyor.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-accent"></div>
+      <div class="step-num">01</div>
+      <div class="step-icon">📋</div>
+      <h3 class="step-title">Hasta Formu</h3>
+      <p class="step-desc">Klinik linki hastaya gönderilir. 3 dakikada doldurulan form; motivasyon, beklenti, karar kalitesi ve risk sinyallerini ölçer. Kurulum yok, uygulama yok.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-icon">🧠</div>
+      <h3 class="step-title">Klinik Analiz</h3>
+      <p class="step-desc">Gerçek hasta verisiyle kalibire edilmiş sistem formu analiz eder. Risk skoru, revizyon olasılığı, cerrahi uygunluk ve memnuniyet tahmini saniyeler içinde hesaplanır.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-icon">◈</div>
+      <h3 class="step-title">Konsültasyon Modu</h3>
+      <p class="step-desc">Doktor o hastaya özel konuşulacaklar listesini, risk sinyallerini, akıllı bilgilendirme özetini ve ek hizmet fırsatlarını görür. 30 saniyede hazır.</p>
+    </div>
+  </div>
+</section>
+
+<section class="result-section">
+  <div class="section-label">Akıllı Çıktılar</div>
+  <h2 class="section-title">Form biter,<br><em>sistem devreye girer.</em></h2>
+  <p class="section-desc">Hasta formu gönderdiği an iki ayrı akıllı sistem çalışır. Biri hastaya, biri doktora.</p>
+  <div class="result-grid">
+    <div class="result-card">
+      <span class="result-card-icon">💌</span>
+      <h3 class="result-card-title">Hastaya Akıllı Bilgilendirme</h3>
+      <p class="result-card-desc">Form sonunda hasta kendi profiline göre kişiselleştirilmiş özet alır. İyileşme süreci, dikkat edilmesi gerekenler ve konsültasyona hazırlık — hastanın motivasyon ve bilgi düzeyine göre otomatik uyarlanır.</p>
+      <div class="result-example">"İyileşme süreci 7-10 gün aktif şişlik, 3 hafta sosyal hayata tam dönüş. Teknik detaylar konsültasyonda aktarılacak." <strong>→ Araştırmacı profil</strong></div>
+      <div class="result-example" style="margin-top:8px">"Her soru normaldir. Konsültasyon tam da bunlar için var — yanınızda olacağız." <strong>→ Güven arayan profil</strong></div>
+      <span class="result-tag">4 Profil · Otomatik Uyarlama</span>
+    </div>
+    <div class="result-card highlighted">
+      <span class="result-card-icon">🩺</span>
+      <h3 class="result-card-title">Doktora Konsültasyon Özeti</h3>
+      <p class="result-card-desc">Doktor panelinde her hasta için hazır bir konsültasyon modu açılır. Risk sinyalleri, bu hastaya özel konuşulacaklar ve önerilen yaklaşım — 30 saniyede ekranda.</p>
+      <div class="result-example red-ex"><strong>⚠ Risk sinyali:</strong> Kusursuz sonuç beklentisi + birden fazla doktora gitmiş. Revizyon konuşması öncelikli.</div>
+      <div class="result-example green-ex" style="margin-top:8px"><strong>↗ Ek hizmet fırsatı:</strong> Başka bölge ilgisi var. Çene dolgusu veya göz kapağı sorulabilir.</div>
+      <span class="result-tag">Klinik Karar Desteği</span>
+    </div>
+    <div class="result-card">
+      <span class="result-card-icon">↗</span>
+      <h3 class="result-card-title">Akıllı Ek Hizmet Önerileri</h3>
+      <p class="result-card-desc">Form doldururken hastanın ek hizmet ilgisi otomatik tespit edilir. Prosedüre özel, klinik açıdan anlamlı çiftler halinde doktora sunulur.</p>
+      <div class="result-example green-ex">
+        <strong>Burun Estetiği →</strong> Çene dolgusu veya çene ucu estetiği<br>
+        <strong>Meme Küçültme →</strong> Liposuction veya karın germe<br>
+        <strong>Yüz Germe →</strong> Üst göz kapağı veya dolgu uygulaması
+      </div>
+      <span class="result-tag">16 Prosedür · 60 Özel Mesaj</span>
+    </div>
+    <div class="result-card">
+      <span class="result-card-icon">📈</span>
+      <h3 class="result-card-title">Öğrenen Model</h3>
+      <p class="result-card-desc">Sistem her konsültasyondan öğrenir. Outcome verisi girdikçe model yeniden eğitilir, kliniğe özel pattern'ler tespit edilir. Zamanla risk tanımı giderek keskinleşir.</p>
+      <div class="result-example"><strong>Şu an:</strong> Gerçek hasta verisiyle eğitilmiş, yüksek doğruluklu risk tespiti.<br><strong>3 ay sonra:</strong> Kliniğe özel kalibre edilmiş model.</div>
+      <span class="result-tag">Sürekli Öğrenen</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-label">Özellikler</div>
+  <h2 class="section-title">Doktorun <em>vazgeçemeyeceği</em><br>klinik zekası.</h2>
+  <p class="section-desc">Hafıza biriktiren, pattern tanıyan, her konsültasyonla daha iyi hale gelen bir sistem.</p>
+  <div class="features-grid">
+    <div class="feature-card accent">
+      <span class="feature-icon">◈</span>
+      <h3 class="feature-title">Konsültasyon Modu</h3>
+      <p class="feature-desc">Hasta kartına tıkla, tam ekran açılır. O hastaya özel konuşulacaklar, risk sinyalleri, önerilen yaklaşım. Konsültasyon öncesi 30 saniyede hazır. Ekrana koy, içeri al.</p>
+      <span class="feature-tag">Anında Hazır</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🔴</span>
+      <h3 class="feature-title">Risk Segmentasyonu</h3>
+      <p class="feature-desc">BDD taraması, revizyon tutumu, dışsal motivasyon, çok doktor sayısı, beklenti düzeyi — 12 farklı sinyal birleştirilerek her hasta segmentlenir. Kırmızı, sarı, yeşil, elçi.</p>
+      <span class="feature-tag">Veri Destekli</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">💌</span>
+      <h3 class="feature-title">Kişiselleştirilmiş Hasta Özeti</h3>
+      <p class="feature-desc">Form sonunda hasta motivasyon profiline göre 4 farklı tondan birinde hazırlanmış bilgilendirme alır. Araştırmacıya teknik, güven arayana sıcak, pragmatiğe net.</p>
+      <span class="feature-tag">4 Profil</span>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📊</span>
+      <h3 class="feature-title">Klinik Analitik</h3>
+      <p class="feature-desc">Segment dağılımı, dönüşüm oranı, sistem içgörüleri. Kusursuz sonuç bekleyen kaç hasta var? Dışsal motivasyon oranı? Veri arttıkça otomatik pattern tespiti.</p>
+      <span class="feature-tag">İçgörüler</span>
+    </div>
+  </div>
+</section>
+
+<div class="data-band">
+  <div class="data-band-item"><span class="data-band-icon">🎯</span><div class="data-band-val">Yüksek Doğruluk Oranı</div><div class="data-band-label">Kritik hasta tespitinde gerçek hasta verisiyle doğrulanmış</div></div>
+  <div class="data-band-item"><span class="data-band-icon">🛡</span><div class="data-band-val">%100 Yeşil Güvenilirlik</div><div class="data-band-label">Sistem yeşil dediğinde yanlış güven vermedi</div></div>
+  <div class="data-band-item"><span class="data-band-icon">🔄</span><div class="data-band-val">Sürekli Öğrenen</div><div class="data-band-label">Her konsültasyonla daha iyi hale gelen model</div></div>
+  <div class="data-band-item"><span class="data-band-icon">🏥</span><div class="data-band-val">Gerçek Hasta Verisi</div><div class="data-band-label">Hacettepe Üniversitesi plastik cerrahi pilot verisi</div></div>
+</div>
+
+<section class="demo-section" id="demo">
+  <div>
+    <div class="section-label">Demo</div>
+    <h2 class="section-title">Kliniğiniz için<br><em>ücretsiz demo.</em></h2>
+    <p class="section-desc" style="margin-bottom:24px">Formu doldurun, 24 saat içinde arayalım. Demo hesabınızı açalım, sistemi birlikte görelim.</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--blue2)"><span style="color:var(--green);font-size:16px">✓</span>Kurulum yok — link paylaşın, anında kullanın</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--blue2)"><span style="color:var(--green);font-size:16px">✓</span>Verileriniz yalnızca size görünür</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--blue2)"><span style="color:var(--green);font-size:16px">✓</span>30 günlük ücretsiz pilot, taahhüt yok</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--blue2)"><span style="color:var(--green);font-size:16px">✓</span>Hacettepe Plastik Cerrahi'de aktif kullanımda</div>
+    </div>
+  </div>
+  <div class="demo-form">
+    <h3>Demo İsteği</h3>
+    <p>Bilgilerinizi bırakın, sizi arayalım.</p>
+    <div class="form-group"><label class="form-label">Adınız Soyadınız</label><input class="form-input" type="text" placeholder="Dr. Ayşe Kaya"></div>
+    <div class="form-group"><label class="form-label">Klinik Adı</label><input class="form-input" type="text" placeholder="Özel Plastik Cerrahi Kliniği"></div>
+    <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" type="tel" placeholder="0532 000 00 00"></div>
+    <div class="form-group"><label class="form-label">Aylık Yaklaşık Konsültasyon</label><input class="form-input" type="text" placeholder="örn. 50–100"></div>
+    <button class="form-submit" onclick="this.textContent='✓ Talebiniz Alındı!';this.style.background='#059669';this.disabled=true">Demo Talep Et →</button>
+    <p class="form-note">24 saat içinde dönüş yapılır. Spam yok, taahhüt yok.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Sculpt<em>AI</em></div>
+  <div class="footer-text">Hacettepe Üniversitesi Plastik Cerrahi · Pilot Aşama © 2025</div>
+</footer>
+
+</body>
+</html>
