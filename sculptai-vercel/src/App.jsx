@@ -2464,7 +2464,7 @@ YAZIM KURALLARI:
             if(currentQ<VISIBLE_QUESTIONS.length-1)setCurrentQ(c=>c+1);else handleSubmit();
           }} disabled={!canNext}
             style={{flex:2,padding:"13px",background:canNext?"#1a1510":"#e0d9cc",border:"none",borderRadius:8,color:canNext?"#f5f0e8":"#b0a898",fontSize:13,fontWeight:500,letterSpacing:"0.08em",cursor:canNext?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Nunito',sans-serif"}}>
-            {currentQ===VISIBLE_QUESTIONS.length-1?(model?"Formu Gönder →":"Model yükleniyor..."):"Devam →"}
+            {currentQ===VISIBLE_QUESTIONS.length-1?"Formu Gönder →":"Devam →"}
           </button>
         </div>
       </main>
