@@ -2846,22 +2846,27 @@ function Login({onLogin}){
 
 /* ─── ROOT ───────────────────────────────────────────────────────────────── */
 export default function App(){
-  const [view,setView]=useState("loading");
+  const [view,setView]=useState(()=>{
+    const path=window.location.pathname;
+    if(path.match(/^\/form\/.+$/)) return "patient";
+    if(path.startsWith("/admin")) return "admin";
+    if(path.startsWith("/panel")) return "doctor_or_login";
+    return "patient";
+  });
   const [doctor,setDoctor]=useState(null);
-  const [doctorId,setDoctorId]=useState(null);
+  const [doctorId,setDoctorId]=useState(()=>{
+    const m=window.location.pathname.match(/^\/form\/(.+)$/);
+    return m?m[1]:null;
+  });
 
   useEffect(()=>{
     const path=window.location.pathname;
-    const formMatch=path.match(/^\/form\/(.+)$/);
-    if(formMatch){setDoctorId(formMatch[1]);setView("patient");}
-    else if(path.startsWith("/admin")){setView("admin");}
-    else if(path.startsWith("/panel")){
+    if(path.startsWith("/panel")){
       try{const saved=sessionStorage.getItem("sculpt_doctor");if(saved){const d=JSON.parse(saved);setDoctor(d);setView("doctor");}else{setView("login");}}catch{setView("login");}
     }
-    else{setView("patient");}
   },[]);
 
-  if(view==="loading") return null;
+  if(view==="loading"||view==="doctor_or_login") return null;
 
   if(view==="patient") return(
     <div>
