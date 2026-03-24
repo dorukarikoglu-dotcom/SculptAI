@@ -76,7 +76,7 @@ const ML_WEIGHTS = {
   intercept: 0.8105907393583864,
   coef: {
     expectation:     0.5077892285474216,
-    motivation:      0.16527586581573342,
+    motivation:   0.3027586581573342,
     doctorCount:     0.4484565344714052,
     support:         0.11896187733884692,
     revision:        -0.9179540368331269,
@@ -258,11 +258,11 @@ function classify(score,a){
     return{cat:"ambassador",label:"Marka Elçisi",icon:"🌟",color:"#7c3aed",bg:"#faf5ff",border:"#ddd6fe",textColor:"#5b21b6",obs:"Randevuya hazır · Referans potansiyeli yüksek",obsBody:"Düşük risk, içsel motivasyon, aktif sosyal profil. Konsültasyon standart ilerleyebilir. Referans programını aktive edin.",ambassador:true};
 
   // Kırmızı
-  if(score>=72||riskFactors>=3||bddRisk)
+  if(score>=60||riskFactors>=3||bddRisk)
     return{cat:"red",label:"Konsültasyon Kritik",icon:"🔴",color:"#dc2626",bg:"#fef2f2",border:"#fecaca",textColor:"#991b1b",obs:"Beklenti yönetimi öncelikli",obsBody:"Yüksek risk sinyalleri saptandı. Gerçekçi beklenti çerçevesi çizmeden randevu verilmemesi önerilir.",ambassador:false};
 
   // Amber
-  if(score>=52||riskFactors>=2||(highExp&&noSupport)||(extMotiv&&manyDocs))
+  if(score>=45||riskFactors>=2||(highExp&&noSupport)||(extMotiv&&manyDocs))
     return{cat:"amber",label:"Dikkatli Değerlendir",icon:"🟡",color:"#d97706",bg:"#fffbeb",border:"#fde68a",textColor:"#92400e",obs:"Bazı sinyaller dikkat gerektiriyor",obsBody:"Konsültasyonda beklenti ve motivasyon konuları açılmalı. Randevu verilebilir ancak hazırlıklı girilmeli.",ambassador:false};
 
   // Yeşil
@@ -331,9 +331,9 @@ function predictOutcomes(score, a){
   // ── Cerrahi Uygunluk ──────────────────────────────────────────
   const riskFactors = [bddRisk, highExp&&extMotiv, manyDocs, unrealistic, worstAvoid].filter(Boolean).length;
   let fit, fitColor, fitBg;
-  if(bddRisk || (score>=72 && riskFactors>=3)){
+  if(bddRisk || (score>=60 && riskFactors>=3)){
     fit="Uygun Değil"; fitColor="#dc2626"; fitBg="#fef2f2";
-  } else if(score>=52 || riskFactors>=2 || (extMotiv&&highExp) || (prevBad&&unrealistic)){
+  } else if(score>=45 || riskFactors>=2 || (extMotiv&&highExp) || (prevBad&&unrealistic)){
     fit="Borderline"; fitColor="#d97706"; fitBg="#fffbeb";
   } else {
     fit="Uygun"; fitColor="#059669"; fitBg="#ecfdf5";
