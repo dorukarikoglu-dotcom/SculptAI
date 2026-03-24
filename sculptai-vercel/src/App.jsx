@@ -669,16 +669,22 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                 const risks=[];
                 const comms=[];
 
-                // ── RİSK FAKTÖRLERİ — spesifik ──
-                if(a.motivation?.includes("Yakınlarımın yorumları")||a.motivation?.includes("Başka insanların")) risks.push(`${name} dışsal baskıyla karar veriyor — kendi isteği mi yoksa çevre baskısı mı olduğunu netleştirmek değerli olabilir`);
+                // ── RİSK FAKTÖRLERİ — ML sinyalleri ile ──
+                const pred=predictOutcomes(s,a);
+                // ML'in yüksek risk dediği sinyalleri göster
+                if(a.multiDoctor?.includes("1-2")||a.multiDoctor?.includes("Birçok")) risks.push(`${name} daha önce ${a.multiDoctor?.includes("Birçok")?"birçok":"1-2"} doktora danışmış — önceki konsültasyonlarda ne duyduğunu sormak değerli olabilir`);
+                if(a.motivation?.includes("Yakınlarımın yorumları")||a.motivation?.includes("Başka insanların")) risks.push(`Dışsal baskıyla karar veriyor — kendi isteği mi yoksa çevre baskısı mı olduğunu netleştirmek değerli olabilir`);
                 if(a.expectation?.includes("Tamamen farklı")) risks.push(`"Tamamen farklı görünmek" beklentisi ${proc} ile karşılanamayabilir — fotoğraflarla sınırları çerçevelemek faydalı olabilir`);
-                if(a.multiDoctor?.includes("Birçok")) risks.push(`Birden fazla doktora danışmış — önceki konsültasyonlarda ne duyduğunu sormak, neden ikna olmadığını anlamak için yardımcı olabilir`);
-                if(a.support?.includes("Kimseye söylemedim")) risks.push(`${name} bu kararı tek başına veriyor, sosyal desteği yok — iyileşme sürecinde yalnız kalma riski göz önünde bulundurulabilir`);
-                if(a.revision?.includes("Kusursuz")) risks.push(`Revizyon ihtimalini kabul etmiyor — kusursuz sonuç beklentisi var, bunu konsültasyonda ele almak önemli olabilir`);
-
+                if(a.support?.includes("Kimseye söylemedim")) risks.push(`${name} bu kararı tek başına veriyor — iyileşme sürecinde yalnız kalma riski göz önünde bulundurulabilir`);
+                if(a.revision?.includes("Kusursuz")) risks.push(`Kusursuz sonuç beklentisi var — revizyon ihtimalini konsültasyonda ele almak önemli olabilir`);
                 if(a.bodyFocus?.includes("işimi gücümü etkiliyor")) risks.push(`Bu bölge günlük işleyişini etkiliyor — BDD değerlendirmesi düşünülebilir`);
-                if(a.prevSurgery?.includes("beklentimi karşılamadı")||a.prevSurgery?.includes("hiç memnun değilim")) risks.push(`Önceki işlemden memnun kalmamış — bu sefer beklentisi daha yüksek olabilir, geçmiş deneyimi derinleştirmek yardımcı olabilir`);
+                if(a.prevSurgery?.includes("beklentimi karşılamadı")||a.prevSurgery?.includes("hiç memnun değilim")) risks.push(`Önceki işlemden memnun kalmamış — beklenti yönetimi kritik`);
                 if(a.selfEsteem?.includes("barışık değilim")) risks.push(`Benlik saygısı düşük — işlem sonrası psikolojik iyileşme yavaş olabilir`);
+                if(rhinoRedFlag) risks.push(`Ünlü referansı var — gerçekçi olmayan beklenti riski yüksek`);
+                if(breastSymRedFlag) risks.push(`Küçük asimetri bile çok rahatsız ediyor — postop memnuniyetsizlik riski`);
+                if(storyRedFlag) risks.push(`Açık cevabında yüksek beklenti sinyali — "mükemmel", "kusursuz" gibi ifadeler kullanmış`);
+                // ML skoru yüksek ama kural sinyali yoksa açıkla
+                if(risks.length===0 && s>=68) risks.push(`ML modeli bu profili yüksek risk olarak değerlendirdi — form cevaplarının kombinasyonu randevu almama riskiyle ilişkili. Genel beklenti yönetimi önerilir`);
                 if(risks.length===0) risks.push(`${name} için belirgin risk sinyali saptanmadı — standart konsültasyon yeterli`);
 
                 // ── İLETİŞİM TARZI — spesifik ──
