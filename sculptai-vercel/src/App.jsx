@@ -670,7 +670,6 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                 const comms=[];
 
                 // ── RİSK FAKTÖRLERİ — ML sinyalleri ile ──
-                const pred=predictOutcomes(s,a);
                 // ML'in yüksek risk dediği sinyalleri göster
                 if(a.multiDoctor?.includes("1-2")||a.multiDoctor?.includes("Birçok")) risks.push(`${name} daha önce ${a.multiDoctor?.includes("Birçok")?"birçok":"1-2"} doktora danışmış — önceki konsültasyonlarda ne duyduğunu sormak değerli olabilir`);
                 if(a.motivation?.includes("Yakınlarımın yorumları")||a.motivation?.includes("Başka insanların")) risks.push(`Dışsal baskıyla karar veriyor — kendi isteği mi yoksa çevre baskısı mı olduğunu netleştirmek değerli olabilir`);
