@@ -273,11 +273,11 @@ function computeMLScore(a){
 
 function classify(score,a){
   // Marka elçisi — yeni sorular + düşük risk
-  const sharesFreely=a.sharing==="Evet, açıkça paylaşırım";
+  const sharesFreely=["Evet, açıkça paylaşırım","Evet paylaşırım","Evet, paylaşırım"].includes(a.sharing);
   const socialInfluencer=["Evet, sık sık danışırlar","Bazen danışanlar olur"].some(x=>a.socialInfluence===x);
-  const intMotiv=["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
-  const hasSupport=a.support==="Evet, destekliyorlar";
-  const socialActive=(sharesFreely||socialInfluencer)&&intMotiv&&hasSupport&&score<45;
+  const intMotiv=["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum","Görünümümü iyileştirmek istiyorum","Sosyal özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
+  const hasSupport=a.support==="Evet, destekliyorlar"||a.support==="Evet";
+  const socialActive=(sharesFreely||socialInfluencer)&&intMotiv&&hasSupport&&score<50;
 
   // Risk sinyalleri
   const bddRisk=a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor"||a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
@@ -297,7 +297,7 @@ function classify(score,a){
   const riskFactors=[bddRisk,highExp&&extMotiv,manyDocs,unrealistic,rhinoRedFlag,breastSymRedFlag,storyRedFlag].filter(Boolean).length;
 
   // Elçi — gevşetilmiş eşik: score<45, iki sosyal sinyal yeterli
-  if(socialActive&&score<45&&riskFactors===0)
+  if(socialActive&&score<50&&riskFactors===0)
     return{cat:"ambassador",label:"Marka Elçisi",icon:"🌟",color:"#7c3aed",bg:"#faf5ff",border:"#ddd6fe",textColor:"#5b21b6",obs:"Randevuya hazır · Referans potansiyeli yüksek",obsBody:"Düşük risk, içsel motivasyon, aktif sosyal profil. Konsültasyon standart ilerleyebilir. Referans programını aktive edin.",ambassador:true};
 
   // Kırmızı
@@ -322,7 +322,7 @@ function predictOutcomes(score, a){
   const realisticExp = ["Küçük, doğal bir iyileştirme yeterli","Dengeli ve orantılı bir sonuç bekliyorum"].some(x=>a.expectation===x);
   const manyDocs     = a.multiDoctor==="Birçok doktorla görüştüm";
   const noSupport    = ["Kimseye söylemedim","Karşılar"].some(x=>a.support===x);
-  const goodSupport  = a.support==="Evet, destekliyorlar";
+  const goodSupport  = a.support==="Evet, destekliyorlar"||a.support==="Evet";
   const impulsive    = false; // soru kaldırıldı
   const patient      = true;  // varsayılan
   const worstAvoid   = false; // soru kaldırıldı
@@ -1000,8 +1000,20 @@ function ConsultationMode({patient, onClose}){
     talkingPoints.push({text:"Beklenti yönetimi",sub:"Tamamen farklı görünmek istiyor — mümkün olan değişimi fotoğraflarla somutlaştır"});
   if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x))
     talkingPoints.push({text:"Motivasyonu netleştir",sub:"Dışsal baskı bileşeni var — kendi isteği mi çevre baskısı mı olduğunu anlamak değerli"});
-  if((a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge")||(a.otherConsidered&&a.otherConsidered!=="Hayır"))
-    talkingPoints.push({text:"Ek işlem sinyali",sub:`Cross-sell fırsatı — ${a.otherAreas||a.otherConsidered} ilgisi var, sorabilirsin`});
+  if((a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge")||(a.otherConsidered&&a.otherConsidered!=="Hayır")){
+    const crossSuggs = getCrossSellSuggestion(a);
+    if(crossSuggs.length>0){
+      talkingPoints.push({text:"Ek işlem fırsatı",sub:`${crossSuggs[0].proc} — %${crossSuggs[0].prob} ihtimal (${crossSuggs[0].reason})`});
+    } else {
+      talkingPoints.push({text:"Ek işlem sinyali",sub:`Başka bölge ilgisi var — ${a.otherAreas||a.otherConsidered}`});
+    }
+  } else {
+    // Prosedüre göre otomatik cross-sell önerisi
+    const crossSuggs = getCrossSellSuggestion(a);
+    if(crossSuggs.length>0){
+      talkingPoints.push({text:"Cross-sell fırsatı",sub:`${crossSuggs[0].proc} sorulabilir — %${crossSuggs[0].prob} ihtimal`});
+    }
+  }
   if(talkingPoints.length===0)
     talkingPoints.push({text:"Standart konsültasyon",sub:"Belirgin risk sinyali yok — beklentiyi teyit et, süreci anlat"});
 
@@ -1667,6 +1679,66 @@ function DoctorPanel({doctor,onLogout}){
       </div>
     </div>
   );
+}
+
+
+/* ─── AKILLI CROSS-SELL ──────────────────────────────────────────────────── */
+function getCrossSellSuggestion(a){
+  const proc = a.procedure||"";
+  const otherAreas = a.otherAreas||"";
+  const otherConsidered = a.otherConsidered||"";
+  const hasOtherInterest = !["Hayır, sadece bu bölge","Hayır"].includes(otherAreas) || otherConsidered.includes("Evet");
+
+  // Prosedüre özel akıllı öneriler
+  const map = {
+    "Burun Estetiği": [
+      {proc:"Çene dolgusu veya çene ucu estetiği", prob:65, reason:"Profil dengesi için tamamlayıcı"},
+      {proc:"Botoks (alın veya kaş bölgesi)", prob:40, reason:"Yüz üst bölgesi uyumu"},
+    ],
+    "Meme Küçültme": [
+      {proc:"Liposuction (bel veya karın)", prob:70, reason:"Vücut orantısı için sık tercih"},
+      {proc:"Karın germe", prob:45, reason:"Özellikle doğum sonrası hastalarda"},
+    ],
+    "Meme Büyütme (Silikon Protez ile)": [
+      {proc:"Meme dikleştirme (mastopexi)", prob:55, reason:"Şekil ve doluluk birlikte"},
+      {proc:"Liposuction", prob:35, reason:"Vücut dengesi"},
+    ],
+    "Meme Dikleştirme": [
+      {proc:"Meme büyütme (implant)", prob:60, reason:"Dikleştirme sonrası doluluk"},
+      {proc:"Karın germe", prob:40, reason:"Anne estetiği paketi"},
+    ],
+    "Yüz Germe": [
+      {proc:"Üst göz kapağı estetiği", prob:75, reason:"Yüz yenileme bütünlüğü için"},
+      {proc:"Boyun germe veya dolgu", prob:50, reason:"Yüz-boyun orantısı"},
+    ],
+    "Karın Germe": [
+      {proc:"Liposuction (bel veya kalça)", prob:65, reason:"Karın estetiği ile sıkça kombine"},
+      {proc:"Meme dikleştirme", prob:45, reason:"Anne estetiği paketi"},
+    ],
+    "Üst Göz Kapağı Estetiği": [
+      {proc:"Alt göz kapağı estetiği", prob:70, reason:"Göz yenileme bütünlüğü"},
+      {proc:"Kaş kaldırma veya botoks", prob:50, reason:"Üst yüz uyumu"},
+    ],
+    "Alt Göz Kapağı Estetiği": [
+      {proc:"Üst göz kapağı estetiği", prob:75, reason:"Göz yenileme bütünlüğü"},
+      {proc:"Dolgu (göz altı)", prob:55, reason:"Hacim ve şekil birlikte"},
+    ],
+    "Liposuction": [
+      {proc:"Karın germe", prob:50, reason:"Cilt gevşekliği varsa tamamlayıcı"},
+      {proc:"Vaser liposuction (detay şekillendirme)", prob:45, reason:"Daha ince sonuç için"},
+    ],
+    "Jinekomasti": [
+      {proc:"Liposuction (karın veya bel)", prob:55, reason:"Vücut orantısı için sık tercih"},
+    ],
+  };
+
+  const suggestions = map[proc] || [];
+
+  // Ek bölge ilgisi varsa ihtimali artır
+  if(hasOtherInterest && suggestions.length > 0){
+    return suggestions.map(s => ({...s, prob: Math.min(95, s.prob + 15)}));
+  }
+  return suggestions;
 }
 
 /* ─── PATIENT FORM ───────────────────────────────────────────────────────── */
