@@ -71,7 +71,7 @@ class NN {
 }
 
 /* ─── ML AĞIRLIKLARI (pipeline'dan üretildi, outcome verisi arttıkça güncellenir) ── */
-const ML_WEIGHTS = {
+const GLOBAL_ML_WEIGHTS = {
   // v3 — 27 etiketli hasta (24 pozitif, 3 negatif)
   intercept: 0.8105907393583864,
   coef: {
@@ -117,6 +117,97 @@ const ML_WEIGHTS = {
     worstCase:       0.17,
   },
 };
+
+
+/* ─── KLİNİK BAZLI MODEL SİSTEMİ ────────────────────────────────────────── */
+const clinicModelCache = {};
+
+async function loadClinicModel(doctorId) {
+  if(clinicModelCache[doctorId] !== undefined) return clinicModelCache[doctorId];
+  try {
+    const { data } = await sb.from("clinic_models")
+      .select("weights, threshold, n_train, n_neg, accuracy, updated_at")
+      .eq("doctor_id", doctorId)
+      .single();
+    if(data && data.weights) {
+      clinicModelCache[doctorId] = data;
+      return data;
+    }
+  } catch(e) {}
+  clinicModelCache[doctorId] = null;
+  return null;
+}
+
+function computeScoreWithModel(a, weights) {
+  const W = weights;
+  const raw = {
+    expectation: {
+      "Küçük iyileştirmeler yeterli": 0.0,
+      "Doğal ve dengeli bir sonuç bekliyorum": 0.25,
+      "Belirgin ama doğal değişim": 0.5,
+      "Belirgin bir değişim bekliyorum, ameliyat olduğum belli olmalı": 0.75,
+      "Tamamen farklı görünmek istiyorum": 1.0,
+      "Dengeli ve orantılı bir sonuç bekliyorum": 0.25,
+    }[a.expectation] ?? 0.25,
+    motivation: {
+      "Görünümümü iyileştirmek istiyorum": 0.0,
+      "Sosyal özgüvenimi artırmak istiyorum": 0.33,
+      "Özgüvenimi artırmak istiyorum": 0.33,
+      "Kendim için daha iyi hissetmek istiyorum": 0.2,
+      "Hayatımda büyük bir değişime ihtiyacım var": 0.85,
+      "Başka insanların yorumları beni kötü etkiliyor": 1.0,
+      "Yakınlarımın yorumları etkili oldu": 1.0,
+    }[a.motivation] ?? 0.0,
+    doctorCount: {
+      "Hayır": 0.0,
+      "1-2 doktora danıştım": 0.5,
+      "1–2 doktora danıştım": 0.5,
+      "1-2 doktorla görüştüm": 0.5,
+      "Birçok doktora danıştım": 1.0,
+      "Birçok doktorla görüştüm": 1.0,
+    }[a.multiDoctor] ?? 0.0,
+    support: {
+      "Evet": 0.0,
+      "Evet, destekliyorlar": 0.0,
+      "Kararsızlar": 0.33,
+      "Biliyorlar ama kararsızlar": 0.5,
+      "Kimseye söylemedim": 0.85,
+      "Bu işleme karşılar": 1.0,
+      "Karşılar": 1.0,
+    }[a.support] ?? 0.0,
+    revision: {
+      "Evet, ve olası revizyonu normal kabul ederim": 0.0,
+      "Evet, olası revizyonu normal karşılarım": 0.0,
+      "Evet, normal kabul ederim": 0.0,
+      "Revizyon ihtimali beni çok endişelendiriyor": 0.5,
+      "Revizyon beni endişelendiriyor": 0.5,
+      "Kusursuz sonuç bekliyorum": 1.0,
+    }[a.revision] ?? 0.0,
+    riskKnow: {
+      "Detaylı araştırdım ve biliyorum": 0.0,
+      "Genel olarak bilgi sahibiyim": 0.5,
+      "Hiçbir bilgim yok": 1.0,
+    }[a.riskKnowledge] ?? 0.5,
+    age_norm: Math.min(1, Math.max(0, ((parseInt(a.age)||35) - 18) / 57)),
+  };
+  raw.motiv_x_support = raw.motivation * raw.support;
+  raw.exp_x_revision = raw.expectation * raw.revision;
+
+  let logit = W.intercept;
+  for(const feat of Object.keys(W.coef)) {
+    const val = raw[feat] ?? 0;
+    const std = W.std[feat] || 1;
+    const z = (val - W.mean[feat]) / std;
+    logit += W.coef[feat] * z;
+  }
+  const prob = 1 / (1 + Math.exp(-logit));
+  return Math.round((1 - prob) * 100);
+}
+
+function getActiveThreshold(clinicModel) {
+  return clinicModel?.threshold || 60;
+}
+
 
 /* ─── FEATURE EXTRACTION — pipeline ile aynı mantık ─────────────────────── */
 function extractFeatures(a){
@@ -199,7 +290,7 @@ function extractFeatures(a){
     a.breastSymmetry === "Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor") ? 0.25 : 0;
 
   // Lojistik regresyon: standardize + linear combination + sigmoid
-  const W = ML_WEIGHTS;
+  const W = GLOBAL_ML_WEIGHTS;
   let logit = W.intercept;
   for(const feat of Object.keys(W.coef)){
     const val = raw[feat] ?? 0;
@@ -1941,7 +2032,19 @@ function PatientForm({doctorId}){
   },[doctorId]);
 
   async function handleSubmit(){
-    const score = Math.round(computeMLScore(answers));
+    // Klinik bazlı model varsa onu kullan, yoksa global model
+    let score;
+    try {
+      const clinicModel = await loadClinicModel(doctorId);
+      if(clinicModel && clinicModel.weights) {
+        const clinicScore = computeScoreWithModel(answers, clinicModel.weights);
+        score = Math.round(clinicScore);
+      } else {
+        score = Math.round(computeMLScore(answers));
+      }
+    } catch(e) {
+      score = Math.round(computeMLScore(answers));
+    }
     const cls=classify(score,answers);
     const ambCode=cls.ambassador?"REF-"+Math.random().toString(36).substr(2,4).toUpperCase():null;
     const timingData={questionTimes,questionChanges};
@@ -2625,8 +2728,9 @@ function AdminPanel(){
   const [err,setErr]=useState("");
   const [doctors,setDoctors]=useState([]);
   const [patients,setPatients]=useState([]);
+  const [clinicModels,setClinicModels]=useState({});
   const [loading,setLoading]=useState(false);
-  const [tab,setTab]=useState("overview"); // overview | clinics | ml | add
+  const [tab,setTab]=useState("overview");
   const [newDoc,setNewDoc]=useState({name:"",username:"",password:"",clinic_name:""});
   const [addErr,setAddErr]=useState("");
   const [addOk,setAddOk]=useState(false);
@@ -2638,12 +2742,16 @@ function AdminPanel(){
 
   async function loadData(){
     setLoading(true);
-    const [{data:docs},{data:pats}]=await Promise.all([
+    const [{data:docs},{data:pats},{data:models}]=await Promise.all([
       sb.from("doctors").select("id,name,username,clinic_name"),
       sb.from("patients").select("id,doctor_id,created_at,risk_score,segment,outcome_procedures,no_appointment,ambassador_code,answers"),
+      sb.from("clinic_models").select("doctor_id,threshold,n_train,n_neg,accuracy,updated_at").catch(()=>({data:[]})),
     ]);
     setDoctors(docs||[]);
     setPatients(pats||[]);
+    const modelMap = {};
+    (models||[]).forEach(m=>{ modelMap[m.doctor_id]=m; });
+    setClinicModels(modelMap);
     setLoading(false);
   }
 
@@ -2857,13 +2965,33 @@ function AdminPanel(){
             {/* Klinik bazlı ML */}
             {stats.filter(s=>s.total>0).map(s=>(
               <div key={s.id} style={{...cardS}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                  <div style={{fontSize:14,fontWeight:500,color:C.navy}}>{s.clinic_name}</div>
-                  <div style={{fontSize:12,color:"#7c3aed",fontWeight:500}}>{s.mlAcc!=null?`ML hassasiyet: %${s.mlAcc}`:"Henüz yeterli veri yok"}</div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:500,color:C.navy}}>{s.clinic_name}</div>
+                    <div style={{fontSize:11,color:C.muted}}>{s.total} hasta · {s.noAppt} negatif örnek</div>
+                  </div>
+                  <span style={{fontSize:11,padding:"3px 10px",borderRadius:10,
+                    background:clinicModels[s.id]?"#eff6ff":s.noAppt<10?"#fffbeb":"#ecfdf5",
+                    color:clinicModels[s.id]?"#1d4ed8":s.noAppt<10?"#92400e":"#065f46",
+                    border:`1px solid ${clinicModels[s.id]?"#dbeafe":s.noAppt<10?"#fde68a":"#a7f3d0"}`}}>
+                    {clinicModels[s.id]?"Klinik Modeli Aktif":s.noAppt<10?"Veri Biriktirilyor":"Eğitime Hazır"}
+                  </span>
                 </div>
-                <div style={{fontSize:12,color:C.muted}}>
-                  {s.total} hasta · {s.critical} kırmızı · {s.noAppt} randevu almadı
-                  {s.mlAcc!=null&&<span style={{marginLeft:8,color:"#7c3aed"}}>· Kırmızıların %{s.mlAcc}'i gerçekten almadı</span>}
+                <div style={{marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.muted,marginBottom:4}}>
+                    <span>Klinik modeli için negatif örnek</span>
+                    <span style={{fontWeight:500,color:s.noAppt>=10?"#059669":"#d97706"}}>{s.noAppt}/10</span>
+                  </div>
+                  <div style={{height:5,background:"#eef3f9",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:5,width:`${Math.min(100,s.noAppt*10)}%`,background:s.noAppt>=10?"#059669":"#1d4ed8",borderRadius:3}}/>
+                  </div>
+                </div>
+                <div style={{fontSize:11,color:C.muted,background:C.ivory,borderRadius:7,padding:"8px 12px"}}>
+                  {clinicModels[s.id]
+                    ? `Eğitim verisi: ${clinicModels[s.id].n_train} hasta · Doğruluk: ${clinicModels[s.id].accuracy?"%"+Math.round(clinicModels[s.id].accuracy*100):"—"} · Eşik: ${clinicModels[s.id].threshold||60}`
+                    : s.noAppt>=10
+                      ? "10+ negatif örnek mevcut — klinik modeli eğitilebilir. Doruk'a bildirin."
+                      : `${10-s.noAppt} negatif örnek daha gerekiyor. Outcome girişini düzenli tut.`}
                 </div>
               </div>
             ))}
