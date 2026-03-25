@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 /* ─── SUPABASE ───────────────────────────────────────────────────────────── */
@@ -2864,6 +2864,25 @@ function Login({onLogin}){
 }
 
 /* ─── ROOT ───────────────────────────────────────────────────────────────── */
+
+export class ErrorBoundary extends React.Component{
+  constructor(props){super(props);this.state={hasError:false,error:null};}
+  static getDerivedStateFromError(e){return{hasError:true,error:e};}
+  componentDidCatch(e,info){console.error("SculptAI Error:",e,info);}
+  render(){
+    if(this.state.hasError){
+      return(
+        <div style={{padding:32,fontFamily:"'Nunito',sans-serif",color:"#1e3a5f"}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,marginBottom:8}}>Bir hata oluştu</div>
+          <div style={{fontSize:13,color:"#7b9ab5",marginBottom:16}}>{String(this.state.error?.message||"")}</div>
+          <button onClick={()=>window.location.reload()} style={{padding:"8px 20px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:13}}>Sayfayı Yenile</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App(){
   const [view,setView]=useState(()=>{
     const path=window.location.pathname;
