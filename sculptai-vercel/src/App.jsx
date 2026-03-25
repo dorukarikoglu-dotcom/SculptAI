@@ -119,6 +119,67 @@ const GLOBAL_ML_WEIGHTS = {
 };
 
 
+
+/* ─── ELÇİ ML MODELİ ────────────────────────────────────────────────────── */
+const AMBASSADOR_WEIGHTS = {
+  intercept: -2.4879774705640325,
+  coef: {
+    sharing:    1.7456693036553208,
+    social:     0.23462709374771243,
+    recommends: 0.4055491101140394,
+    motivation: -0.4139539651161969,
+    support:    0.22992151735834254,
+    low_risk:   0.9136872112774931,
+    age:        -0.1731016285821571,
+  },
+  mean: [0.3174,0.5391,0.8478,0.5435,0.8522,0.6246,0.4416],
+  std:  [0.2918,0.3011,0.2526,0.1541,0.3098,0.2349,0.2446],
+};
+
+function computeAmbassadorScore(a, riskScore){
+  const sharing = {
+    "Evet, açıkça paylaşırım":1.0,"Sık paylaşırım":0.85,"Evet paylaşırım":0.7,
+    "Ara sıra":0.4,"Sadece yakın çevrem ile paylaşırım":0.3,"Sadece çok yakınlarımla":0.2,
+    "Genelde paylaşmam":0.0,
+  }[a.sharing]??0.3;
+
+  const social = {
+    "Sık sık danışırlar":1.0,"Evet, sık sık danışırlar":1.0,
+    "Bazen danışanlar olur":0.6,"Bazen":0.6,"Hayır":0.0,"Hayır, danışmazlar":0.0,
+  }[a.socialInfluence]??0.3;
+
+  const recommends = {
+    "Evet, sık öneririm":1.0,"Bazen":0.5,"Önermem":0.0,
+  }[a.recommends]??0.5;
+
+  const motivation = {
+    "Kendim için daha iyi hissetmek istiyorum":1.0,
+    "Özgüvenimi artırmak istiyorum":0.9,
+    "Sosyal özgüvenimi artırmak istiyorum":0.8,
+    "Görünümümü iyileştirmek istiyorum":0.5,
+    "Başka insanların yorumları beni kötü etkiliyor":0.0,
+    "Yakınlarımın yorumları etkili oldu":0.0,
+  }[a.motivation]??0.5;
+
+  const support = {
+    "Evet, destekliyorlar":1.0,"Evet":1.0,"Kararsızlar":0.4,
+    "Biliyorlar ama kararsızlar":0.3,"Bu işleme karşılar":0.0,"Kimseye söylemedim":0.0,
+  }[a.support]??0.5;
+
+  const low_risk = 1 - (riskScore/100);
+  const age_norm = Math.min(1, Math.max(0, ((parseInt(a.age)||35) - 17) / 48));
+
+  const feats = [sharing, social, recommends, motivation, support, low_risk, age_norm];
+  const W = AMBASSADOR_WEIGHTS;
+
+  let logit = W.intercept;
+  feats.forEach((v, i) => {
+    const z = (v - W.mean[i]) / (W.std[i] || 1);
+    logit += Object.values(W.coef)[i] * z;
+  });
+  return 1 / (1 + Math.exp(-logit)); // 0-1 arası elçi olasılığı
+}
+
 /* ─── KLİNİK BAZLI MODEL SİSTEMİ ────────────────────────────────────────── */
 const clinicModelCache = {};
 
@@ -364,11 +425,13 @@ function computeMLScore(a){
 
 function classify(score,a){
   // Marka elçisi — yeni sorular + düşük risk
-  const sharesFreely=["Evet, açıkça paylaşırım","Evet paylaşırım","Evet, paylaşırım"].includes(a.sharing);
-  const socialInfluencer=["Evet, sık sık danışırlar","Bazen danışanlar olur"].some(x=>a.socialInfluence===x);
-  const intMotiv=["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum","Görünümümü iyileştirmek istiyorum","Sosyal özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
+  // ML tabanlı elçi skoru
+  const ambassadorProb = computeAmbassadorScore(a, score);
+  const sharesFreely=a.sharing==="Evet, açıkça paylaşırım";
+  const socialInfluencer=a.socialInfluence==="Sık sık danışırlar"||a.socialInfluence==="Evet, sık sık danışırlar";
+  const intMotiv=["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
   const hasSupport=a.support==="Evet, destekliyorlar"||a.support==="Evet";
-  const socialActive=(sharesFreely||socialInfluencer)&&intMotiv&&hasSupport&&score<50;
+  const socialActive=ambassadorProb>=0.60&&score<40;
 
   // Risk sinyalleri
   const bddRisk=a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor"||a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
@@ -388,7 +451,7 @@ function classify(score,a){
   const riskFactors=[bddRisk,highExp&&extMotiv,manyDocs,unrealistic,rhinoRedFlag,breastSymRedFlag,storyRedFlag].filter(Boolean).length;
 
   // Elçi — gevşetilmiş eşik: score<45, iki sosyal sinyal yeterli
-  if(socialActive&&score<50&&riskFactors===0)
+  if(socialActive&&riskFactors===0)
     return{cat:"ambassador",label:"Marka Elçisi",icon:"🌟",color:"#7c3aed",bg:"#faf5ff",border:"#ddd6fe",textColor:"#5b21b6",obs:"Randevuya hazır · Referans potansiyeli yüksek",obsBody:"Düşük risk, içsel motivasyon, aktif sosyal profil. Konsültasyon standart ilerleyebilir. Referans programını aktive edin.",ambassador:true};
 
   // Kırmızı
