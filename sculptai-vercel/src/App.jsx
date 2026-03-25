@@ -223,10 +223,12 @@ function extractFeatures(a){
 
 /* ─── SCORE HESAPLA — artık extractFeatures yerine direkt kullan ─────────── */
 function computeMLScore(a){
+  // extractFeatures zaten gerçek lojistik regresyon + rhino/breast boost yapıyor
+  // finalScore = array[0] * 100 olarak dönüyor
   const feats = extractFeatures(a);
-  let baseScore = feats[0] * 100;
+  const mlScore = feats[0] * 100; // gerçek ML skoru (0-100)
 
-  // Prosedür bazlı risk — gerçek hasta verisinden
+  // Prosedür bazlı risk — gerçek hasta verisinden (ek sinyal)
   const procRisk = {
     "Meme Asimetrisinin Giderilmesi": 0.9,
     "Karın Germe": 0.6,
@@ -243,26 +245,28 @@ function computeMLScore(a){
     "Botoks": 0.0,
     "Uyluk veya Kol germe": 0.0,
   };
-  const procBonus = (procRisk[a.procedure] ?? 0.3) * 18;
+  // Prosedür bonusu — ML skoruna ağırlıklı katkı (%30 prosedür, %70 ML)
+  const procScore = (procRisk[a.procedure] ?? 0.3) * 100;
+  const blended = mlScore * 0.70 + procScore * 0.30;
 
-  // Önceki ameliyat memnuniyetsizliği — güçlü sinyal
+  // Önceki ameliyat memnuniyetsizliği — direkt ek puan
   const prevBadBonus =
-    a.prevSurgery === "Evet ve hiç memnun değilim" ? 18 :
-    a.prevSurgery === "Evet ama beklentimi karşılamadı" ? 10 : 0;
+    a.prevSurgery === "Evet ve hiç memnun değilim" ? 15 :
+    a.prevSurgery === "Evet ama beklentimi karşılamadı" ? 8 : 0;
 
   // Dışsal motivasyon + rinoplasti — %100 risk kombinasyonu
   const rhinoExtBonus = (a.procedure === "Burun Estetiği" &&
-    ["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].includes(a.motivation)) ? 15 : 0;
+    ["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].includes(a.motivation)) ? 12 : 0;
 
-  // Bilgisiz + sosyal destek yok
+  // Bilgisiz + sosyal destek yok kombinasyonu
   const noKnowNoSupportBonus = (a.riskKnowledge === "Hiçbir bilgim yok" &&
-    ["Kimseye söylemedim","Bu işleme karşılar","Biliyorlar ama kararsızlar"].includes(a.support)) ? 10 : 0;
+    ["Kimseye söylemedim","Bu işleme karşılar","Biliyorlar ama kararsızlar"].includes(a.support)) ? 8 : 0;
 
   // Karın/Yüz germe + hiç bilgisiz — %80 risk
   const abdoFaceNoKnowBonus = (["Karın Germe","Yüz Germe"].includes(a.procedure) &&
-    a.riskKnowledge === "Hiçbir bilgim yok") ? 12 : 0;
+    a.riskKnowledge === "Hiçbir bilgim yok") ? 10 : 0;
 
-  const total = baseScore + procBonus + prevBadBonus + rhinoExtBonus + noKnowNoSupportBonus + abdoFaceNoKnowBonus;
+  const total = blended + prevBadBonus + rhinoExtBonus + noKnowNoSupportBonus + abdoFaceNoKnowBonus;
   return Math.min(100, Math.round(total));
 }
 
