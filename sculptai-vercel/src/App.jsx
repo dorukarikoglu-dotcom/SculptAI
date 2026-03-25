@@ -506,6 +506,7 @@ function Sidebar({tab,setTab,onLogout,doctor}){
 function PatientCard({patient,onDelete,isMobile,onConsult}){
   const [open,setOpen]=useState(false);
   const [rendered,setRendered]=useState(false);
+  const [cardError,setCardError]=useState(false);
   const [confirm,setConfirm]=useState(false);
   const [showOutcome,setShowOutcome]=useState(false);
   const [showAmbassador,setShowAmbassador]=useState(false);
@@ -548,7 +549,17 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
   const formProc=a.procedure||"";
   const crossSellDetected=outcomeProcedures.length>0&&!outcomeProcedures.every(p=>p===formProc);
 
-  function handleToggle(){if(!rendered)setRendered(true);setOpen(o=>!o);}
+  function handleToggle(){
+    if(!rendered){
+      // Mobilde önce state'i set et, render'ı bir sonraki frame'e bırak
+      requestAnimationFrame(()=>{
+        setRendered(true);
+        setOpen(true);
+      });
+    } else {
+      setOpen(o=>!o);
+    }
+  }
   return(
     <div onClick={handleToggle} style={{background:"#f8fafd",borderRadius:10,border:`1px solid ${open?"#1e3a5f":"#d4e1ef"}`,marginBottom:8,overflow:"hidden",cursor:"pointer",transition:"border-color 0.15s",WebkitTapHighlightColor:"transparent"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:noAppointment?"#fff5f5":outcomeProcedures.length>0?"#f0fdf4":"transparent",minWidth:0,overflow:"hidden"}}>
@@ -577,7 +588,8 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
             <button onClick={async e=>{e.stopPropagation();await sb.from("patients").update({no_appointment:false}).eq("id",patient.id);setNoAppointment(false);}} style={{fontSize:11,color:"#7b9ab5",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline"}}>Geri Al</button>
           </div>
         )}
-      {rendered&&open&&(
+      {cardError&&<div style={{padding:12,fontSize:12,color:"#dc2626"}}>Detay yüklenemedi</div>}
+      {rendered&&!cardError&&open&&(
         <div style={{borderTop:"1px solid #d4e1ef",animation:"fadeUp 0.18s ease"}}>
           {/* Observation strip */}
           <div style={{padding:"12px 18px",background:cls.bg,borderBottom:`1px solid ${cls.border}`,display:"flex",alignItems:"flex-start",gap:10}}>
