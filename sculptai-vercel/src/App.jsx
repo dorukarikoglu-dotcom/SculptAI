@@ -224,7 +224,46 @@ function extractFeatures(a){
 /* ─── SCORE HESAPLA — artık extractFeatures yerine direkt kullan ─────────── */
 function computeMLScore(a){
   const feats = extractFeatures(a);
-  return feats[0] * 100; // tüm elemanlar aynı, ilki yeterli
+  let baseScore = feats[0] * 100;
+
+  // Prosedür bazlı risk — gerçek hasta verisinden
+  const procRisk = {
+    "Meme Asimetrisinin Giderilmesi": 0.9,
+    "Karın Germe": 0.6,
+    "Yüz Germe": 0.4,
+    "Burun Estetiği": 0.35,
+    "Jinekomasti": 0.33,
+    "Meme Büyütme (Silikon Protez ile)": 0.29,
+    "Meme Dikleştirme": 0.25,
+    "Meme Küçültme": 0.14,
+    "Üst Göz Kapağı Estetiği": 0.0,
+    "Alt Göz Kapağı Estetiği": 0.0,
+    "Liposuction": 0.0,
+    "Dolgu Uygulaması": 0.0,
+    "Botoks": 0.0,
+    "Uyluk veya Kol germe": 0.0,
+  };
+  const procBonus = (procRisk[a.procedure] ?? 0.3) * 18;
+
+  // Önceki ameliyat memnuniyetsizliği — güçlü sinyal
+  const prevBadBonus =
+    a.prevSurgery === "Evet ve hiç memnun değilim" ? 18 :
+    a.prevSurgery === "Evet ama beklentimi karşılamadı" ? 10 : 0;
+
+  // Dışsal motivasyon + rinoplasti — %100 risk kombinasyonu
+  const rhinoExtBonus = (a.procedure === "Burun Estetiği" &&
+    ["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].includes(a.motivation)) ? 15 : 0;
+
+  // Bilgisiz + sosyal destek yok
+  const noKnowNoSupportBonus = (a.riskKnowledge === "Hiçbir bilgim yok" &&
+    ["Kimseye söylemedim","Bu işleme karşılar","Biliyorlar ama kararsızlar"].includes(a.support)) ? 10 : 0;
+
+  // Karın/Yüz germe + hiç bilgisiz — %80 risk
+  const abdoFaceNoKnowBonus = (["Karın Germe","Yüz Germe"].includes(a.procedure) &&
+    a.riskKnowledge === "Hiçbir bilgim yok") ? 12 : 0;
+
+  const total = baseScore + procBonus + prevBadBonus + rhinoExtBonus + noKnowNoSupportBonus + abdoFaceNoKnowBonus;
+  return Math.min(100, Math.round(total));
 }
 
 
@@ -693,8 +732,13 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                 if(a.support?.includes("Kimseye söylemedim")) risks.push(`${name} bu kararı tek başına veriyor — iyileşme sürecinde yalnız kalma riski göz önünde bulundurulabilir`);
                 if(a.revision?.includes("Kusursuz")) risks.push(`Kusursuz sonuç beklentisi var — revizyon ihtimalini konsültasyonda ele almak önemli olabilir`);
                 if(a.bodyFocus?.includes("işimi gücümü etkiliyor")) risks.push(`Bu bölge günlük işleyişini etkiliyor — BDD değerlendirmesi düşünülebilir`);
-                if(a.prevSurgery?.includes("beklentimi karşılamadı")||a.prevSurgery?.includes("hiç memnun değilim")) risks.push(`Önceki işlemden memnun kalmamış — beklenti yönetimi kritik`);
+                if(a.prevSurgery?.includes("beklentimi karşılamadı")) risks.push(`Önceki işlemden beklentisi karşılanmamış — bu sefer standartları daha yüksek olabilir, geçmişi mutlaka konuş`);
+                if(a.prevSurgery?.includes("hiç memnun değilim")) risks.push(`Önceki işlemden hiç memnun değil — yüksek riskli profil, konsültasyonu çok dikkatli yürüt`);
                 if(a.selfEsteem?.includes("barışık değilim")) risks.push(`Benlik saygısı düşük — işlem sonrası psikolojik iyileşme yavaş olabilir`);
+                // Prosedür bazlı uyarı
+                if(["Meme Asimetrisinin Giderilmesi"].includes(a.procedure)) risks.push(`Meme asimetrisi vakaları yüksek beklenti riski taşıyor — tam olarak ne istediğini netleştir`);
+                if(["Karın Germe","Yüz Germe"].includes(a.procedure) && a.riskKnowledge==="Hiçbir bilgim yok") risks.push(`${a.procedure} için hiç bilgisi yok — iyileşme süreci ve sınırlamalar mutlaka anlatılmalı`);
+                if(a.procedure==="Burun Estetiği" && ["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].includes(a.motivation)) risks.push(`Rinoplasti + dışsal motivasyon kombinasyonu — bu kombinasyondaki hastaların tümü randevu almadı`);
                 if(rhinoRedFlag) risks.push(`Ünlü referansı var — gerçekçi olmayan beklenti riski yüksek`);
                 if(breastSymRedFlag) risks.push(`Küçük asimetri bile çok rahatsız ediyor — postop memnuniyetsizlik riski`);
                 if(storyRedFlag) risks.push(`Açık cevabında yüksek beklenti sinyali — "mükemmel", "kusursuz" gibi ifadeler kullanmış`);
