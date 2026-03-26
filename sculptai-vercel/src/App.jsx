@@ -598,18 +598,41 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
 
   async function triggerRetrain(doctorId){
     try {
-      // Sadece negatif (randevu almayan) hasta sayısını say
-      const { count: negCount } = await sb.from("patients")
-        .select("id", { count: "exact", head: true })
-        .eq("doctor_id", doctorId)
-        .eq("no_appointment", true);
+      const now = new Date();
+      const ninetyDaysAgo = new Date(now.getTime() - 90*24*60*60*1000).toISOString();
 
-      // Her 10 yeni negatifde bir eğit: 10, 20, 30, 40...
-      // Şu an 25 negatif var — bir sonraki tetik 30'da
-      if(negCount && negCount % 10 === 0){
+      const [{ count: totalLabeled }, { count: negCount }, { count: recent }] = await Promise.all([
+        // Toplam etiketli hasta
+        sb.from("patients")
+          .select("id", { count: "exact", head: true })
+          .eq("doctor_id", doctorId)
+          .or("no_appointment.eq.true,outcome_procedures.neq.[]"),
+        // Toplam negatif
+        sb.from("patients")
+          .select("id", { count: "exact", head: true })
+          .eq("doctor_id", doctorId)
+          .eq("no_appointment", true),
+        // Son 90 günde gelen toplam hasta
+        sb.from("patients")
+          .select("id", { count: "exact", head: true })
+          .eq("doctor_id", doctorId)
+          .gte("created_at", ninetyDaysAgo),
+      ]);
+
+      // Minimum negatif şartı
+      if(!negCount || negCount < 15) return;
+
+      // Klinik hızına göre dinamik eşik
+      const monthlyRate = Math.round((recent || 0) / 3); // aylık hasta sayısı
+      const retrainEvery =
+        monthlyRate > 100 ? 60 :   // hızlı klinik — her 60 outcome
+        monthlyRate > 30  ? 40 :   // orta klinik — her 40 outcome
+                            25;    // yavaş klinik — her 25 outcome
+
+      if(totalLabeled && totalLabeled % retrainEvery === 0){
         await sb.functions.invoke("auto-train", { body: { doctor_id: doctorId } });
-        clinicModelCache[doctorId] = undefined; // cache temizle
-        console.log(`✓ Auto-train tetiklendi: ${negCount} negatif örnek`);
+        clinicModelCache[doctorId] = undefined;
+        console.log(`✓ Auto-train: ${totalLabeled} etiketli, ${negCount} negatif, eşik:${retrainEvery} (aylık~${monthlyRate})`);
       }
     } catch(e) { /* sessiz hata */ }
   }
