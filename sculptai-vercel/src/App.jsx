@@ -63,9 +63,10 @@ const GLOBAL_ML_WEIGHTS = {
     oncekiKotu:        0.11797215576584166,
     bilgisizDesteksiz: 0.07309238684161413,
     yuksekRiskProc:    0.25104960620530054,
+    kararSuresi:       0.18,
   },
-  mean: [0.10909090909090911, 0.16666666666666663, 0.37727272727272726, 0.5984848484848485, 0.2833333333333331, 0.19696969696969696, 0.016666666666666677, 0.30666666666666664, 0.4504419191919193, 0.06060606060606061, 0.07575757575757576, 0.09090909090909091, 0.12121212121212122],
-  std:  [0.2737103494059018, 0.2987769682684338, 0.3694982078709378, 0.2782479950334389, 0.2214506808307529, 0.2735677285646635, 0.25677683586013644, 0.21066513233043097, 0.24411112287949602, 0.23860629921247942, 0.26460983631171175, 0.28747978728803425, 0.32637362467481823],
+  mean: [0.10909090909090911, 0.16666666666666663, 0.37727272727272726, 0.5984848484848485, 0.2833333333333331, 0.19696969696969696, 0.016666666666666677, 0.30666666666666664, 0.4504419191919193, 0.06060606060606061, 0.07575757575757576, 0.09090909090909091, 0.12121212121212122, 0.1],
+  std:  [0.2737103494059018, 0.2987769682684338, 0.3694982078709378, 0.2782479950334389, 0.2214506808307529, 0.2735677285646635, 0.25677683586013644, 0.21066513233043097, 0.24411112287949602, 0.23860629921247942, 0.26460983631171175, 0.28747978728803425, 0.32637362467481823, 0.3],
 };
 
 const PROC_RISK_MAP = {
@@ -134,6 +135,14 @@ function extractRawFeatures(a) {
     "Evet ama beklentimi karşılamadı":0.7,"Evet ve hiç memnun değilim":1.0,
   }[a.prevSurgery] ?? 0.0;
 
+  // Karar süresi + his — yeni sinyal
+  const m_decision = {
+    "Yeni karar verdim — heyecanlı ve kararlı hissediyorum": 0.2,
+    "Birkaç aydır düşünüyorum — hazır olduğumu hissediyorum": 0.0,
+    "1 yılı aşkın süredir düşünüyorum — artık harekete geçme zamanı": 0.1,
+    "Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum": 0.9,
+  }[a.decisionDuration] ?? 0.1;
+
   const m_proc = PROC_RISK_MAP[a.procedure] ?? 0.3;
   const age_n  = Math.min(1, Math.max(0, ((parseInt(a.age)||35) - 17) / 48));
 
@@ -144,7 +153,7 @@ function extractRawFeatures(a) {
   const yuksekRiskProc    = m_proc >= 0.5 ? 1.0 : 0.0;
 
   return [m_motiv, m_support, m_rev, m_risk, m_exp, m_multi, m_prev,
-          m_proc, age_n, rhinoDışsal, oncekiKotu, bilgisizDesteksiz, yuksekRiskProc];
+          m_proc, age_n, rhinoDışsal, oncekiKotu, bilgisizDesteksiz, yuksekRiskProc, m_decision];
 }
 
 function computeMLScore(a) {
@@ -158,9 +167,15 @@ function computeMLScore(a) {
     logit += coefs[i] * z;
   });
 
-  // prob yüksek = randevu alır = düşük risk → ters çevir
+  // prob = randevu alma olasılığı = memnuniyet proxy
   const prob = 1 / (1 + Math.exp(-logit));
-  return Math.min(100, Math.round((1 - prob) * 100));
+  const riskScore = Math.min(100, Math.round((1 - prob) * 100));
+
+  // ML tabanlı memnuniyet — prob'dan türetilir, kural değil
+  // prob yüksek = randevu alır = memnun kalma ihtimali yüksek
+  const mlSatisfaction = Math.round(prob * 100);
+
+  return { riskScore, mlSatisfaction, prob };
 }
 
 
@@ -246,7 +261,7 @@ function computeScoreWithModel(a, weights) {
   const W = weights;
   const feats = extractRawFeatures(a);
   const coefs = Object.values(W.coef || {});
-  if(!coefs.length) return computeMLScore(a);
+  if(!coefs.length) return computeMLScore(a).riskScore;
   let logit = W.intercept || 0;
   feats.forEach((v, i) => {
     const z = (v - (W.mean?.[i] || 0)) / (W.std?.[i] || 1);
@@ -339,25 +354,27 @@ function predictOutcomes(score, a){
   if(realisticExp) { rev-=8;  }
   rev = Math.min(85, Math.max(5, rev));
 
-  // ── Beklenen Memnuniyet (0–100) ────────────────────────────────
-  let sat = 68;
+  // ── Beklenen Memnuniyet — ML tabanlı ──────────────────────────
+  // prob doğrudan ML modelinden geliyor — kural değil
+  const mlResult = computeMLScore(a);
+  const mlProb = mlResult.prob; // randevu alma olasılığı = memnuniyet proxy
+
+  // Psikolojik düzeltmeler — ML'in göremediği sinyaller
+  let satAdj = 0;
   const satReasons = [];
-  if(intMotiv)     { sat+=14; satReasons.push({txt:"İçsel motivasyon — sonuç değerlendirmesi kendine dayalı",w:"high",dir:"+"}); }
-  if(realisticExp) { sat+=12; satReasons.push({txt:"Gerçekçi beklenti — sonuç-beklenti uyumu kuvvetli",w:"high",dir:"+"}); }
-  if(goodSupport)  { sat+=8;  satReasons.push({txt:"Güçlü sosyal destek — iyileşme süreci kolaylaşır",w:"med",dir:"+"}); }
-  if(patient)      { sat+=8;  satReasons.push({txt:"Sabırlı profil — süreci olduğu gibi yaşayabilir",w:"med",dir:"+"}); }
-  if(prevGood)     { sat+=10; satReasons.push({txt:"Geçmişte memnuniyetle sonuçlanmış — pozitif referans",w:"med",dir:"+"}); }
-  if(detailedKnow) { sat+=6;  satReasons.push({txt:"Süreci detaylı biliyor — sürpriz riski düşük",w:"low",dir:"+"}); }
-  if(bddRisk)      { sat-=22; satReasons.push({txt:"BDD riski — memnuniyet hiçbir sonuçla gelmeyebilir",w:"high",dir:"-"}); }
-  if(extMotiv)     { sat-=16; satReasons.push({txt:"Dışsal motivasyon — başkalarının tepkisine bağımlı",w:"high",dir:"-"}); }
-  if(highExp)      { sat-=14; satReasons.push({txt:"Aşırı beklenti — gerçek sonuç hayal kırıklığı yaratır",w:"high",dir:"-"}); }
-  if(unrealistic)  { sat-=12; satReasons.push({txt:"Kusursuz sonuç beklentisi — tatminsizlik döngüsü riski",w:"high",dir:"-"}); }
-  if(impulsive)    { sat-=10; satReasons.push({txt:"İyileşme sürecine sabırsız — erken değerlendirme riski",w:"med",dir:"-"}); }
-  if(noSupport)    { sat-=8;  satReasons.push({txt:"Destek eksikliği — zor dönemde yalnız kalabilir",w:"med",dir:"-"}); }
-  if(prevBad)      { sat-=10; satReasons.push({txt:"Geçmiş memnuniyetsizlik — standartlar yüksek",w:"med",dir:"-"}); }
-  if(lowSelfEst)   { sat-=8;  satReasons.push({txt:"Düşük benlik saygısı — sonuç algısını çarpıtabilir",w:"low",dir:"-"}); }
-  if(lifeExpect)   { sat-=10; satReasons.push({txt:"İşlemden hayat değişikliği beklentisi — sürdürülemez",w:"med",dir:"-"}); }
-  sat = Math.min(95, Math.max(15, sat));
+  if(intMotiv)     { satAdj+=8;  satReasons.push({txt:"İçsel motivasyon — sonuç değerlendirmesi kendine dayalı",w:"high",dir:"+"}); }
+  if(realisticExp) { satAdj+=7;  satReasons.push({txt:"Gerçekçi beklenti — sonuç-beklenti uyumu kuvvetli",w:"high",dir:"+"}); }
+  if(goodSupport)  { satAdj+=5;  satReasons.push({txt:"Güçlü sosyal destek — iyileşme süreci kolaylaşır",w:"med",dir:"+"}); }
+  if(patient)      { satAdj+=4;  satReasons.push({txt:"Sabırlı profil — süreci olduğu gibi yaşayabilir",w:"med",dir:"+"}); }
+  if(prevGood)     { satAdj+=6;  satReasons.push({txt:"Geçmişte memnuniyetle sonuçlanmış — pozitif referans",w:"med",dir:"+"}); }
+  if(detailedKnow) { satAdj+=3;  satReasons.push({txt:"Süreci detaylı biliyor — sürpriz riski düşük",w:"low",dir:"+"}); }
+  if(bddRisk)      { satAdj-=15; satReasons.push({txt:"BDD riski — memnuniyet hiçbir sonuçla gelmeyebilir",w:"high",dir:"-"}); }
+  if(highExp)      { satAdj-=8;  satReasons.push({txt:"Aşırı beklenti — gerçek sonuç hayal kırıklığı yaratır",w:"high",dir:"-"}); }
+  if(lowSelfEst)   { satAdj-=5;  satReasons.push({txt:"Düşük benlik saygısı — sonuç algısını çarpıtabilir",w:"low",dir:"-"}); }
+  if(lifeExpect)   { satAdj-=7;  satReasons.push({txt:"İşlemden hayat değişikliği beklentisi — sürdürülemez",w:"med",dir:"-"}); }
+
+  // ML prob (0-1) → 0-100 + küçük psikolojik düzeltme
+  const sat = Math.min(92, Math.max(12, Math.round(mlProb * 100) + satAdj));
 
   // ── Cerrahi Uygunluk ──────────────────────────────────────────
   const riskFactors = [bddRisk, highExp&&extMotiv, manyDocs, unrealistic, worstAvoid].filter(Boolean).length;
@@ -420,6 +437,12 @@ const QUESTIONS=[
   {id:"multiDoctor",section:"Geçmiş Deneyimler",label:"Bu konuyu daha önce başka doktorlarla görüştünüz mü?",type:"radio",options:["Hayır","1-2 doktorla görüştüm","Birçok doktorla görüştüm"]},
 
   /* ── Süreç Farkındalığı ── */
+  {id:"decisionDuration",section:"Süreç Farkındalığı",label:"Bu işlemi yaptırmayı ne zamandır düşünüyorsunuz ve şu an nasıl hissediyorsunuz?",type:"radio",options:[
+    "Yeni karar verdim — heyecanlı ve kararlı hissediyorum",
+    "Birkaç aydır düşünüyorum — hazır olduğumu hissediyorum",
+    "1 yılı aşkın süredir düşünüyorum — artık harekete geçme zamanı",
+    "Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum",
+  ]},
   {id:"riskKnowledge",section:"Süreç Farkındalığı",label:"Bu işlemin riskleri ve iyileşme süreci hakkında bilginiz ne düzeyde?",type:"radio",options:["Hiçbir bilgim yok","Genel olarak bilgi sahibiyim","Detaylı araştırdım ve biliyorum"]},
   {id:"support",section:"Süreç Farkındalığı",label:"Yakın çevreniz bu kararınızı biliyor mu ve destekliyor mu?",type:"radio",options:["Evet, destekliyorlar","Biliyorlar ama kararsızlar","Karşılar","Kimseye söylemedim"]},
   {id:"revision",section:"Süreç Farkındalığı",label:"Revizyon ihtimali olabileceğini biliyor musunuz?",type:"radio",options:["Evet, olası revizyonu normal karşılarım","Revizyon beni endişelendiriyor","Kusursuz sonuç bekliyorum"]},
@@ -988,6 +1011,10 @@ function ConsultationMode({patient, onClose}){
     talkingPoints.push({text:"Beklenti yönetimi",sub:"Tamamen farklı görünmek istiyor — mümkün olan değişimi fotoğraflarla somutlaştır"});
   if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x))
     talkingPoints.push({text:"Motivasyonu netleştir",sub:"Dışsal baskı bileşeni var — kendi isteği mi çevre baskısı mı olduğunu anlamak değerli"});
+  if(a.decisionDuration==="Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum")
+    talkingPoints.push({text:"Karar netliği yok",sub:"Uzun süredir düşünüyor ama hâlâ kararsız — ne engelliyor? Bilgi mi, destek mi, korku mu?"});
+  if(a.decisionDuration==="Yeni karar verdim — heyecanlı ve kararlı hissediyorum")
+    talkingPoints.push({text:"Acele karar sinyali",sub:"Çok yeni karar — heyecanın yerini gerçekçi beklenti almalı, süreci iyi anlat"});
   if((a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge")||(a.otherConsidered&&a.otherConsidered!=="Hayır")){
     const crossSuggs = getCrossSellSuggestion(a);
     if(crossSuggs.length>0){
@@ -1930,17 +1957,21 @@ function PatientForm({doctorId}){
 
   async function handleSubmit(){
     // Klinik bazlı model varsa onu kullan, yoksa global model
-    let score;
+    let score, mlSat;
     try {
       const clinicModel = await loadClinicModel(doctorId);
       if(clinicModel && clinicModel.weights) {
-        const clinicScore = computeScoreWithModel(answers, clinicModel.weights);
-        score = Math.round(clinicScore);
+        score = Math.round(computeScoreWithModel(answers, clinicModel.weights));
+        mlSat = Math.round((1 - score/100) * 100);
       } else {
-        score = Math.round(computeMLScore(answers));
+        const mlResult = computeMLScore(answers);
+        score = mlResult.riskScore;
+        mlSat = mlResult.mlSatisfaction;
       }
     } catch(e) {
-      score = Math.round(computeMLScore(answers));
+      const mlResult = computeMLScore(answers);
+      score = mlResult.riskScore;
+      mlSat = mlResult.mlSatisfaction;
     }
     const cls=classify(score,answers);
     const ambCode=cls.ambassador?"REF-"+Math.random().toString(36).substr(2,4).toUpperCase():null;
