@@ -592,6 +592,14 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
     await sb.from("patients").update({outcome_procedures:outcomeProcedures,no_appointment:false}).eq("id",patient.id);
     setNoAppointment(false);
     setShowOutcome(false);
+    triggerRetrain(patient.doctor_id);
+  }
+
+  async function triggerRetrain(doctorId){
+    try {
+      await sb.functions.invoke("auto-train", { body: { doctor_id: doctorId } });
+      clinicModelCache[doctorId] = undefined; // cache temizle
+    } catch(e) { /* sessiz hata — kullanıcıyı etkileme */ }
   }
 
   async function saveSatisfaction(month){
@@ -606,6 +614,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
     await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patient.id);
     setNoAppointment(true);
     setOutcomeProcedures([]);
+    triggerRetrain(patient.doctor_id);
   }
 
   async function sendAmbassador(){
