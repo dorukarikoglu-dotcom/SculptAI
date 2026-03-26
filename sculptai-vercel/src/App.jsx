@@ -600,7 +600,7 @@ function Sidebar({tab,setTab,onLogout,doctor}){
 }
 
 /* ─── PATIENT CARD ───────────────────────────────────────────────────────── */
-function PatientCard({patient,onDelete,isMobile,onConsult}){
+function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
   const [open,setOpen]=useState(false);
   const [rendered,setRendered]=useState(false);
   const [cardError,setCardError]=useState(false);
