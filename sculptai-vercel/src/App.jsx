@@ -613,8 +613,13 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
   const [sat6m,setSat6m]=useState(patient.satisfaction_6m||null);
   const [wouldRecommend,setWouldRecommend]=useState(patient.would_recommend||null);
   const [hadRevision,setHadRevision]=useState(patient.had_revision||false);
+  const [revisionReason,setRevisionReason]=useState(patient.revision_reason||"");
+  const [hadProcedure,setHadProcedure]=useState(patient.had_procedure??null);
+  const [procedureDate,setProcedureDate]=useState(patient.procedure_date||"");
+  const [referredCount,setReferredCount]=useState(patient.referred_count||0);
   const [showSat1m,setShowSat1m]=useState(false);
   const [showSat6m,setShowSat6m]=useState(false);
+  const [showProcedure,setShowProcedure]=useState(false);
   const [ambassadorSent,setAmbassadorSent]=useState(patient.ambassador_sent||false);
   const [consultNote,setConsultNote]=useState(patient.consult_note||"");
   const [showConsultNote,setShowConsultNote]=useState(false);
@@ -683,10 +688,20 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
 
   async function saveSatisfaction(month){
     const data = month===1
-      ? {satisfaction_1m:sat1m, would_recommend:wouldRecommend, had_revision:hadRevision}
-      : {satisfaction_6m:sat6m, would_recommend:wouldRecommend, had_revision:hadRevision};
+      ? {satisfaction_1m:sat1m, would_recommend:wouldRecommend, had_revision:hadRevision, revision_reason:hadRevision?revisionReason:""}
+      : {satisfaction_6m:sat6m, would_recommend:wouldRecommend, had_revision:hadRevision, revision_reason:hadRevision?revisionReason:""};
     await sb.from("patients").update(data).eq("id",patient.id);
     month===1 ? setShowSat1m(false) : setShowSat6m(false);
+    // 6 ay verisi en değerli — retrain tetikle
+    if(month===6) triggerRetrain(patient.doctor_id);
+  }
+
+  async function saveProcedure(){
+    await sb.from("patients").update({
+      had_procedure: hadProcedure,
+      procedure_date: procedureDate||null,
+    }).eq("id",patient.id);
+    setShowProcedure(false);
   }
 
   async function markNoAppointment(){
@@ -732,6 +747,25 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
           <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:400,color:"#1e3a5f",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name||"İsimsiz Hasta"}</div>
           <div style={{fontSize:12,color:"#7b9ab5",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.age?`${a.age} yaş · `:""}{a.procedure}</div>
           {noAppointment&&<div style={{fontSize:9,color:"#dc2626",fontWeight:500,marginTop:1,whiteSpace:"nowrap"}}>✕ Randevu Yok</div>}
+          {/* 5 outcome mini gösterge */}
+          {!noAppointment&&(
+            <div style={{display:"flex",gap:3,marginTop:2}}>
+              {[
+                {done:outcomeProcedures.length>0, label:"R", title:"Randevu"},
+                {done:hadProcedure===true, neg:hadProcedure===false, label:"A", title:"Ameliyat"},
+                {done:!!sat1m, label:"1", title:"1 Ay"},
+                {done:!!sat6m, label:"6", title:"6 Ay"},
+                {done:referredCount>0, label:"↗", title:"Referans"},
+              ].map((item,i)=>(
+                <div key={i} title={item.title} style={{
+                  width:14,height:14,borderRadius:3,fontSize:8,fontWeight:600,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  background:item.done?"#059669":item.neg?"#dc2626":"#e2e8f0",
+                  color:item.done||item.neg?"white":"#94a3b8",
+                }}>{item.label}</div>
+              ))}
+            </div>
+          )}
         </div>
         {/* Tarih + chevron — sabit genişlik */}
         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0,width:40}}>
@@ -1009,31 +1043,42 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                   ◈ Konsültasyon
                 </button>
               )}
-              <button onClick={e=>{e.stopPropagation();setShowOutcome(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:13,fontWeight:400,border:`1px solid ${outcomeProcedures.length>0?"#059669":"#d4e1ef"}`,background:"transparent",color:outcomeProcedures.length>0?"#059669":"#7b9ab5",letterSpacing:"0.03em"}}>
-                {outcomeProcedures.length>0?"✓ Randevu Girildi":"Randevu Sonucu"}
+              {/* 1. Randevu sonucu */}
+              <button onClick={e=>{e.stopPropagation();setShowOutcome(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:12,fontWeight:400,border:`1px solid ${outcomeProcedures.length>0?"#059669":"#d4e1ef"}`,background:"transparent",color:outcomeProcedures.length>0?"#059669":"#7b9ab5"}}>
+                {outcomeProcedures.length>0?"✓ Randevu":"Randevu?"}
               </button>
+              {/* 2. Ameliyat oldu mu */}
               {outcomeProcedures.length>0&&(
-                <button onClick={e=>{e.stopPropagation();setShowSat1m(v=>!v);setShowSat6m(false);}}
-                  style={{padding:"8px 10px",borderRadius:7,fontSize:12,fontWeight:400,border:`1px solid ${sat1m?"#059669":"#d4e1ef"}`,background:"transparent",color:sat1m?"#059669":"#7b9ab5",flexShrink:0}}>
-                  {sat1m?`1ay: ${sat1m}`:"1 Ay ↗"}
+                <button onClick={e=>{e.stopPropagation();setShowProcedure(v=>!v);setShowSat1m(false);setShowSat6m(false);}}
+                  style={{padding:"8px 8px",borderRadius:7,fontSize:12,fontWeight:400,border:`1px solid ${hadProcedure===true?"#059669":hadProcedure===false?"#dc2626":"#d4e1ef"}`,background:"transparent",color:hadProcedure===true?"#059669":hadProcedure===false?"#dc2626":"#7b9ab5",flexShrink:0}}>
+                  {hadProcedure===true?"✓ Ameliyat":hadProcedure===false?"✗ Vazgeçti":"Ameliyat?"}
                 </button>
               )}
-              {outcomeProcedures.length>0&&(
-                <button onClick={e=>{e.stopPropagation();setShowSat6m(v=>!v);setShowSat1m(false);}}
-                  style={{padding:"8px 10px",borderRadius:7,fontSize:12,fontWeight:400,border:`1px solid ${sat6m?"#1d4ed8":"#d4e1ef"}`,background:"transparent",color:sat6m?"#1d4ed8":"#7b9ab5",flexShrink:0}}>
-                  {sat6m?`6ay: ${sat6m}`:"6 Ay ↗"}
+              {/* 3. 1 ay memnuniyet */}
+              {hadProcedure===true&&(
+                <button onClick={e=>{e.stopPropagation();setShowSat1m(v=>!v);setShowSat6m(false);setShowProcedure(false);}}
+                  style={{padding:"8px 8px",borderRadius:7,fontSize:12,fontWeight:400,border:`1px solid ${sat1m?"#059669":"#d4e1ef"}`,background:"transparent",color:sat1m?"#059669":"#7b9ab5",flexShrink:0}}>
+                  {sat1m?`1ay:${sat1m.charAt(0)}`:"1 Ay"}
                 </button>
               )}
+              {/* 4. 6 ay memnuniyet */}
+              {hadProcedure===true&&(
+                <button onClick={e=>{e.stopPropagation();setShowSat6m(v=>!v);setShowSat1m(false);setShowProcedure(false);}}
+                  style={{padding:"8px 8px",borderRadius:7,fontSize:12,fontWeight:400,border:`1px solid ${sat6m?"#1d4ed8":"#d4e1ef"}`,background:"transparent",color:sat6m?"#1d4ed8":"#7b9ab5",flexShrink:0}}>
+                  {sat6m?`6ay:${sat6m.charAt(0)}`:"6 Ay"}
+                </button>
+              )}
+              {/* 5. Randevu Yok */}
               {!noAppointment&&(
-                <button onClick={e=>{e.stopPropagation();markNoAppointment();}} style={{padding:"8px 10px",borderRadius:7,fontSize:13,fontWeight:400,border:"1px solid #fecaca",background:"transparent",color:"#dc2626",letterSpacing:"0.02em",flexShrink:0}}>
-                  Randevu Yok
+                <button onClick={e=>{e.stopPropagation();markNoAppointment();}} style={{padding:"8px 8px",borderRadius:7,fontSize:12,fontWeight:400,border:"1px solid #fecaca",background:"transparent",color:"#dc2626",flexShrink:0}}>
+                  Gelmedi
                 </button>
               )}
               {cls.ambassador&&!ambassadorSent&&(
-                <button onClick={e=>{e.stopPropagation();setShowAmbassador(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:13,fontWeight:400,border:"1px solid #ddd6fe",background:"transparent",color:"#7c3aed",letterSpacing:"0.03em"}}>🌟 Elçi Paketi</button>
+                <button onClick={e=>{e.stopPropagation();setShowAmbassador(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:12,fontWeight:400,border:"1px solid #ddd6fe",background:"transparent",color:"#7c3aed"}}>🌟 Elçi</button>
               )}
               {cls.ambassador&&ambassadorSent&&(
-                <div style={{flex:1,padding:"8px",borderRadius:7,fontSize:13,textAlign:"center",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe"}}>✓ Elçi Gönderildi</div>
+                <div style={{flex:1,padding:"8px",borderRadius:7,fontSize:12,textAlign:"center",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe"}}>✓ Elçi</div>
               )}
               {!confirm
                 ?<button onClick={e=>{e.stopPropagation();setConfirm(true);}} style={{padding:"8px 12px",borderRadius:7,fontSize:13,border:"1px solid #d4e1ef",background:"transparent",color:"#7b9ab5"}}>Sil</button>
@@ -1062,6 +1107,35 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={saveOutcome} style={{padding:"9px 20px",background:"#1e3a5f",border:"none",borderRadius:7,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer"}}>Kaydet</button>
                   <button onClick={()=>setShowOutcome(false)} style={{padding:"9px 14px",background:"transparent",border:"1px solid #d4e1ef",borderRadius:7,color:"#7b9ab5",fontSize:13,cursor:"pointer"}}>İptal</button>
+                </div>
+              </div>
+            )}
+
+            {/* AMELİYAT OLDU MU? */}
+            {showProcedure&&(
+              <div onClick={e=>e.stopPropagation()} style={{borderTop:"1px solid #d4e1ef",padding:"16px",background:"#f0fdf4"}}>
+                <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:"#059669",marginBottom:12,fontWeight:500}}>Ameliyat Sonucu</div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,color:"#7b9ab5",marginBottom:6}}>Ameliyat gerçekleşti mi?</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {[["true","✓ Evet, ameliyat oldu"],["false","✗ Vazgeçti"]].map(([v,l])=>(
+                      <button key={v} onClick={()=>setHadProcedure(v==="true")}
+                        style={{padding:"7px 14px",borderRadius:20,fontSize:12,border:`1px solid ${String(hadProcedure)===v?"#059669":"#d4e1ef"}`,background:String(hadProcedure)===v?"#059669":"transparent",color:String(hadProcedure)===v?"white":"#7b9ab5",cursor:"pointer"}}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {hadProcedure===true&&(
+                  <div style={{marginBottom:10}}>
+                    <div style={{fontSize:12,color:"#7b9ab5",marginBottom:6}}>Ameliyat tarihi (isteğe bağlı)</div>
+                    <input type="date" value={procedureDate} onChange={e=>setProcedureDate(e.target.value)}
+                      style={{padding:"6px 10px",borderRadius:7,border:"1px solid #d4e1ef",fontSize:12,color:"#1e3a5f"}}/>
+                  </div>
+                )}
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={saveProcedure} style={{padding:"8px 18px",background:"#059669",border:"none",borderRadius:7,color:"white",fontSize:13,fontWeight:500,cursor:"pointer"}}>Kaydet</button>
+                  <button onClick={()=>setShowProcedure(false)} style={{padding:"8px 14px",background:"transparent",border:"1px solid #d4e1ef",borderRadius:7,color:"#7b9ab5",fontSize:13,cursor:"pointer"}}>İptal</button>
                 </div>
               </div>
             )}
@@ -1095,6 +1169,10 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
                   <input type="checkbox" checked={hadRevision} onChange={e=>setHadRevision(e.target.checked)} id="rev1m"/>
                   <label htmlFor="rev1m" style={{fontSize:12,color:"#7b9ab5",cursor:"pointer"}}>Revizyon talebi var</label>
+                  {hadRevision&&(
+                    <input value={revisionReason} onChange={e=>setRevisionReason(e.target.value)}
+                      placeholder="Neden? (isteğe bağlı)" style={{marginLeft:8,padding:"4px 8px",borderRadius:6,border:"1px solid #d4e1ef",fontSize:11,color:"#1e3a5f",width:160}}/>
+                  )}
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>saveSatisfaction(1)} style={{padding:"8px 18px",background:"#059669",border:"none",borderRadius:7,color:"white",fontSize:13,fontWeight:500,cursor:"pointer"}}>Kaydet</button>
@@ -1132,6 +1210,10 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
                   <input type="checkbox" checked={hadRevision} onChange={e=>setHadRevision(e.target.checked)} id="rev6m"/>
                   <label htmlFor="rev6m" style={{fontSize:12,color:"#7b9ab5",cursor:"pointer"}}>Revizyon talebi var</label>
+                  {hadRevision&&(
+                    <input value={revisionReason} onChange={e=>setRevisionReason(e.target.value)}
+                      placeholder="Neden? (isteğe bağlı)" style={{marginLeft:8,padding:"4px 8px",borderRadius:6,border:"1px solid #d4e1ef",fontSize:11,color:"#1e3a5f",width:160}}/>
+                  )}
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>saveSatisfaction(6)} style={{padding:"8px 18px",background:"#1d4ed8",border:"none",borderRadius:7,color:"white",fontSize:13,fontWeight:500,cursor:"pointer"}}>Kaydet</button>
@@ -2210,6 +2292,7 @@ function PatientForm({doctorId}){
       ambassador_sent:false,
       outcome_procedures:[],
       no_appointment:false,
+      referred_by:answers.referralCode||null,  // referans kodu varsa kaydet
     };
 
     const {error}=await sb.from("patients").insert(rec);
@@ -2885,7 +2968,7 @@ function AdminPanel(){
     setLoading(true);
     const [{data:docs},{data:pats},{data:models}]=await Promise.all([
       sb.from("doctors").select("id,name,username,clinic_name"),
-      sb.from("patients").select("id,doctor_id,created_at,risk_score,segment,outcome_procedures,no_appointment,ambassador_code,answers"),
+      sb.from("patients").select("id,doctor_id,created_at,risk_score,segment,outcome_procedures,no_appointment,ambassador_code,ambassador_sent,had_procedure,procedure_date,satisfaction_1m,satisfaction_6m,would_recommend,had_revision,revision_reason,referred_count,referral_source,answers"),
       sb.from("clinic_models").select("doctor_id,version,threshold,threshold_src,n_train,label_count,n_neg,neg_count,accuracy,val_accuracy,val_f1,val_precision,val_recall,train_date,updated_at,is_active").catch(()=>({data:[]})),
     ]);
     setDoctors(docs||[]);
