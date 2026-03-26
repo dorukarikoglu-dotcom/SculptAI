@@ -2803,7 +2803,7 @@ function AdminPanel(){
     const [{data:docs},{data:pats},{data:models}]=await Promise.all([
       sb.from("doctors").select("id,name,username,clinic_name"),
       sb.from("patients").select("id,doctor_id,created_at,risk_score,segment,outcome_procedures,no_appointment,ambassador_code,answers"),
-      sb.from("clinic_models").select("doctor_id,threshold,n_train,n_neg,accuracy,updated_at").catch(()=>({data:[]})),
+      sb.from("clinic_models").select("doctor_id,version,threshold,threshold_src,n_train,label_count,n_neg,neg_count,accuracy,val_accuracy,val_f1,val_precision,val_recall,train_date,updated_at,is_active").catch(()=>({data:[]})),
     ]);
     setDoctors(docs||[]);
     setPatients(pats||[]);
@@ -3044,12 +3044,32 @@ function AdminPanel(){
                     <div style={{height:5,width:`${Math.min(100,s.noAppt*10)}%`,background:s.noAppt>=10?"#059669":"#1d4ed8",borderRadius:3}}/>
                   </div>
                 </div>
-                <div style={{fontSize:11,color:C.muted,background:C.ivory,borderRadius:7,padding:"8px 12px"}}>
-                  {clinicModels[s.id]
-                    ? `Eğitim verisi: ${clinicModels[s.id].n_train} hasta · Doğruluk: ${clinicModels[s.id].accuracy?"%"+Math.round(clinicModels[s.id].accuracy*100):"—"} · Eşik: ${clinicModels[s.id].threshold||60}`
-                    : s.noAppt>=10
-                      ? "10+ negatif örnek mevcut — klinik modeli eğitilebilir. Doruk'a bildirin."
-                      : `${10-s.noAppt} negatif örnek daha gerekiyor. Outcome girişini düzenli tut.`}
+                <div style={{fontSize:11,color:C.muted,background:C.ivory,borderRadius:7,padding:"10px 12px"}}>
+                  {clinicModels[s.id] ? (
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontWeight:500,color:C.navy}}>v{clinicModels[s.id].version||1} — {clinicModels[s.id].train_date?new Date(clinicModels[s.id].train_date).toLocaleDateString("tr-TR"):""}</span>
+                        <span style={{fontSize:10,color:"#7c3aed",background:"#faf5ff",padding:"1px 7px",borderRadius:8,border:"1px solid #e9d5ff"}}>
+                          {clinicModels[s.id].threshold_src==="auto_f1"?"Otomatik F1":"Manuel"}
+                        </span>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginTop:4}}>
+                        {[
+                          {l:"Doğruluk", v:clinicModels[s.id].val_accuracy?`%${Math.round(clinicModels[s.id].val_accuracy*100)}`:(clinicModels[s.id].accuracy?`%${Math.round(clinicModels[s.id].accuracy*100)}`:"—")},
+                          {l:"F1",       v:clinicModels[s.id].val_f1?clinicModels[s.id].val_f1.toFixed(2):"—"},
+                          {l:"Eşik",     v:clinicModels[s.id].threshold||60},
+                          {l:"Etiketli", v:`${clinicModels[s.id].label_count||clinicModels[s.id].n_train||"—"} hasta`},
+                        ].map((k,i)=>(
+                          <div key={i} style={{background:"white",borderRadius:5,padding:"5px 7px",textAlign:"center",border:"1px solid #d4e1ef"}}>
+                            <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em"}}>{k.l}</div>
+                            <div style={{fontSize:13,fontWeight:500,color:C.navy,marginTop:2}}>{k.v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : s.noAppt>=10
+                    ? "10+ negatif örnek mevcut — klinik modeli eğitilebilir. Doruk'a bildirin."
+                    : `${10-s.noAppt} negatif örnek daha gerekiyor. Outcome girişini düzenli tut.`}
                 </div>
               </div>
             ))}
