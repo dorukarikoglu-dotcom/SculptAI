@@ -374,25 +374,7 @@ function predictOutcomes(score, a){
   if(realisticExp) { rev-=8;  }
   rev = Math.min(85, Math.max(5, rev));
 
-  // ── Beklenen Memnuniyet (0–100) ────────────────────────────────
-  let sat = 68;
-  const satReasons = [];
-  if(intMotiv)     { sat+=14; satReasons.push({txt:"İçsel motivasyon — sonuç değerlendirmesi kendine dayalı",w:"high",dir:"+"}); }
-  if(realisticExp) { sat+=12; satReasons.push({txt:"Gerçekçi beklenti — sonuç-beklenti uyumu kuvvetli",w:"high",dir:"+"}); }
-  if(goodSupport)  { sat+=8;  satReasons.push({txt:"Güçlü sosyal destek — iyileşme süreci kolaylaşır",w:"med",dir:"+"}); }
-  if(patient)      { sat+=8;  satReasons.push({txt:"Sabırlı profil — süreci olduğu gibi yaşayabilir",w:"med",dir:"+"}); }
-  if(prevGood)     { sat+=10; satReasons.push({txt:"Geçmişte memnuniyetle sonuçlanmış — pozitif referans",w:"med",dir:"+"}); }
-  if(detailedKnow) { sat+=6;  satReasons.push({txt:"Süreci detaylı biliyor — sürpriz riski düşük",w:"low",dir:"+"}); }
-  if(bddRisk)      { sat-=22; satReasons.push({txt:"BDD riski — memnuniyet hiçbir sonuçla gelmeyebilir",w:"high",dir:"-"}); }
-  if(extMotiv)     { sat-=16; satReasons.push({txt:"Dışsal motivasyon — başkalarının tepkisine bağımlı",w:"high",dir:"-"}); }
-  if(highExp)      { sat-=14; satReasons.push({txt:"Aşırı beklenti — gerçek sonuç hayal kırıklığı yaratır",w:"high",dir:"-"}); }
-  if(unrealistic)  { sat-=12; satReasons.push({txt:"Kusursuz sonuç beklentisi — tatminsizlik döngüsü riski",w:"high",dir:"-"}); }
-  if(impulsive)    { sat-=10; satReasons.push({txt:"İyileşme sürecine sabırsız — erken değerlendirme riski",w:"med",dir:"-"}); }
-  if(noSupport)    { sat-=8;  satReasons.push({txt:"Destek eksikliği — zor dönemde yalnız kalabilir",w:"med",dir:"-"}); }
-  if(prevBad)      { sat-=10; satReasons.push({txt:"Geçmiş memnuniyetsizlik — standartlar yüksek",w:"med",dir:"-"}); }
-  if(lowSelfEst)   { sat-=8;  satReasons.push({txt:"Düşük benlik saygısı — sonuç algısını çarpıtabilir",w:"low",dir:"-"}); }
-  if(lifeExpect)   { sat-=10; satReasons.push({txt:"İşlemden hayat değişikliği beklentisi — sürdürülemez",w:"med",dir:"-"}); }
-  sat = Math.min(95, Math.max(15, sat));
+  // Memnuniyet kaldırıldı — kontrol verisi birikince eklenecek
 
   // ── Cerrahi Uygunluk ──────────────────────────────────────────
   const riskFactors = [bddRisk, highExp&&extMotiv, manyDocs, unrealistic, worstAvoid].filter(Boolean).length;
@@ -421,7 +403,7 @@ function predictOutcomes(score, a){
     approachDesc="Normal konsültasyon akışı yeterli. Beklentileri teyit et, sonra planla.";
   }
 
-  return { rev, sat, fit, fitColor, fitBg, approach, approachDesc, revReasons, satReasons };
+  return { rev, fit, fitColor, fitBg, approach, approachDesc, revReasons };
 }
 
 
@@ -853,11 +835,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                           <div style={{fontSize:20,fontWeight:600,color:pred.rev>=50?"#dc2626":pred.rev>=30?"#d97706":"#059669",lineHeight:1}}>{pred.rev}%</div>
                           <div style={{fontSize:9,color:"#8b5cf6",letterSpacing:"0.08em",textTransform:"uppercase",marginTop:3}}>Revizyon Riski</div>
                         </div>
-                        {/* Memnuniyet */}
-                        <div style={{background:"white",border:"1px solid #ede9fe",borderRadius:7,padding:"8px 6px",textAlign:"center"}}>
-                          <div style={{fontSize:20,fontWeight:600,color:pred.sat>=70?"#059669":pred.sat>=50?"#d97706":"#dc2626",lineHeight:1}}>{pred.sat}</div>
-                          <div style={{fontSize:9,color:"#8b5cf6",letterSpacing:"0.08em",textTransform:"uppercase",marginTop:3}}>Memnuniyet /100</div>
-                        </div>
+                        
                         {/* Cerrahi Uygunluk */}
                         <div style={{background:pred.fitBg,border:`1px solid ${pred.fitColor}44`,borderRadius:7,padding:"8px 6px",textAlign:"center"}}>
                           <div style={{fontSize:13,fontWeight:600,color:pred.fitColor,lineHeight:1.2}}>{pred.fit}</div>
@@ -873,22 +851,12 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                       </div>
 
                       {/* Explainable — neden bu skor */}
-                      {(pred.revReasons.length>0||pred.satReasons.length>0)&&(
+                      {pred.revReasons.length>0&&(
                         <div style={{display:"flex",flexDirection:"column",gap:3}}>
                           <div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",color:"#8b5cf6",marginBottom:2}}>Tahmin Gerekçeleri</div>
                           {pred.revReasons.slice(0,2).map((r,i)=>(
                             <div key={i} style={{fontSize:12,color:"#7f1d1d",display:"flex",gap:5,lineHeight:1.45}}>
                               <span style={{flexShrink:0,color:"#dc2626"}}>↑</span>{r.txt}
-                            </div>
-                          ))}
-                          {pred.satReasons.filter(r=>r.dir==="+").slice(0,1).map((r,i)=>(
-                            <div key={i} style={{fontSize:12,color:"#065f46",display:"flex",gap:5,lineHeight:1.45}}>
-                              <span style={{flexShrink:0,color:"#059669"}}>↑</span>{r.txt}
-                            </div>
-                          ))}
-                          {pred.satReasons.filter(r=>r.dir==="-").slice(0,1).map((r,i)=>(
-                            <div key={i} style={{fontSize:12,color:"#7f1d1d",display:"flex",gap:5,lineHeight:1.45}}>
-                              <span style={{flexShrink:0,color:"#dc2626"}}>↓</span>{r.txt}
                             </div>
                           ))}
                         </div>
@@ -1182,10 +1150,9 @@ function ConsultationMode({patient, onClose}){
       <div style={{flex:1,overflowY:"auto",padding:"14px 14px",maxWidth:720,margin:"0 auto",width:"100%"}}>
 
         {/* 3 metrik */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
           {[
             {val:`${pred.rev}%`,lbl:"Revizyon Riski",color:pred.rev>=50?"#dc2626":pred.rev>=30?"#d97706":"#059669",bg:pred.rev>=50?"#fef2f2":pred.rev>=30?"#fffbeb":"#ecfdf5",border:pred.rev>=50?"#fecaca":pred.rev>=30?"#fde68a":"#a7f3d0"},
-            {val:pred.sat,lbl:"Memnuniyet /100",color:pred.sat>=70?"#059669":pred.sat>=50?"#d97706":"#dc2626",bg:pred.sat>=70?"#ecfdf5":pred.sat>=50?"#fffbeb":"#fef2f2",border:pred.sat>=70?"#a7f3d0":pred.sat>=50?"#fde68a":"#fecaca"},
             {val:pred.fit,lbl:"Uygunluk",color:pred.fitColor,bg:pred.fitBg,border:`${pred.fitColor}44`},
           ].map((m,i)=>(
             <div key={i} style={{background:m.bg,border:`1px solid ${m.border}`,borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
