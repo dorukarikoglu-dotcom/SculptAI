@@ -304,20 +304,71 @@ function computeAmbassadorScore(a, riskScore){
 }
 
 /* ─── KLİNİK BAZLI MODEL ────────────────────────────────────────────────── */
+/* ─── KLİNİK MODEL CACHE — localStorage + versiyon bazlı invalidation ─── */
 const clinicModelCache = {};
+const CLINIC_MODEL_LS_KEY = (id) => `sculptai_clinic_model_${id}`;
 
 async function loadClinicModel(doctorId) {
+  // 1. Bellek cache'i kontrol et
   if(clinicModelCache[doctorId] !== undefined) return clinicModelCache[doctorId];
+
+  // 2. localStorage'dan yükle
+  try {
+    const cached = localStorage.getItem(CLINIC_MODEL_LS_KEY(doctorId));
+    if(cached) {
+      const parsed = JSON.parse(cached);
+      // Supabase'deki version ile karşılaştır
+      const { data: remote } = await sb.from("clinic_models")
+        .select("version, updated_at")
+        .eq("doctor_id", doctorId)
+        .single();
+
+      if(remote && parsed.version >= remote.version) {
+        // Cache güncel — kullan
+        clinicModelCache[doctorId] = parsed;
+        return parsed;
+      }
+    }
+  } catch(e) {}
+
+  // 3. Supabase'den tam model çek
   try {
     const { data } = await sb.from("clinic_models")
-      .select("weights, threshold, n_train, n_neg, accuracy, updated_at")
+      .select("weights, threshold, version, train_date, val_accuracy, val_f1, label_count, n_train, n_neg, threshold_src, updated_at")
       .eq("doctor_id", doctorId)
       .single();
-    if(data && data.weights) { clinicModelCache[doctorId] = data; return data; }
+
+    if(data && data.weights) {
+      clinicModelCache[doctorId] = data;
+      // localStorage'a kaydet
+      try { localStorage.setItem(CLINIC_MODEL_LS_KEY(doctorId), JSON.stringify(data)); } catch(e) {}
+      return data;
+    }
   } catch(e) {}
+
   clinicModelCache[doctorId] = null;
   return null;
 }
+
+function invalidateClinicModel(doctorId) {
+  invalidateClinicModel(doctorId);
+  try { localStorage.removeItem(CLINIC_MODEL_LS_KEY(doctorId)); } catch(e) {}
+}
+
+function getActiveModelInfo(doctorId) {
+  const m = clinicModelCache[doctorId];
+  if(!m) return { source: "global", label: "Global Model", color: "#7b9ab5" };
+  return {
+    source: "clinic",
+    label: `Klinik Modeli v${m.version||1}`,
+    color: "#1d4ed8",
+    accuracy: m.val_accuracy || m.accuracy,
+    f1: m.val_f1,
+    trainDate: m.train_date || m.updated_at,
+    labelCount: m.label_count || m.n_train,
+  };
+}
+
 
 function computeScoreWithModel(a, weights) {
   // Klinik modeli varsa onun ağırlıklarıyla hesapla
@@ -688,6 +739,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
   const clinicThreshold=(clinicModelCache[patient.doctor_id]?.threshold)||60;
   const effectiveThreshold=getEffectiveThreshold(clinicThreshold, mode||'balanced');
   const cls=classify(score,a,effectiveThreshold);
+  const modelInfo=getActiveModelInfo(patient.doctor_id);
   const flags=getFlags(a,cls.cat);
   const signals=getSignals(a,cls.cat);
   const storyLower=(a.openStory||"").toLowerCase();
@@ -740,7 +792,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
 
       if(totalLabeled && totalLabeled % retrainEvery === 0){
         await sb.functions.invoke("auto-train", { body: { doctor_id: doctorId } });
-        clinicModelCache[doctorId] = undefined;
+        invalidateClinicModel(doctorId);
         console.log(`✓ Auto-train: ${totalLabeled} etiketli, ${negCount} negatif, eşik:${retrainEvery} (aylık~${monthlyRate})`);
       }
     } catch(e) { /* sessiz hata */ }
@@ -827,9 +879,13 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
             </div>
           )}
         </div>
-        {/* Tarih + chevron — sabit genişlik */}
-        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0,width:40}}>
+        {/* Tarih + model badge + chevron */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0,width:52}}>
           <div style={{fontSize:11,color:"#7b9ab5",whiteSpace:"nowrap"}}>{patient.created_at?new Date(patient.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}):""}</div>
+          <div title={modelInfo.source==="clinic"?`${modelInfo.label} · %${modelInfo.accuracy?Math.round(modelInfo.accuracy*100):"—"} doğruluk`:"Global model — klinik modeli henüz yok"}
+            style={{fontSize:8,fontWeight:600,color:modelInfo.color,background:modelInfo.source==="clinic"?"#eff6ff":"#f1f5f9",padding:"1px 4px",borderRadius:3,letterSpacing:"0.04em"}}>
+            {modelInfo.source==="clinic"?`v${clinicModelCache[patient.doctor_id]?.version||1}`:"GLB"}
+          </div>
           <div style={{fontSize:14,color:"#7b9ab5",transform:open?"rotate(90deg)":"none",transition:"transform 0.2s"}}>›</div>
         </div>
       </div>
@@ -2312,12 +2368,13 @@ function PatientForm({doctorId}){
 
   async function handleSubmit(){
     // Klinik bazlı model varsa onu kullan, yoksa global model
-    let score, mlSat;
+    let score, mlSat, modelSource="global";
     try {
       const clinicModel = await loadClinicModel(doctorId);
       if(clinicModel && clinicModel.weights) {
         score = Math.round(computeScoreWithModel(answers, clinicModel.weights));
         mlSat = Math.round((1 - score/100) * 100);
+        modelSource = `clinic_v${clinicModel.version||1}`;
       } else {
         const mlResult = computeMLScore(answers);
         score = mlResult.riskScore;
@@ -2352,6 +2409,7 @@ function PatientForm({doctorId}){
       ambassador_sent:false,
       outcome_procedures:[],
       no_appointment:false,
+      model_source:modelSource,  // hangi model kullanıldı
       referred_by:answers.referralCode||null,  // referans kodu varsa kaydet
     };
 
