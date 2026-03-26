@@ -292,7 +292,7 @@ function computeScoreWithModel(a, weights) {
 }
 
 
-function classify(score,a){
+function classify(score,a,threshold=60){
   // Marka elçisi — yeni sorular + düşük risk
   // ML tabanlı elçi skoru
   const ambassadorProb = computeAmbassadorScore(a, score);
@@ -324,7 +324,7 @@ function classify(score,a){
     return{cat:"ambassador",label:"Marka Elçisi",icon:"🌟",color:"#7c3aed",bg:"#faf5ff",border:"#ddd6fe",textColor:"#5b21b6",obs:"Randevuya hazır · Referans potansiyeli yüksek",obsBody:"Düşük risk, içsel motivasyon, aktif sosyal profil. Konsültasyon standart ilerleyebilir. Referans programını aktive edin.",ambassador:true};
 
   // Kırmızı
-  if(score>=60||riskFactors>=3||bddRisk)
+  if(score>=threshold||riskFactors>=3||bddRisk)
     return{cat:"red",label:"Konsültasyon Kritik",icon:"🔴",color:"#dc2626",bg:"#fef2f2",border:"#fecaca",textColor:"#991b1b",obs:"Beklenti yönetimi öncelikli",obsBody:"Yüksek risk sinyalleri saptandı. Gerçekçi beklenti çerçevesi çizmeden randevu verilmemesi önerilir.",ambassador:false};
 
   // Amber
@@ -577,7 +577,8 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
   const [showConsultNote,setShowConsultNote]=useState(false);
   const a=patient.answers||{};
   const score=patient.risk_score||0;
-  const cls=classify(score,a);
+  const clinicThreshold=(clinicModelCache[patient.doctor_id]?.threshold)||60;
+  const cls=classify(score,a,clinicThreshold);
   const flags=getFlags(a,cls.cat);
   const signals=getSignals(a,cls.cat);
   const storyLower=(a.openStory||"").toLowerCase();
@@ -1088,7 +1089,8 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
 function ConsultationMode({patient, onClose}){
   const a=patient.answers||{};
   const score=patient.risk_score||0;
-  const cls=classify(score,a);
+  const clinicThreshold=(clinicModelCache[patient.doctor_id]?.threshold)||60;
+  const cls=classify(score,a,clinicThreshold);
   const pred=predictOutcomes(score,a);
   const name=a.name||"Hasta";
   const proc=a.procedure||"İşlem";
