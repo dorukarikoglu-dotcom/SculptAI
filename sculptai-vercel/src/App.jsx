@@ -43,80 +43,125 @@ const SE = document.createElement("style");
 SE.textContent = `*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Nunito',sans-serif;background:#f8fafd;color:#1e3a5f;font-size:13px;line-height:1.5}input,button,select{font-family:'Nunito',sans-serif}button{cursor:pointer}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#d4e1ef;border-radius:2px}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}.f1{animation:fadeUp 0.35s ease 0.05s both}.f2{animation:fadeUp 0.35s ease 0.12s both}.f3{animation:fadeUp 0.35s ease 0.19s both}.f4{animation:fadeUp 0.35s ease 0.26s both}.f5{animation:fadeUp 0.35s ease 0.33s both}`;
 document.head.appendChild(SE);
 
-/* ─── TRAINING DATA ──────────────────────────────────────────────────────── */
-const REAL_DATA = [{"f":[0,0.5,0.4,0.1,0.45,0.4,0.05,0.05,0.05,0.35,0.4,0.44],"r":0.35},{"f":[0.3684,0.35,0.2,0.1,0.45,0.4,0.05,0.05,0.6,0.35,0.4,0.26],"r":0.5},{"f":[0.5789,0.1,0.2,0.7,0.45,0.4,0.6,0.45,0.95,0.35,0.4,0.16],"r":0.9},{"f":[0.7018,0.1,0.2,0.1,0.1,0.4,0.6,0.45,0.6,0.35,0.1,0.16],"r":0.15},{"f":[0.1228,0.1,0.2,0.1,0.45,0.05,0.05,0.05,0.6,0.05,0.75,0.16],"r":0.4},{"f":[0.2632,0.1,0.2,0.15,0.45,0.4,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.7},{"f":[0.386,0.1,0.2,0.1,0.85,0.4,0.05,0.05,0.6,0.05,0.75,0.16],"r":0.7},{"f":[0.4561,0.1,0.2,0.15,0.1,0.9,0.05,0.05,0.6,0.05,0.4,0.16],"r":1.0},{"f":[0.4912,0.1,0.2,0.1,0.45,0.4,0.05,0.05,0.05,0.05,0.75,0.16],"r":0.15},{"f":[0,0.1,0.65,0.1,0.1,0.4,0.6,0.05,0.6,0.35,0.4,0.43],"r":1.0},{"f":[0.2807,0.1,0.2,0.15,0.45,0.05,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.6},{"f":[0.1754,0.1,0.2,0.1,0.1,0.9,0.05,0.7,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.7018,0.1,0.05,0.1,0.1,0.4,0.05,0.05,0.05,0.35,0.4,0.07],"r":0.05},{"f":[0.1754,0.1,0.2,0.1,0.1,0.4,0.05,0.05,0.05,0.05,0.1,0.16],"r":0.15},{"f":[0.3509,0.1,0.2,0.1,0.45,0.9,0.05,0.05,0.05,0.35,0.4,0.16],"r":0.5},{"f":[0.3509,0.1,0.2,0.1,0.1,0.4,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.193,0.1,0.2,0.1,0.45,0.4,0.05,0.45,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.0526,0.1,0.2,0.1,0.45,0.4,0.05,0.8,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.5439,0.8,0.2,0.1,0.45,0.4,0.05,0.45,0.6,0.35,0.4,0.44],"r":0.5},{"f":[0.6316,0.1,0.2,0.1,0.1,0.4,0.05,0.05,0.05,0.05,0.75,0.16],"r":0.5},{"f":[0.1404,0.1,0.2,0.7,0.1,0.4,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.1053,0.1,0.2,0.1,0.1,0.05,0.05,0.7,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.4035,0.1,0.65,0.15,0.1,0.4,0.05,0.05,0.05,0.05,0.75,0.43],"r":0.5},{"f":[0.4561,0.1,0.65,0.1,0.1,0.9,0.05,0.05,0.95,0.05,0.4,0.43],"r":0.5},{"f":[0.2632,0.1,0.2,0.15,0.45,0.4,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.3158,0.1,0.65,0.1,0.45,0.4,0.05,0.05,0.95,0.05,0.4,0.43],"r":0.5},{"f":[0.0702,0.1,0.2,0.1,0.1,0.4,0.6,0.05,0.6,0.35,0.4,0.16],"r":0.5},{"f":[0.2281,0.1,0.2,0.1,0.45,0.4,0.05,0.05,0.6,0.05,0.1,0.16],"r":0.5},{"f":[0.7544,0.1,0.2,0.1,0.45,0.4,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.386,0.1,0.65,0.15,0.45,0.4,0.95,0.7,0.95,0.35,0.75,0.43],"r":0.5},{"f":[0.2982,0.1,0.2,0.1,0.45,0.4,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.4035,0.1,0.2,0.95,0.45,0.4,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.65},{"f":[0.2982,0.1,0.2,0.1,0.1,0.4,0.05,0.05,0.6,0.05,0.4,0.16],"r":0.35},{"f":[0.3158,0.1,0.2,0.1,0.1,0.4,0.05,0.05,0.6,0.05,0.4,0.16],"r":0.35},{"f":[0.1754,0.8,0.95,0.1,0.85,0.4,0.05,0.05,0.05,0.05,0.75,0.89],"r":0.5},{"f":[0.4737,0.1,0.2,0.1,0.1,0.4,0.05,0.05,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.3158,0.1,0.95,0.1,0.1,0.4,0.6,0.05,0.6,0.05,0.75,0.61],"r":0.6},{"f":[0.3684,0.1,0.2,0.1,0.45,0.4,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.7719,0.1,0.2,0.15,0.1,0.05,0.05,0.05,0.05,0.35,0.4,0.16],"r":0.5},{"f":[0.0702,0.1,0.2,0.1,0.1,0.9,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.2807,0.35,0.2,0.1,0.1,0.9,0.05,0.7,0.95,0.05,0.4,0.26],"r":0.5},{"f":[0.0877,0.1,0.2,0.1,0.1,0.4,0.05,0.05,0.05,0.05,0.75,0.16],"r":0.5},{"f":[0.0877,0.9,0.2,0.1,0.1,0.4,0.6,0.8,0.6,0.05,0.75,0.48],"r":0.5},{"f":[0.2632,0.1,0.2,0.1,0.1,0.9,0.05,0.05,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.193,0.35,0.2,0.1,0.85,0.4,0.05,0.05,0.05,0.05,0.4,0.26],"r":0.5},{"f":[0.3684,0.35,0.2,0.1,0.45,0.4,0.05,0.05,0.6,0.05,0.1,0.26],"r":0.5},{"f":[0.4912,0.1,0.2,0.1,0.1,0.9,0.05,0.7,0.95,0.05,0.4,0.16],"r":0.5},{"f":[0.386,0.35,0.2,0.1,0.1,0.05,0.05,0.05,0.6,0.05,0.75,0.26],"r":0.65},{"f":[0.0526,0.35,0.2,0.1,0.1,0.4,0.05,0.05,0.6,0.05,0.75,0.26],"r":0.5},{"f":[0.7719,0.1,0.2,0.1,0.1,0.9,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.1754,0.1,0.2,0.15,0.1,0.4,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.7544,0.1,0.05,0.1,0.45,0.4,0.05,0.05,0.6,0.05,0.4,0.07],"r":0.5},{"f":[0.0526,0.9,0.2,0.1,0.85,0.05,0.05,0.05,0.6,0.05,0.4,0.48],"r":0.5},{"f":[0.5614,0.1,0.2,0.1,0.45,0.4,0.05,0.05,0.05,0.05,0.75,0.16],"r":0.15},{"f":[0.5789,0.9,0.2,0.95,0.1,0.9,0.05,0.05,0.05,0.05,0.4,0.48],"r":0.5},{"f":[0.4035,0.1,0.2,0.1,0.1,0.9,0.05,0.05,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.5088,0.1,0.5,0.1,0.1,0.05,0.05,0.05,0.3,0.05,0.75,0.34],"r":0.5},{"f":[0.5088,0.1,0.2,0.1,0.1,0.4,0.05,0.05,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.6842,0.1,0.2,0.1,0.45,0.4,0.05,0.05,0.95,0.05,0.1,0.16],"r":0.5},{"f":[0.386,0.1,0.2,0.1,0.1,0.4,0.05,0.05,0.95,0.05,0.4,0.16],"r":0.5},{"f":[0.4211,0.1,0.2,0.15,0.1,0.9,0.05,0.45,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.2807,0.1,0.2,0.15,0.1,0.4,0.05,0.05,0.05,0.35,0.4,0.16],"r":0.5},{"f":[0,0.35,0.65,0.1,0.1,0.4,0.05,0.05,0.6,0.05,0.4,0.53],"r":0.5},{"f":[0.1754,0.1,0.2,0.15,0.1,0.4,0.05,0.05,0.6,0.35,0.4,0.16],"r":0.5},{"f":[0.2105,0.1,0.2,0.1,0.1,0.05,0.05,0.05,0.05,0.05,0.4,0.16],"r":0.5},{"f":[0.1228,0.1,0.2,0.1,0.45,0.05,0.05,0.05,0.95,0.05,0.4,0.16],"r":0.5},{"f":[0.0702,0.1,0.2,0.1,0.85,0.9,0.05,0.45,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.0702,0.1,0.2,0.1,0.45,0.4,0.95,0.45,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.8246,0.1,0.2,0.1,0.1,0.9,0.05,0.05,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.5965,0.1,0.2,0.1,0.1,0.05,0.05,0.05,0.6,0.05,0.4,0.16],"r":0.5},{"f":[0.0702,0.1,0.2,0.1,0.85,0.9,0.05,0.45,0.6,0.05,0.4,0.16],"r":0.5}];
 
-/* ─── NEURAL NETWORK ─────────────────────────────────────────────────────── */
-class NN {
-  constructor(i,h,o){this.w1=this.rm(i,h);this.b1=Array(h).fill(0);this.w2=this.rm(h,o);this.b2=Array(o).fill(0);this.lr=0.02;}
-  rm(r,c){return Array.from({length:r},()=>Array.from({length:c},()=>(Math.random()-0.5)*0.5));}
-  s(x){return 1/(1+Math.exp(-Math.max(-20,Math.min(20,x))));}
-  sd(x){const s=this.s(x);return s*(1-s);}
-  forward(inp){
-    this.inp=inp;
-    this.z1=this.b1.map((b,j)=>b+inp.reduce((s,x,i)=>s+x*this.w1[i][j],0));
-    this.a1=this.z1.map(z=>this.s(z));
-    this.z2=this.b2.map((b,j)=>b+this.a1.reduce((s,x,i)=>s+x*this.w2[i][j],0));
-    this.a2=this.z2.map(z=>this.s(z));
-    return this.a2[0];
-  }
-  train(inp,t){
-    const p=this.forward(inp),e=p-t,d2=[e*this.sd(this.z2[0])];
-    for(let i=0;i<this.w2.length;i++)for(let j=0;j<this.w2[0].length;j++)this.w2[i][j]-=this.lr*d2[j]*this.a1[i];
-    this.b2=this.b2.map((b,j)=>b-this.lr*d2[j]);
-    const d1=this.b1.map((_,j)=>d2.reduce((s,d,k)=>s+d*this.w2[j][k],0)*this.sd(this.z1[j]));
-    for(let i=0;i<this.w1.length;i++)for(let j=0;j<this.w1[0].length;j++)this.w1[i][j]-=this.lr*d1[j]*this.inp[i];
-    this.b1=this.b1.map((b,j)=>b-this.lr*d1[j]);
-  }
-}
 
 /* ─── ML AĞIRLIKLARI (pipeline'dan üretildi, outcome verisi arttıkça güncellenir) ── */
+/* ─── ML SİSTEMİ v4 — 66 etiketli hasta, CV balanced_accuracy: 0.738 ─────── */
 const GLOBAL_ML_WEIGHTS = {
-  // v3 — 27 etiketli hasta (24 pozitif, 3 negatif)
-  intercept: 0.8105907393583864,
+  intercept: -0.34503517192523303,
   coef: {
-    expectation:     0.5077892285474216,
-    motivation:   0.3027586581573342,
-    doctorCount:     0.4484565344714052,
-    support:         0.11896187733884692,
-    revision:        -0.9179540368331269,
-    riskKnow:        -0.8615987005405772,
-    age_norm:        -0.130235867233073,
-    motiv_x_support: 0.16527586581573342,
-    exp_x_revision:  0.15141038479059082,
-    patience:        0.0,
-    compliance:      0.0,
-    worstCase:       0.0,
+    motivasyon:        0.15116297782111604,
+    destek:            0.21539350264057514,
+    revizyon:          0.40252144126340345,
+    riskBilgisi:       0.2075156745364276,
+    beklenti:          -0.0932367558588931,
+    doktorSayisi:      -0.36379790340670776,
+    oncekiAmeliyat:    0.4294283067622374,
+    prosedurRiski:     0.41566307289326543,
+    yas:               0.11618179936975316,
+    rhinoDışsal:       0.2660153289981645,
+    oncekiKotu:        0.11797215576584166,
+    bilgisizDesteksiz: 0.07309238684161413,
+    yuksekRiskProc:    0.25104960620530054,
   },
-  mean: {
-    expectation:     0.32407407407407407,
-    motivation:      0.037037037037037035,
-    doctorCount:     0.2777777777777778,
-    support:         0.11037037037037038,
-    revision:        0.3148148148148148,
-    riskKnow:        0.48148148148148145,
-    age_norm:        0.3619233268356076,
-    motiv_x_support: 0.012222222222222223,
-    exp_x_revision:  0.12962962962962962,
-    patience:        0.1,
-    compliance:      0.05,
-    worstCase:       0.25,
-  },
-  std: {
-    expectation:     0.21316415617076553,
-    motivation:      0.18885257457751053,
-    doctorCount:     0.28327886186626583,
-    support:         0.23900226996413856,
-    revision:        0.3374234658942333,
-    riskKnow:        0.21436735005167082,
-    age_norm:        0.199182588464675,
-    motiv_x_support: 0.06232134961057847,
-    exp_x_revision:  0.2054846390849273,
-    patience:        0.2,
-    compliance:      0.15,
-    worstCase:       0.17,
-  },
+  mean: [0.10909090909090911, 0.16666666666666663, 0.37727272727272726, 0.5984848484848485, 0.2833333333333331, 0.19696969696969696, 0.016666666666666677, 0.30666666666666664, 0.4504419191919193, 0.06060606060606061, 0.07575757575757576, 0.09090909090909091, 0.12121212121212122],
+  std:  [0.2737103494059018, 0.2987769682684338, 0.3694982078709378, 0.2782479950334389, 0.2214506808307529, 0.2735677285646635, 0.25677683586013644, 0.21066513233043097, 0.24411112287949602, 0.23860629921247942, 0.26460983631171175, 0.28747978728803425, 0.32637362467481823],
 };
+
+const PROC_RISK_MAP = {
+  "Meme Asimetrisinin Giderilmesi":1.0,
+  "Karın Germe":0.6,
+  "Yüz Germe":0.4,
+  "Burun Estetiği":0.35,
+  "Jinekomasti":0.33,
+  "Meme Büyütme (Silikon Protez ile)":0.29,
+  "Meme Dikleştirme":0.25,
+  "Meme Küçültme":0.14,
+  "Üst Göz Kapağı Estetiği":0.05,
+  "Alt Göz Kapağı Estetiği":0.05,
+  "Liposuction":0.02,
+  "Dolgu Uygulaması":0.02,
+  "Botoks":0.02,
+  "Uyluk veya Kol germe":0.05,
+};
+
+function extractRawFeatures(a) {
+  const m_motiv = {
+    "Görünümümü iyileştirmek istiyorum":0.0,
+    "Sosyal özgüvenimi artırmak istiyorum":0.2,
+    "Özgüvenimi artırmak istiyorum":0.2,
+    "Kendim için daha iyi hissetmek istiyorum":0.15,
+    "Hayatımda büyük bir değişime ihtiyacım var":0.85,
+    "Başka insanların yorumları beni kötü etkiliyor":1.0,
+    "Yakınlarımın yorumları etkili oldu":1.0,
+  }[a.motivation] ?? 0.0;
+
+  const m_support = {
+    "Evet, destekliyorlar":0.0,"Evet":0.0,"Kararsızlar":0.35,
+    "Biliyorlar ama kararsızlar":0.5,"Kimseye söylemedim":0.85,
+    "Bu işleme karşılar":1.0,"Karşılar":1.0,
+  }[a.support] ?? 0.0;
+
+  const m_rev = {
+    "Evet, ve olası revizyonu normal kabul ederim":0.0,
+    "Evet, olası revizyonu normal karşılarım":0.0,
+    "Revizyon ihtimali beni çok endişelendiriyor":0.5,
+    "Revizyon beni endişelendiriyor":0.45,
+    "Kusursuz sonuç bekliyorum":1.0,
+  }[a.revision] ?? 0.0;
+
+  const m_risk = {
+    "Detaylı araştırdım ve biliyorum":0.0,
+    "Genel olarak bilgi sahibiyim":0.5,
+    "Hiçbir bilgim yok":1.0,
+  }[a.riskKnowledge] ?? 0.5;
+
+  const m_exp = {
+    "Küçük iyileştirmeler yeterli":0.0,"Küçük, doğal bir iyileştirme yeterli":0.0,
+    "Doğal ve dengeli bir sonuç bekliyorum":0.2,"Dengeli ve orantılı bir sonuç bekliyorum":0.2,
+    "Belirgin bir fark olmasını istiyorum":0.6,
+    "Belirgin bir değişim bekliyorum, ameliyat olduğum belli olmalı":0.75,
+    "Tamamen farklı bir görünüm istiyorum":1.0,"Tamamen farklı görünmek istiyorum":1.0,
+  }[a.expectation] ?? 0.2;
+
+  const m_multi = {
+    "Hayır":0.0,"1-2 doktora danıştım":0.5,"1-2 doktorla görüştüm":0.5,
+    "Birçok doktora danıştım":1.0,"Birçok doktorla görüştüm":1.0,
+  }[a.multiDoctor] ?? 0.0;
+
+  const m_prev = {
+    "Hayır":0.0,"Evet ve memnunum":-0.3,
+    "Evet ama beklentimi karşılamadı":0.7,"Evet ve hiç memnun değilim":1.0,
+  }[a.prevSurgery] ?? 0.0;
+
+  const m_proc = PROC_RISK_MAP[a.procedure] ?? 0.3;
+  const age_n  = Math.min(1, Math.max(0, ((parseInt(a.age)||35) - 17) / 48));
+
+  // Kombinasyon featureları
+  const rhinoDışsal       = (a.procedure==="Burun Estetiği" && m_motiv>=0.85) ? 1.0 : 0.0;
+  const oncekiKotu        = m_prev >= 0.7 ? 1.0 : 0.0;
+  const bilgisizDesteksiz = (m_risk>=1.0 && m_support>=0.5) ? 1.0 : 0.0;
+  const yuksekRiskProc    = m_proc >= 0.5 ? 1.0 : 0.0;
+
+  return [m_motiv, m_support, m_rev, m_risk, m_exp, m_multi, m_prev,
+          m_proc, age_n, rhinoDışsal, oncekiKotu, bilgisizDesteksiz, yuksekRiskProc];
+}
+
+function computeMLScore(a) {
+  const feats = extractRawFeatures(a);
+  const W = GLOBAL_ML_WEIGHTS;
+  const coefs = Object.values(W.coef);
+
+  let logit = W.intercept;
+  feats.forEach((v, i) => {
+    const z = (v - W.mean[i]) / (W.std[i] || 1);
+    logit += coefs[i] * z;
+  });
+
+  // prob yüksek = randevu alır = düşük risk → ters çevir
+  const prob = 1 / (1 + Math.exp(-logit));
+  return Math.min(100, Math.round((1 - prob) * 100));
+}
 
 
 
@@ -132,25 +177,24 @@ const AMBASSADOR_WEIGHTS = {
     low_risk:   0.9136872112774931,
     age:        -0.1731016285821571,
   },
-  mean: [0.3174,0.5391,0.8478,0.5435,0.8522,0.6246,0.4416],
-  std:  [0.2918,0.3011,0.2526,0.1541,0.3098,0.2349,0.2446],
+  mean: [0.31739130434782625, 0.5391304347826089, 0.8478260869565217, 0.5434782608695652, 0.8521739130434781, 0.6245652173913042, 0.44157608695652173],
+  std:  [0.29177444223539684, 0.30106929786546194, 0.2525858704048316, 0.15414867740205082, 0.3097959569969316, 0.2349440869814804, 0.2445673141348659],
 };
 
 function computeAmbassadorScore(a, riskScore){
   const sharing = {
     "Evet, açıkça paylaşırım":1.0,"Sık paylaşırım":0.85,"Evet paylaşırım":0.7,
-    "Ara sıra":0.4,"Sadece yakın çevrem ile paylaşırım":0.3,"Sadece çok yakınlarımla":0.2,
-    "Genelde paylaşmam":0.0,
-  }[a.sharing]??0.3;
+    "Ara sıra":0.4,"Sadece yakın çevrem ile paylaşırım":0.3,
+    "Sadece çok yakınlarımla":0.2,"Genelde paylaşmam":0.0,
+  }[a.sharing] ?? 0.3;
 
   const social = {
     "Sık sık danışırlar":1.0,"Evet, sık sık danışırlar":1.0,
-    "Bazen danışanlar olur":0.6,"Bazen":0.6,"Hayır":0.0,"Hayır, danışmazlar":0.0,
-  }[a.socialInfluence]??0.3;
+    "Bazen danışanlar olur":0.6,"Bazen":0.6,
+    "Hayır":0.0,"Hayır, danışmazlar":0.0,
+  }[a.socialInfluence] ?? 0.3;
 
-  const recommends = {
-    "Evet, sık öneririm":1.0,"Bazen":0.5,"Önermem":0.0,
-  }[a.recommends]??0.5;
+  const recommends = {"Evet, sık öneririm":1.0,"Bazen":0.5,"Önermem":0.0}[a.recommends] ?? 0.5;
 
   const motivation = {
     "Kendim için daha iyi hissetmek istiyorum":1.0,
@@ -159,28 +203,29 @@ function computeAmbassadorScore(a, riskScore){
     "Görünümümü iyileştirmek istiyorum":0.5,
     "Başka insanların yorumları beni kötü etkiliyor":0.0,
     "Yakınlarımın yorumları etkili oldu":0.0,
-  }[a.motivation]??0.5;
+  }[a.motivation] ?? 0.5;
 
   const support = {
     "Evet, destekliyorlar":1.0,"Evet":1.0,"Kararsızlar":0.4,
     "Biliyorlar ama kararsızlar":0.3,"Bu işleme karşılar":0.0,"Kimseye söylemedim":0.0,
-  }[a.support]??0.5;
+  }[a.support] ?? 0.5;
 
-  const low_risk = 1 - (riskScore/100);
+  const low_risk = 1 - (riskScore / 100);
   const age_norm = Math.min(1, Math.max(0, ((parseInt(a.age)||35) - 17) / 48));
 
-  const feats = [sharing, social, recommends, motivation, support, low_risk, age_norm];
-  const W = AMBASSADOR_WEIGHTS;
+  const feats  = [sharing, social, recommends, motivation, support, low_risk, age_norm];
+  const coefs  = Object.values(AMBASSADOR_WEIGHTS.coef);
+  const means  = AMBASSADOR_WEIGHTS.mean;
+  const stds   = AMBASSADOR_WEIGHTS.std;
 
-  let logit = W.intercept;
+  let logit = AMBASSADOR_WEIGHTS.intercept;
   feats.forEach((v, i) => {
-    const z = (v - W.mean[i]) / (W.std[i] || 1);
-    logit += Object.values(W.coef)[i] * z;
+    logit += coefs[i] * (v - means[i]) / (stds[i] || 1);
   });
-  return 1 / (1 + Math.exp(-logit)); // 0-1 arası elçi olasılığı
+  return 1 / (1 + Math.exp(-logit));
 }
 
-/* ─── KLİNİK BAZLI MODEL SİSTEMİ ────────────────────────────────────────── */
+/* ─── KLİNİK BAZLI MODEL ────────────────────────────────────────────────── */
 const clinicModelCache = {};
 
 async function loadClinicModel(doctorId) {
@@ -190,236 +235,25 @@ async function loadClinicModel(doctorId) {
       .select("weights, threshold, n_train, n_neg, accuracy, updated_at")
       .eq("doctor_id", doctorId)
       .single();
-    if(data && data.weights) {
-      clinicModelCache[doctorId] = data;
-      return data;
-    }
+    if(data && data.weights) { clinicModelCache[doctorId] = data; return data; }
   } catch(e) {}
   clinicModelCache[doctorId] = null;
   return null;
 }
 
 function computeScoreWithModel(a, weights) {
+  // Klinik modeli varsa onun ağırlıklarıyla hesapla
   const W = weights;
-  const raw = {
-    expectation: {
-      "Küçük iyileştirmeler yeterli": 0.0,
-      "Doğal ve dengeli bir sonuç bekliyorum": 0.25,
-      "Belirgin ama doğal değişim": 0.5,
-      "Belirgin bir değişim bekliyorum, ameliyat olduğum belli olmalı": 0.75,
-      "Tamamen farklı görünmek istiyorum": 1.0,
-      "Dengeli ve orantılı bir sonuç bekliyorum": 0.25,
-    }[a.expectation] ?? 0.25,
-    motivation: {
-      "Görünümümü iyileştirmek istiyorum": 0.0,
-      "Sosyal özgüvenimi artırmak istiyorum": 0.33,
-      "Özgüvenimi artırmak istiyorum": 0.33,
-      "Kendim için daha iyi hissetmek istiyorum": 0.2,
-      "Hayatımda büyük bir değişime ihtiyacım var": 0.85,
-      "Başka insanların yorumları beni kötü etkiliyor": 1.0,
-      "Yakınlarımın yorumları etkili oldu": 1.0,
-    }[a.motivation] ?? 0.0,
-    doctorCount: {
-      "Hayır": 0.0,
-      "1-2 doktora danıştım": 0.5,
-      "1–2 doktora danıştım": 0.5,
-      "1-2 doktorla görüştüm": 0.5,
-      "Birçok doktora danıştım": 1.0,
-      "Birçok doktorla görüştüm": 1.0,
-    }[a.multiDoctor] ?? 0.0,
-    support: {
-      "Evet": 0.0,
-      "Evet, destekliyorlar": 0.0,
-      "Kararsızlar": 0.33,
-      "Biliyorlar ama kararsızlar": 0.5,
-      "Kimseye söylemedim": 0.85,
-      "Bu işleme karşılar": 1.0,
-      "Karşılar": 1.0,
-    }[a.support] ?? 0.0,
-    revision: {
-      "Evet, ve olası revizyonu normal kabul ederim": 0.0,
-      "Evet, olası revizyonu normal karşılarım": 0.0,
-      "Evet, normal kabul ederim": 0.0,
-      "Revizyon ihtimali beni çok endişelendiriyor": 0.5,
-      "Revizyon beni endişelendiriyor": 0.5,
-      "Kusursuz sonuç bekliyorum": 1.0,
-    }[a.revision] ?? 0.0,
-    riskKnow: {
-      "Detaylı araştırdım ve biliyorum": 0.0,
-      "Genel olarak bilgi sahibiyim": 0.5,
-      "Hiçbir bilgim yok": 1.0,
-    }[a.riskKnowledge] ?? 0.5,
-    age_norm: Math.min(1, Math.max(0, ((parseInt(a.age)||35) - 18) / 57)),
-  };
-  raw.motiv_x_support = raw.motivation * raw.support;
-  raw.exp_x_revision = raw.expectation * raw.revision;
-
-  let logit = W.intercept;
-  for(const feat of Object.keys(W.coef)) {
-    const val = raw[feat] ?? 0;
-    const std = W.std[feat] || 1;
-    const z = (val - W.mean[feat]) / std;
-    logit += W.coef[feat] * z;
-  }
+  const feats = extractRawFeatures(a);
+  const coefs = Object.values(W.coef || {});
+  if(!coefs.length) return computeMLScore(a);
+  let logit = W.intercept || 0;
+  feats.forEach((v, i) => {
+    const z = (v - (W.mean?.[i] || 0)) / (W.std?.[i] || 1);
+    logit += (coefs[i] || 0) * z;
+  });
   const prob = 1 / (1 + Math.exp(-logit));
-  return Math.round((1 - prob) * 100);
-}
-
-function getActiveThreshold(clinicModel) {
-  return clinicModel?.threshold || 60;
-}
-
-
-/* ─── FEATURE EXTRACTION — pipeline ile aynı mantık ─────────────────────── */
-function extractFeatures(a){
-  // Ham feature'lar — pipeline'daki MAPPINGS ile birebir aynı
-  const raw = {
-    expectation: {
-      "Küçük iyileştirmeler yeterli": 0.0,
-      "Doğal ve dengeli bir sonuç bekliyorum": 0.25,
-      "Belirgin ama doğal değişim": 0.5,
-      "Belirgin bir değişim bekliyorum, ameliyat olduğum belli olmalı": 0.75,
-      "Tamamen farklı görünmek istiyorum": 1.0,
-    }[a.expectation] ?? 0.25,
-
-    motivation: {
-      "Görünümümü iyileştirmek istiyorum": 0.0,
-      "Sosyal özgüvenimi artırmak istiyorum": 0.33,
-      "Hayatımda büyük bir değişime ihtiyacım var": 0.66,
-      "Başka insanların yorumları beni kötü etkiliyor": 1.0,
-    }[a.motivation] ?? 0.0,
-
-    doctorCount: {
-      "Hayır": 0.0,
-      "1-2 doktora danıştım": 0.5,
-      "1–2 doktora danıştım": 0.5,
-      "Birçok doktora danıştım": 1.0,
-    }[a.multiDoctor] ?? 0.0,
-
-    support: {
-      "Evet": 0.0,
-      "Kararsızlar": 0.33,
-      "Kimseye söylemedim": 0.66,
-      "Bu işleme karşılar": 1.0,
-    }[a.support] ?? 0.0,
-
-    revision: {
-      "Evet, ve olası revizyonu normal kabul ederim": 0.0,
-      "Evet, normal kabul ederim": 0.0,
-      "Revizyon ihtimali beni çok endişelendiriyor": 0.5,
-      "Kusursuz sonuç bekliyorum": 1.0,
-    }[a.revision] ?? 0.0,
-
-    riskKnow: {
-      "Detaylı araştırdım ve biliyorum": 0.0,
-      "Genel olarak bilgi sahibiyim": 0.5,
-      "Hiçbir bilgim yok": 1.0,
-    }[a.riskKnowledge] ?? 0.5,
-
-    patience: {
-      "Evet": 0.0,
-      "Sabırlı olmakta zorlanabilirim": 0.5,
-      "Hızlı sonuç görmek istiyorum": 1.0,
-    }[a.patience] ?? 0.0,
-
-    compliance: {
-      "Titizlikle tüm önerilere uyarım": 0.0,
-      "Büyük ölçüde uyarım": 0.5,
-      "Kendi yöntemlerimi uygulamayı tercih ederim": 1.0,
-    }[a.compliance] ?? 0.5,
-
-    worstCase: {
-      "Doktorumla konuşur, birlikte değerlendiririm": 0.0,
-      "Revizyon seçeneğini değerlendiririm": 0.25,
-      "Çok üzülürüm ama kabullenirim": 0.5,
-      "Bu ihtimali düşünmek istemiyorum": 1.0,
-    }[a.worstCase] ?? 0.25,
-
-    age_norm: Math.min(1, Math.max(0, ((parseFloat(a.age)||35) - 18) / 57)),
-  };
-
-  // Etkileşim terimleri
-  raw.motiv_x_support = raw.motivation * raw.support;
-  raw.exp_x_revision  = raw.expectation * raw.revision;
-
-  // Prosedüre özel sinyal — burun
-  const rhinoBoost = (a.procedure === "Burun Estetiği" &&
-    a.rhinoVision === "Aklımda belirli bir referans var — bir ünlü veya fotoğraf") ? 0.3 : 0;
-
-  // Meme simetri sinyali
-  const breastBoost = (["Meme Küçültme","Meme Dikleştirme","Meme Büyütme (Silikon Protez ile)"].includes(a.procedure) &&
-    a.breastSymmetry === "Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor") ? 0.25 : 0;
-
-  // Lojistik regresyon: standardize + linear combination + sigmoid
-  const W = GLOBAL_ML_WEIGHTS;
-  let logit = W.intercept;
-  for(const feat of Object.keys(W.coef)){
-    const val = raw[feat] ?? 0;
-    const std = W.std[feat] || 1;
-    const z   = (val - W.mean[feat]) / std;
-    logit    += W.coef[feat] * z;
-  }
-  // Sigmoid → olasılık → 0-100 skor
-  const prob = 1 / (1 + Math.exp(-logit));
-
-  // Düşük = uygun (prob yüksek = randevu alır = düşük risk)
-  // Riski ters çevir: yüksek randevu olasılığı = düşük risk skoru
-  const baseScore = Math.round((1 - prob) * 100);
-
-  // Prosedüre özel boost — kural bazlı sinyaller eklenir
-  const finalScore = Math.min(100, Math.round(baseScore + rhinoBoost * 40 + breastBoost * 30));
-
-  // Eski sinir ağı array formatını korumak için dummy array (classify hâlâ score kullanıyor)
-  return Array(12).fill(finalScore / 100);
-}
-
-/* ─── SCORE HESAPLA — artık extractFeatures yerine direkt kullan ─────────── */
-function computeMLScore(a){
-  // extractFeatures zaten gerçek lojistik regresyon + rhino/breast boost yapıyor
-  // finalScore = array[0] * 100 olarak dönüyor
-  const feats = extractFeatures(a);
-  const mlScore = feats[0] * 100; // gerçek ML skoru (0-100)
-
-  // Prosedür bazlı risk — gerçek hasta verisinden (ek sinyal)
-  const procRisk = {
-    "Meme Asimetrisinin Giderilmesi": 0.9,
-    "Karın Germe": 0.6,
-    "Yüz Germe": 0.4,
-    "Burun Estetiği": 0.35,
-    "Jinekomasti": 0.33,
-    "Meme Büyütme (Silikon Protez ile)": 0.29,
-    "Meme Dikleştirme": 0.25,
-    "Meme Küçültme": 0.14,
-    "Üst Göz Kapağı Estetiği": 0.0,
-    "Alt Göz Kapağı Estetiği": 0.0,
-    "Liposuction": 0.0,
-    "Dolgu Uygulaması": 0.0,
-    "Botoks": 0.0,
-    "Uyluk veya Kol germe": 0.0,
-  };
-  // Prosedür bonusu — ML skoruna ağırlıklı katkı (%30 prosedür, %70 ML)
-  const procScore = (procRisk[a.procedure] ?? 0.3) * 100;
-  const blended = mlScore * 0.70 + procScore * 0.30;
-
-  // Önceki ameliyat memnuniyetsizliği — direkt ek puan
-  const prevBadBonus =
-    a.prevSurgery === "Evet ve hiç memnun değilim" ? 15 :
-    a.prevSurgery === "Evet ama beklentimi karşılamadı" ? 8 : 0;
-
-  // Dışsal motivasyon + rinoplasti — %100 risk kombinasyonu
-  const rhinoExtBonus = (a.procedure === "Burun Estetiği" &&
-    ["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].includes(a.motivation)) ? 12 : 0;
-
-  // Bilgisiz + sosyal destek yok kombinasyonu
-  const noKnowNoSupportBonus = (a.riskKnowledge === "Hiçbir bilgim yok" &&
-    ["Kimseye söylemedim","Bu işleme karşılar","Biliyorlar ama kararsızlar"].includes(a.support)) ? 8 : 0;
-
-  // Karın/Yüz germe + hiç bilgisiz — %80 risk
-  const abdoFaceNoKnowBonus = (["Karın Germe","Yüz Germe"].includes(a.procedure) &&
-    a.riskKnowledge === "Hiçbir bilgim yok") ? 10 : 0;
-
-  const total = blended + prevBadBonus + rhinoExtBonus + noKnowNoSupportBonus + abdoFaceNoKnowBonus;
-  return Math.min(100, Math.round(total));
+  return Math.min(100, Math.round((1 - prob) * 100));
 }
 
 
@@ -431,7 +265,7 @@ function classify(score,a){
   const socialInfluencer=a.socialInfluence==="Sık sık danışırlar"||a.socialInfluence==="Evet, sık sık danışırlar";
   const intMotiv=["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
   const hasSupport=a.support==="Evet, destekliyorlar"||a.support==="Evet";
-  const socialActive=ambassadorProb>=0.60&&score<40;
+  const socialActive=ambassadorProb>=0.82&&score<35;
 
   // Risk sinyalleri
   const bddRisk=a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor"||a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
