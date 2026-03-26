@@ -46,27 +46,27 @@ document.head.appendChild(SE);
 
 
 /* ─── ML AĞIRLIKLARI (pipeline'dan üretildi, outcome verisi arttıkça güncellenir) ── */
-/* ─── ML SİSTEMİ v4 — 66 etiketli hasta, CV balanced_accuracy: 0.738 ─────── */
+/* ─── ML SİSTEMİ v5 — balanced class_weight, CV: 0.738 ─────────────── */
 const GLOBAL_ML_WEIGHTS = {
-  intercept: -0.34503517192523303,
+  intercept: -0.20584503635528628,
   coef: {
-    motivasyon:        0.15116297782111604,
-    destek:            0.21539350264057514,
-    revizyon:          0.40252144126340345,
-    riskBilgisi:       0.2075156745364276,
-    beklenti:          -0.0932367558588931,
-    doktorSayisi:      -0.36379790340670776,
-    oncekiAmeliyat:    0.4294283067622374,
-    prosedurRiski:     0.41566307289326543,
-    yas:               0.11618179936975316,
-    rhinoDışsal:       0.2660153289981645,
-    oncekiKotu:        0.11797215576584166,
-    bilgisizDesteksiz: 0.07309238684161413,
-    yuksekRiskProc:    0.25104960620530054,
+    motivasyon:        0.11964264331353015,
+    destek:            0.14725340152490696,
+    revizyon:          0.22847304994001735,
+    riskBilgisi:       0.17169172549702744,
+    beklenti:          -0.026645457539418493,
+    doktorSayisi:      -0.2207186355893431,
+    oncekiAmeliyat:    0.2534090741089577,
+    prosedurRiski:     0.2700638559838301,
+    yas:               0.05853367108081644,
+    rhinoDışsal:       0.17161728984021904,
+    oncekiKotu:        0.11673436880883098,
+    bilgisizDesteksiz: 0.0893823812219943,
+    yuksekRiskProc:    0.19700610454654374,
     kararSuresi:       0.18,
   },
-  mean: [0.10909090909090911, 0.16666666666666663, 0.37727272727272726, 0.5984848484848485, 0.2833333333333331, 0.19696969696969696, 0.016666666666666677, 0.30666666666666664, 0.4504419191919193, 0.06060606060606061, 0.07575757575757576, 0.09090909090909091, 0.12121212121212122, 0.1],
-  std:  [0.2737103494059018, 0.2987769682684338, 0.3694982078709378, 0.2782479950334389, 0.2214506808307529, 0.2735677285646635, 0.25677683586013644, 0.21066513233043097, 0.24411112287949602, 0.23860629921247942, 0.26460983631171175, 0.28747978728803425, 0.32637362467481823, 0.3],
+  mean: [0.11076923076923079, 0.1692307692307692, 0.38307692307692304, 0.6, 0.2846153846153844, 0.2, 0.016923076923076933, 0.30692307692307685, 0.4538461538461539, 0.06153846153846154, 0.07692307692307693, 0.09230769230769231, 0.12307692307692308, 0.1],
+  std:  [0.2754705495486568, 0.3003449693131485, 0.3693317169696685, 0.2801098685543556, 0.22290444260387535, 0.27456258919345766, 0.25873611788504686, 0.21226922728476447, 0.24442207663187088, 0.24031537464328148, 0.2664693550105965, 0.28945981111118096, 0.3285254846778869, 0.3],
 };
 
 const PROC_RISK_MAP = {
@@ -167,13 +167,33 @@ function computeMLScore(a) {
     logit += coefs[i] * z;
   });
 
-  // prob = randevu alma olasılığı = memnuniyet proxy
   const prob = 1 / (1 + Math.exp(-logit));
-  const riskScore = Math.min(100, Math.round((1 - prob) * 100));
+  const mlBase = Math.round((1 - prob) * 100);
 
-  // ML tabanlı memnuniyet — prob'dan türetilir, kural değil
-  // prob yüksek = randevu alır = memnun kalma ihtimali yüksek
-  const mlSatisfaction = Math.round(prob * 100);
+  // Kombinasyon bonusları — ML'in göremediği pattern'ler
+  const procRisk = PROC_RISK_MAP[a.procedure] ?? 0.3;
+
+  // %30 prosedür + %70 ML
+  const blended = Math.round(mlBase * 0.70 + procRisk * 100 * 0.30);
+
+  // Güçlü sinyaller — veriden kanıtlanmış
+  const prevBadBonus =
+    a.prevSurgery === "Evet ve hiç memnun değilim" ? 15 :
+    a.prevSurgery === "Evet ama beklentimi karşılamadı" ? 8 : 0;
+
+  const rhinoExtBonus = (a.procedure === "Burun Estetiği" &&
+    ["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].includes(a.motivation)) ? 14 : 0;
+
+  const noKnowNoSupportBonus = (a.riskKnowledge === "Hiçbir bilgim yok" &&
+    ["Kimseye söylemedim","Bu işleme karşılar","Biliyorlar ama kararsızlar"].includes(a.support)) ? 8 : 0;
+
+  const abdoFaceBonus = (["Karın Germe","Yüz Germe"].includes(a.procedure) &&
+    a.riskKnowledge === "Hiçbir bilgim yok") ? 10 : 0;
+
+  const riskScore = Math.min(100, blended + prevBadBonus + rhinoExtBonus + noKnowNoSupportBonus + abdoFaceBonus);
+
+  // Memnuniyet — risk skorunun tersinden
+  const mlSatisfaction = Math.round((1 - riskScore / 100) * 100);
 
   return { riskScore, mlSatisfaction, prob };
 }
@@ -355,11 +375,11 @@ function predictOutcomes(score, a){
   rev = Math.min(85, Math.max(5, rev));
 
   // ── Beklenen Memnuniyet — ML tabanlı ──────────────────────────
-  // prob doğrudan ML modelinden geliyor — kural değil
+  // riskScore'un tersinden türetilir — kırmızı hasta = düşük memnuniyet
   const mlResult = computeMLScore(a);
-  const mlProb = mlResult.prob; // randevu alma olasılığı = memnuniyet proxy
+  const satBase = Math.round((1 - mlResult.riskScore / 100) * 100);
 
-  // Psikolojik düzeltmeler — ML'in göremediği sinyaller
+  // Psikolojik düzeltmeler — ML'in göremediği sinyaller (±20 max)
   let satAdj = 0;
   const satReasons = [];
   if(intMotiv)     { satAdj+=8;  satReasons.push({txt:"İçsel motivasyon — sonuç değerlendirmesi kendine dayalı",w:"high",dir:"+"}); }
@@ -373,8 +393,7 @@ function predictOutcomes(score, a){
   if(lowSelfEst)   { satAdj-=5;  satReasons.push({txt:"Düşük benlik saygısı — sonuç algısını çarpıtabilir",w:"low",dir:"-"}); }
   if(lifeExpect)   { satAdj-=7;  satReasons.push({txt:"İşlemden hayat değişikliği beklentisi — sürdürülemez",w:"med",dir:"-"}); }
 
-  // ML prob (0-1) → 0-100 + küçük psikolojik düzeltme
-  const sat = Math.min(92, Math.max(12, Math.round(mlProb * 100) + satAdj));
+  const sat = Math.min(92, Math.max(12, satBase + satAdj));
 
   // ── Cerrahi Uygunluk ──────────────────────────────────────────
   const riskFactors = [bddRisk, highExp&&extMotiv, manyDocs, unrealistic, worstAvoid].filter(Boolean).length;
@@ -566,6 +585,12 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
   const [showAmbassador,setShowAmbassador]=useState(false);
   const [outcomeProcedures,setOutcomeProcedures]=useState(patient.outcome_procedures||[]);
   const [noAppointment,setNoAppointment]=useState(patient.no_appointment||false);
+  const [sat1m,setSat1m]=useState(patient.satisfaction_1m||null);
+  const [sat6m,setSat6m]=useState(patient.satisfaction_6m||null);
+  const [wouldRecommend,setWouldRecommend]=useState(patient.would_recommend||null);
+  const [hadRevision,setHadRevision]=useState(patient.had_revision||false);
+  const [showSat1m,setShowSat1m]=useState(false);
+  const [showSat6m,setShowSat6m]=useState(false);
   const [ambassadorSent,setAmbassadorSent]=useState(patient.ambassador_sent||false);
   const [consultNote,setConsultNote]=useState(patient.consult_note||"");
   const [showConsultNote,setShowConsultNote]=useState(false);
@@ -586,6 +611,14 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
     await sb.from("patients").update({outcome_procedures:outcomeProcedures,no_appointment:false}).eq("id",patient.id);
     setNoAppointment(false);
     setShowOutcome(false);
+  }
+
+  async function saveSatisfaction(month){
+    const data = month===1
+      ? {satisfaction_1m:sat1m, would_recommend:wouldRecommend, had_revision:hadRevision}
+      : {satisfaction_6m:sat6m, would_recommend:wouldRecommend, had_revision:hadRevision};
+    await sb.from("patients").update(data).eq("id",patient.id);
+    month===1 ? setShowSat1m(false) : setShowSat6m(false);
   }
 
   async function markNoAppointment(){
@@ -924,6 +957,18 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
               <button onClick={e=>{e.stopPropagation();setShowOutcome(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:13,fontWeight:400,border:`1px solid ${outcomeProcedures.length>0?"#059669":"#d4e1ef"}`,background:"transparent",color:outcomeProcedures.length>0?"#059669":"#7b9ab5",letterSpacing:"0.03em"}}>
                 {outcomeProcedures.length>0?"✓ Randevu Girildi":"Randevu Sonucu"}
               </button>
+              {outcomeProcedures.length>0&&(
+                <button onClick={e=>{e.stopPropagation();setShowSat1m(v=>!v);setShowSat6m(false);}}
+                  style={{padding:"8px 10px",borderRadius:7,fontSize:12,fontWeight:400,border:`1px solid ${sat1m?"#059669":"#d4e1ef"}`,background:"transparent",color:sat1m?"#059669":"#7b9ab5",flexShrink:0}}>
+                  {sat1m?`1ay: ${sat1m}`:"1 Ay ↗"}
+                </button>
+              )}
+              {outcomeProcedures.length>0&&(
+                <button onClick={e=>{e.stopPropagation();setShowSat6m(v=>!v);setShowSat1m(false);}}
+                  style={{padding:"8px 10px",borderRadius:7,fontSize:12,fontWeight:400,border:`1px solid ${sat6m?"#1d4ed8":"#d4e1ef"}`,background:"transparent",color:sat6m?"#1d4ed8":"#7b9ab5",flexShrink:0}}>
+                  {sat6m?`6ay: ${sat6m}`:"6 Ay ↗"}
+                </button>
+              )}
               {!noAppointment&&(
                 <button onClick={e=>{e.stopPropagation();markNoAppointment();}} style={{padding:"8px 10px",borderRadius:7,fontSize:13,fontWeight:400,border:"1px solid #fecaca",background:"transparent",color:"#dc2626",letterSpacing:"0.02em",flexShrink:0}}>
                   Randevu Yok
@@ -962,6 +1007,80 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={saveOutcome} style={{padding:"9px 20px",background:"#1e3a5f",border:"none",borderRadius:7,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer"}}>Kaydet</button>
                   <button onClick={()=>setShowOutcome(false)} style={{padding:"9px 14px",background:"transparent",border:"1px solid #d4e1ef",borderRadius:7,color:"#7b9ab5",fontSize:13,cursor:"pointer"}}>İptal</button>
+                </div>
+              </div>
+            )}
+
+            {/* MEMNUNİYET — 1 AY KONTROLÜ */}
+            {showSat1m&&(
+              <div onClick={e=>e.stopPropagation()} style={{borderTop:"1px solid #d4e1ef",padding:"16px",background:"#f0fdf4"}}>
+                <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:"#059669",marginBottom:12,fontWeight:500}}>1 Ay Kontrol — Memnuniyet</div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,color:"#7b9ab5",marginBottom:6}}>Genel memnuniyet</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {["Memnun","Kısmen","Değil"].map(v=>(
+                      <button key={v} onClick={()=>setSat1m(v)}
+                        style={{padding:"6px 14px",borderRadius:20,fontSize:12,border:`1px solid ${sat1m===v?"#059669":"#d4e1ef"}`,background:sat1m===v?"#059669":"transparent",color:sat1m===v?"white":"#7b9ab5",cursor:"pointer"}}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,color:"#7b9ab5",marginBottom:6}}>Bu kliniği önerir mi?</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {["Evet","Belki","Hayır"].map(v=>(
+                      <button key={v} onClick={()=>setWouldRecommend(v)}
+                        style={{padding:"6px 14px",borderRadius:20,fontSize:12,border:`1px solid ${wouldRecommend===v?"#1e3a5f":"#d4e1ef"}`,background:wouldRecommend===v?"#1e3a5f":"transparent",color:wouldRecommend===v?"white":"#7b9ab5",cursor:"pointer"}}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <input type="checkbox" checked={hadRevision} onChange={e=>setHadRevision(e.target.checked)} id="rev1m"/>
+                  <label htmlFor="rev1m" style={{fontSize:12,color:"#7b9ab5",cursor:"pointer"}}>Revizyon talebi var</label>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>saveSatisfaction(1)} style={{padding:"8px 18px",background:"#059669",border:"none",borderRadius:7,color:"white",fontSize:13,fontWeight:500,cursor:"pointer"}}>Kaydet</button>
+                  <button onClick={()=>setShowSat1m(false)} style={{padding:"8px 14px",background:"transparent",border:"1px solid #d4e1ef",borderRadius:7,color:"#7b9ab5",fontSize:13,cursor:"pointer"}}>İptal</button>
+                </div>
+              </div>
+            )}
+
+            {/* MEMNUNİYET — 6 AY KONTROLÜ */}
+            {showSat6m&&(
+              <div onClick={e=>e.stopPropagation()} style={{borderTop:"1px solid #d4e1ef",padding:"16px",background:"#eff6ff"}}>
+                <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:"#1d4ed8",marginBottom:12,fontWeight:500}}>6 Ay Kontrol — Memnuniyet</div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,color:"#7b9ab5",marginBottom:6}}>Genel memnuniyet</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {["Memnun","Kısmen","Değil"].map(v=>(
+                      <button key={v} onClick={()=>setSat6m(v)}
+                        style={{padding:"6px 14px",borderRadius:20,fontSize:12,border:`1px solid ${sat6m===v?"#1d4ed8":"#d4e1ef"}`,background:sat6m===v?"#1d4ed8":"transparent",color:sat6m===v?"white":"#7b9ab5",cursor:"pointer"}}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:12,color:"#7b9ab5",marginBottom:6}}>Bu kliniği önerir mi?</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {["Evet","Belki","Hayır"].map(v=>(
+                      <button key={v} onClick={()=>setWouldRecommend(v)}
+                        style={{padding:"6px 14px",borderRadius:20,fontSize:12,border:`1px solid ${wouldRecommend===v?"#1e3a5f":"#d4e1ef"}`,background:wouldRecommend===v?"#1e3a5f":"transparent",color:wouldRecommend===v?"white":"#7b9ab5",cursor:"pointer"}}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                  <input type="checkbox" checked={hadRevision} onChange={e=>setHadRevision(e.target.checked)} id="rev6m"/>
+                  <label htmlFor="rev6m" style={{fontSize:12,color:"#7b9ab5",cursor:"pointer"}}>Revizyon talebi var</label>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>saveSatisfaction(6)} style={{padding:"8px 18px",background:"#1d4ed8",border:"none",borderRadius:7,color:"white",fontSize:13,fontWeight:500,cursor:"pointer"}}>Kaydet</button>
+                  <button onClick={()=>setShowSat6m(false)} style={{padding:"8px 14px",background:"transparent",border:"1px solid #d4e1ef",borderRadius:7,color:"#7b9ab5",fontSize:13,cursor:"pointer"}}>İptal</button>
                 </div>
               </div>
             )}
