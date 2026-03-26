@@ -374,27 +374,25 @@ function predictOutcomes(score, a){
   if(realisticExp) { rev-=8;  }
   rev = Math.min(85, Math.max(5, rev));
 
-  // ── Beklenen Memnuniyet ────────────────────────────────────────
-  // Risk ve memnuniyet aynı şey değil — ayrı hesaplanır
-  // Taban: segment bazlı (kırmızı = düşük baz, yeşil = yüksek baz)
-  // Üstüne psikolojik profil sinyalleri eklenir
-  const satBase = score >= 60 ? 30 : score >= 45 ? 45 : score >= 30 ? 62 : 74;
-  let satAdj = 0;
+  // ── Beklenen Memnuniyet (0–100) ────────────────────────────────
+  let sat = 68;
   const satReasons = [];
-  if(intMotiv)     { satAdj+=10; satReasons.push({txt:"İçsel motivasyon — sonuç değerlendirmesi kendine dayalı",w:"high",dir:"+"}); }
-  if(realisticExp) { satAdj+=8;  satReasons.push({txt:"Gerçekçi beklenti — sonuç-beklenti uyumu kuvvetli",w:"high",dir:"+"}); }
-  if(goodSupport)  { satAdj+=5;  satReasons.push({txt:"Güçlü sosyal destek — iyileşme süreci kolaylaşır",w:"med",dir:"+"}); }
-  if(patient)      { satAdj+=5;  satReasons.push({txt:"Sabırlı profil — süreci olduğu gibi yaşayabilir",w:"med",dir:"+"}); }
-  if(prevGood)     { satAdj+=8;  satReasons.push({txt:"Geçmişte memnuniyetle sonuçlanmış — pozitif referans",w:"med",dir:"+"}); }
-  if(detailedKnow) { satAdj+=4;  satReasons.push({txt:"Süreci detaylı biliyor — sürpriz riski düşük",w:"low",dir:"+"}); }
-  if(bddRisk)      { satAdj-=20; satReasons.push({txt:"BDD riski — memnuniyet hiçbir sonuçla gelmeyebilir",w:"high",dir:"-"}); }
-  if(extMotiv)     { satAdj-=12; satReasons.push({txt:"Dışsal motivasyon — başkalarının tepkisine bağımlı",w:"high",dir:"-"}); }
-  if(highExp)      { satAdj-=10; satReasons.push({txt:"Aşırı beklenti — gerçek sonuç hayal kırıklığı yaratır",w:"high",dir:"-"}); }
-  if(unrealistic)  { satAdj-=8;  satReasons.push({txt:"Kusursuz sonuç beklentisi — tatminsizlik döngüsü riski",w:"high",dir:"-"}); }
-  if(lowSelfEst)   { satAdj-=6;  satReasons.push({txt:"Düşük benlik saygısı — sonuç algısını çarpıtabilir",w:"low",dir:"-"}); }
-  if(lifeExpect)   { satAdj-=8;  satReasons.push({txt:"İşlemden hayat değişikliği beklentisi — sürdürülemez",w:"med",dir:"-"}); }
-  if(prevBad)      { satAdj-=8;  satReasons.push({txt:"Geçmiş memnuniyetsizlik — standartlar yüksek",w:"med",dir:"-"}); }
-  const sat = Math.min(92, Math.max(12, satBase + satAdj));
+  if(intMotiv)     { sat+=14; satReasons.push({txt:"İçsel motivasyon — sonuç değerlendirmesi kendine dayalı",w:"high",dir:"+"}); }
+  if(realisticExp) { sat+=12; satReasons.push({txt:"Gerçekçi beklenti — sonuç-beklenti uyumu kuvvetli",w:"high",dir:"+"}); }
+  if(goodSupport)  { sat+=8;  satReasons.push({txt:"Güçlü sosyal destek — iyileşme süreci kolaylaşır",w:"med",dir:"+"}); }
+  if(patient)      { sat+=8;  satReasons.push({txt:"Sabırlı profil — süreci olduğu gibi yaşayabilir",w:"med",dir:"+"}); }
+  if(prevGood)     { sat+=10; satReasons.push({txt:"Geçmişte memnuniyetle sonuçlanmış — pozitif referans",w:"med",dir:"+"}); }
+  if(detailedKnow) { sat+=6;  satReasons.push({txt:"Süreci detaylı biliyor — sürpriz riski düşük",w:"low",dir:"+"}); }
+  if(bddRisk)      { sat-=22; satReasons.push({txt:"BDD riski — memnuniyet hiçbir sonuçla gelmeyebilir",w:"high",dir:"-"}); }
+  if(extMotiv)     { sat-=16; satReasons.push({txt:"Dışsal motivasyon — başkalarının tepkisine bağımlı",w:"high",dir:"-"}); }
+  if(highExp)      { sat-=14; satReasons.push({txt:"Aşırı beklenti — gerçek sonuç hayal kırıklığı yaratır",w:"high",dir:"-"}); }
+  if(unrealistic)  { sat-=12; satReasons.push({txt:"Kusursuz sonuç beklentisi — tatminsizlik döngüsü riski",w:"high",dir:"-"}); }
+  if(impulsive)    { sat-=10; satReasons.push({txt:"İyileşme sürecine sabırsız — erken değerlendirme riski",w:"med",dir:"-"}); }
+  if(noSupport)    { sat-=8;  satReasons.push({txt:"Destek eksikliği — zor dönemde yalnız kalabilir",w:"med",dir:"-"}); }
+  if(prevBad)      { sat-=10; satReasons.push({txt:"Geçmiş memnuniyetsizlik — standartlar yüksek",w:"med",dir:"-"}); }
+  if(lowSelfEst)   { sat-=8;  satReasons.push({txt:"Düşük benlik saygısı — sonuç algısını çarpıtabilir",w:"low",dir:"-"}); }
+  if(lifeExpect)   { sat-=10; satReasons.push({txt:"İşlemden hayat değişikliği beklentisi — sürdürülemez",w:"med",dir:"-"}); }
+  sat = Math.min(95, Math.max(15, sat));
 
   // ── Cerrahi Uygunluk ──────────────────────────────────────────
   const riskFactors = [bddRisk, highExp&&extMotiv, manyDocs, unrealistic, worstAvoid].filter(Boolean).length;
