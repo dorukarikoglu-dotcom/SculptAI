@@ -593,14 +593,25 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
     await sb.from("patients").update({outcome_procedures:outcomeProcedures,no_appointment:false}).eq("id",patient.id);
     setNoAppointment(false);
     setShowOutcome(false);
-    // triggerRetrain(patient.doctor_id); // Edge function kalibrasyonu bekliyor
+    triggerRetrain(patient.doctor_id);
   }
 
   async function triggerRetrain(doctorId){
     try {
-      await sb.functions.invoke("auto-train", { body: { doctor_id: doctorId } });
-      clinicModelCache[doctorId] = undefined; // cache temizle
-    } catch(e) { /* sessiz hata — kullanıcıyı etkileme */ }
+      // Sadece negatif (randevu almayan) hasta sayısını say
+      const { count: negCount } = await sb.from("patients")
+        .select("id", { count: "exact", head: true })
+        .eq("doctor_id", doctorId)
+        .eq("no_appointment", true);
+
+      // Her 10 yeni negatifde bir eğit: 10, 20, 30, 40...
+      // Şu an 25 negatif var — bir sonraki tetik 30'da
+      if(negCount && negCount % 10 === 0){
+        await sb.functions.invoke("auto-train", { body: { doctor_id: doctorId } });
+        clinicModelCache[doctorId] = undefined; // cache temizle
+        console.log(`✓ Auto-train tetiklendi: ${negCount} negatif örnek`);
+      }
+    } catch(e) { /* sessiz hata */ }
   }
 
   async function saveSatisfaction(month){
@@ -615,7 +626,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult}){
     await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patient.id);
     setNoAppointment(true);
     setOutcomeProcedures([]);
-    // triggerRetrain(patient.doctor_id); // Edge function kalibrasyonu bekliyor
+    triggerRetrain(patient.doctor_id);
   }
 
   async function sendAmbassador(){
