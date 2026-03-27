@@ -1981,6 +1981,13 @@ function DoctorPanel({doctor,onLogout}){
           </div>
           {/* Sağ butonlar */}
           <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {isMobile&&(
+              <button onClick={()=>setTab("settings")} title="Ayarlar"
+                style={{padding:"6px 10px",borderRadius:7,fontSize:11,border:"1px solid #d4e1ef",background:"transparent",color:"#7b9ab5",display:"flex",alignItems:"center",gap:4}}>
+                <span style={{fontSize:13}}>{THRESHOLD_MODES[thresholdMode||"balanced"].icon}</span>
+                <span style={{fontWeight:500,color:THRESHOLD_MODES[thresholdMode||"balanced"].color}}>{THRESHOLD_MODES[thresholdMode||"balanced"].label}</span>
+              </button>
+            )}
             {!isMobile&&<button onClick={()=>setTab("settings")} style={{padding:"6px 13px",borderRadius:7,fontSize:13,border:"1px solid #d4e1ef",background:"transparent",color:"#7b9ab5",letterSpacing:"0.03em"}}>Ayarlar</button>}
             <div style={{width:32,height:32,borderRadius:"50%",background:"#1e3a5f",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:500,color:"#f8fafd",letterSpacing:"0.04em"}}>{doctor.name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>
           </div>
