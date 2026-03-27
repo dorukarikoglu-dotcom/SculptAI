@@ -879,13 +879,25 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
             </div>
           )}
         </div>
-        {/* Tarih + model badge + chevron */}
+        {/* Tarih + model badge + hızlı randevu yok + chevron */}
         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0,width:52}}>
           <div style={{fontSize:11,color:"#7b9ab5",whiteSpace:"nowrap"}}>{patient.created_at?new Date(patient.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}):""}</div>
           <div title={modelInfo.source==="clinic"?`${modelInfo.label} · %${modelInfo.accuracy?Math.round(modelInfo.accuracy*100):"—"} doğruluk`:"Global model — klinik modeli henüz yok"}
             style={{fontSize:8,fontWeight:600,color:modelInfo.color,background:modelInfo.source==="clinic"?"#eff6ff":"#f1f5f9",padding:"1px 4px",borderRadius:3,letterSpacing:"0.04em"}}>
             {modelInfo.source==="clinic"?`v${clinicModelCache[patient.doctor_id]?.version||1}`:"GLB"}
           </div>
+          {/* Hızlı randevu yok — açmadan tıklanabilir */}
+          {!noAppointment&&!outcomeProcedures.length&&(
+            <button
+              onClick={async e=>{e.stopPropagation();if(window.confirm("Randevu alınmadı olarak işaretlensin mi?")){await markNoAppointment();}}}
+              title="Randevu Alınmadı"
+              style={{fontSize:9,fontWeight:700,color:"#ef4444",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:5,padding:"2px 5px",cursor:"pointer",lineHeight:1.2,letterSpacing:"0.02em"}}>
+              ✕ RY
+            </button>
+          )}
+          {noAppointment&&(
+            <div style={{fontSize:9,fontWeight:700,color:"#ef4444",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:5,padding:"2px 5px",lineHeight:1.2}}>✕ RY</div>
+          )}
           <div style={{fontSize:14,color:"#7b9ab5",transform:open?"rotate(90deg)":"none",transition:"transform 0.2s"}}>›</div>
         </div>
       </div>
