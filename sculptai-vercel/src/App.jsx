@@ -3701,7 +3701,7 @@ function Login({onLogin}){
 
           {/* Title */}
           <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?28:38,fontWeight:300,color:"#1e3a5f",lineHeight:1.1,marginBottom:8,letterSpacing:"-0.02em",textAlign:isMobile?"center":"left"}}>
-            {mode==="login"?<>Görünmeyeni<br/><em>görmek.</em></>:<>Kliniğinizi<br/><em>kurallım.</em></>}
+            {mode==="login"?<>Görünmeyeni<br/><em>görmek.</em></>:<>Kliniğinizin<br/><em>yeni refleksi.</em></>}
           </div>
           <div style={{fontSize:13,color:"#7b9ab5",lineHeight:1.6,marginBottom:24,textAlign:isMobile?"center":"left"}}>
             {mode==="login"?"Panele giriş yapın.":"Hesap oluşturun, hemen kullanmaya başlayın."}
