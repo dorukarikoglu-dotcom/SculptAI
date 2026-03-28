@@ -3081,10 +3081,10 @@ YAZIM KURALLARI:
 
           <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>Sonraki Adım</div>
           <div style={{border:"1px solid #d4e1ef",borderRadius:12,padding:"13px 15px",display:"flex",alignItems:"center",gap:11,marginBottom:12}}>
-            <div style={{width:30,height:30,background:"#eef3f9",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>📅</div>
+            <div style={{width:30,height:30,background:"#eef3f9",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>📋</div>
             <div>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1e3a5f",marginBottom:1}}>Konsültasyon randevusu</div>
-              <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.4}}>{doctorInfo?.name||"Doktorunuz"} ekibi sizinle iletişime geçecek.</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1e3a5f",marginBottom:1}}>Bilgileriniz doktorunuza iletildi</div>
+              <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.4}}>{doctorInfo?.name||"Doktorunuz"} konsültasyonunuza özel olarak hazırlanacak. Aşağıdaki bilgileri inceleyerek siz de hazırlanabilirsiniz.</div>
             </div>
           </div>
         </>)}
