@@ -321,7 +321,7 @@ async function loadClinicModel(doctorId) {
       const { data: remote } = await sb.from("clinic_models")
         .select("version, updated_at")
         .eq("doctor_id", doctorId)
-        .single();
+        .maybeSingle();
 
       if(remote && parsed.version >= remote.version) {
         // Cache güncel — kullan
@@ -336,7 +336,7 @@ async function loadClinicModel(doctorId) {
     const { data } = await sb.from("clinic_models")
       .select("weights, threshold, version, train_date, val_accuracy, val_f1, label_count, n_train, n_neg, threshold_src, updated_at")
       .eq("doctor_id", doctorId)
-      .single();
+      .maybeSingle();
 
     if(data && data.weights) {
       clinicModelCache[doctorId] = data;
@@ -351,7 +351,7 @@ async function loadClinicModel(doctorId) {
 }
 
 function invalidateClinicModel(doctorId) {
-  invalidateClinicModel(doctorId);
+  delete clinicModelCache[doctorId];
   try { localStorage.removeItem(CLINIC_MODEL_LS_KEY(doctorId)); } catch(e) {}
 }
 
