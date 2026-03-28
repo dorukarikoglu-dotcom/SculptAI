@@ -470,7 +470,7 @@ function classify(score,a,threshold=60){
   // Kırmızı
   if(score>=threshold||riskFactors>=3||bddRisk){
     const reason=buildRedReason();
-    return{cat:"red",label:"Konsültasyon Kritik",icon:"🔴",color:"#dc2626",bg:"#fef2f2",border:"#fecaca",textColor:"#991b1b",obs:"Beklenti yönetimi öncelikli",obsBody:reason,ambassador:false};
+    return{cat:"red",label:"Öncelikli Değerlendirme",icon:"🔴",color:"#dc2626",bg:"#fef2f2",border:"#fecaca",textColor:"#991b1b",obs:"Genişletilmiş konsültasyon önerilir",obsBody:reason,ambassador:false};
   }
 
   // Amber
@@ -534,7 +534,7 @@ function predictOutcomes(score, a){
   const riskFactors = [bddRisk, highExp&&extMotiv, manyDocs, unrealistic, worstAvoid].filter(Boolean).length;
   let fit, fitColor, fitBg;
   if(bddRisk || (score>=60 && riskFactors>=3)){
-    fit="Uygun Değil"; fitColor="#dc2626"; fitBg="#fef2f2";
+    fit="Genişletilmiş Değerlendirme"; fitColor="#dc2626"; fitBg="#fef2f2";
   } else if(score>=45 || riskFactors>=2 || (extMotiv&&highExp) || (prevBad&&unrealistic)){
     fit="Borderline"; fitColor="#d97706"; fitBg="#fffbeb";
   } else {
@@ -543,9 +543,9 @@ function predictOutcomes(score, a){
 
   // ── Yaklaşım Önerisi ─────────────────────────────────────────
   let approach, approachDesc;
-  if(fit==="Uygun Değil" || bddRisk){
-    approach="Ameliyat Önerilmez";
-    approachDesc="Psikolojik değerlendirme önce. Beklenti çerçevesi kurulmadan cerrahi planlanmamalı.";
+  if(fit==="Genişletilmiş Değerlendirme" || bddRisk){
+    approach="Psikolojik Ön Değerlendirme Önerilir";
+    approachDesc="Beklenti çerçevesi oluşturulmadan planlama önerilmez. Psikolojik ön değerlendirme düşünülmeli.";
   } else if(fit==="Borderline" || extMotiv || unrealistic || highExp){
     approach="Konservatif";
     approachDesc="Minimal müdahale planla, beklenti yönetimini önceliklendir. Birden fazla konsültasyon düşün.";
@@ -710,6 +710,167 @@ function Sidebar({tab,setTab,onLogout,doctor}){
   );
 }
 
+
+/* ─── DEMO HASTALARI — canlı demo sandbox için ──────────────────────────── */
+const DEMO_PATIENTS = [
+  {id:"demo-1",doctor_id:"demo",created_at:new Date(Date.now()-2*86400000).toISOString(),risk_score:82,segment:"Öncelikli Değerlendirme",
+   answers:{name:"Elif Yılmaz",age:"28",gender:"Kadın",procedure:"Burun Estetiği",motivation:"Başka insanların yorumları beni kötü etkiliyor",support:"Kimseye söylemedim",revision:"Kusursuz sonuç bekliyorum",riskKnowledge:"Hiçbir bilgim yok",expectation:"Tamamen farklı bir görünüm istiyorum",multiDoctor:"Birçok doktorla görüştüm",prevSurgery:"Hayır",rhinoVision:"Aklımda belirli bir referans var — bir ünlü veya fotoğraf",openStory:"Burnumun mükemmel olmasını istiyorum, herkes fark etsin istiyorum."},
+   outcome_procedures:[],no_appointment:false,ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-2",doctor_id:"demo",created_at:new Date(Date.now()-3*86400000).toISOString(),risk_score:71,segment:"Öncelikli Değerlendirme",
+   answers:{name:"Mehmet Kara",age:"45",gender:"Erkek",procedure:"Karın Germe",motivation:"Hayatımda büyük bir değişime ihtiyacım var",support:"Bu işleme karşılar",revision:"Revizyon ihtimali beni çok endişelendiriyor",riskKnowledge:"Hiçbir bilgim yok",expectation:"Belirgin bir fark olmasını istiyorum",multiDoctor:"1-2 doktorla görüştüm",prevSurgery:"Hayır"},
+   outcome_procedures:[],no_appointment:false,ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-3",doctor_id:"demo",created_at:new Date(Date.now()-1*86400000).toISOString(),risk_score:65,segment:"Öncelikli Değerlendirme",
+   answers:{name:"Ayşe Demir",age:"34",gender:"Kadın",procedure:"Meme Asimetrisinin Giderilmesi",motivation:"Özgüvenimi artırmak istiyorum",support:"Biliyorlar ama kararsızlar",revision:"Kusursuz sonuç bekliyorum",riskKnowledge:"Genel olarak bilgi sahibiyim",expectation:"Belirgin bir fark olmasını istiyorum",multiDoctor:"Birçok doktorla görüştüm",prevSurgery:"Evet ama beklentimi karşılamadı"},
+   outcome_procedures:[],no_appointment:true,ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-4",doctor_id:"demo",created_at:new Date(Date.now()-5*86400000).toISOString(),risk_score:48,segment:"Dikkatli Değerlendir",
+   answers:{name:"Zeynep Aksoy",age:"31",gender:"Kadın",procedure:"Meme Büyütme (Silikon Protez ile)",motivation:"Kendim için daha iyi hissetmek istiyorum",support:"Kararsızlar",revision:"Revizyon beni endişelendiriyor",riskKnowledge:"Genel olarak bilgi sahibiyim",expectation:"Belirgin bir fark olmasını istiyorum",multiDoctor:"1-2 doktorla görüştüm",prevSurgery:"Hayır"},
+   outcome_procedures:[],no_appointment:false,ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-5",doctor_id:"demo",created_at:new Date(Date.now()-4*86400000).toISOString(),risk_score:52,segment:"Dikkatli Değerlendir",
+   answers:{name:"Hakan Çelik",age:"38",gender:"Erkek",procedure:"Jinekomasti",motivation:"Sosyal özgüvenimi artırmak istiyorum",support:"Evet, destekliyorlar",revision:"Revizyon ihtimali beni çok endişelendiriyor",riskKnowledge:"Hiçbir bilgim yok",expectation:"Dengeli ve orantılı bir sonuç bekliyorum",multiDoctor:"Hayır",prevSurgery:"Hayır"},
+   outcome_procedures:["Jinekomasti"],no_appointment:false,had_procedure:true,ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-6",doctor_id:"demo",created_at:new Date(Date.now()-7*86400000).toISOString(),risk_score:45,segment:"Dikkatli Değerlendir",
+   answers:{name:"Selin Öztürk",age:"41",gender:"Kadın",procedure:"Yüz Germe",motivation:"Görünümümü iyileştirmek istiyorum",support:"Evet, destekliyorlar",revision:"Revizyon beni endişelendiriyor",riskKnowledge:"Genel olarak bilgi sahibiyim",expectation:"Doğal ve dengeli bir sonuç bekliyorum",multiDoctor:"1-2 doktorla görüştüm",prevSurgery:"Evet ve memnunum"},
+   outcome_procedures:[],no_appointment:false,ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-7",doctor_id:"demo",created_at:new Date(Date.now()-6*86400000).toISOString(),risk_score:28,segment:"Randevuya Hazır",
+   answers:{name:"Deniz Aydın",age:"36",gender:"Kadın",procedure:"Meme Dikleştirme",motivation:"Kendim için daha iyi hissetmek istiyorum",support:"Evet, destekliyorlar",revision:"Evet, olası revizyonu normal karşılarım",riskKnowledge:"Detaylı araştırdım ve biliyorum",expectation:"Doğal ve dengeli bir sonuç bekliyorum",multiDoctor:"1-2 doktorla görüştüm",prevSurgery:"Hayır"},
+   outcome_procedures:["Meme Dikleştirme"],no_appointment:false,had_procedure:true,satisfaction_1m:"Memnun",ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-8",doctor_id:"demo",created_at:new Date(Date.now()-8*86400000).toISOString(),risk_score:22,segment:"Randevuya Hazır",
+   answers:{name:"Burcu Şahin",age:"29",gender:"Kadın",procedure:"Burun Estetiği",motivation:"Görünümümü iyileştirmek istiyorum",support:"Evet, destekliyorlar",revision:"Evet, ve olası revizyonu normal kabul ederim",riskKnowledge:"Detaylı araştırdım ve biliyorum",expectation:"Küçük, doğal bir iyileştirme yeterli",multiDoctor:"1-2 doktorla görüştüm",prevSurgery:"Hayır",rhinoVision:"Sadece küçük düzeltmeler istiyorum"},
+   outcome_procedures:["Burun Estetiği"],no_appointment:false,had_procedure:true,satisfaction_1m:"Memnun",satisfaction_6m:"Memnun",ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-9",doctor_id:"demo",created_at:new Date(Date.now()-10*86400000).toISOString(),risk_score:18,segment:"Randevuya Hazır",
+   answers:{name:"Canan Korkmaz",age:"33",gender:"Kadın",procedure:"Meme Küçültme",motivation:"Kendim için daha iyi hissetmek istiyorum",support:"Evet, destekliyorlar",revision:"Evet, olası revizyonu normal karşılarım",riskKnowledge:"Detaylı araştırdım ve biliyorum",expectation:"Dengeli ve orantılı bir sonuç bekliyorum",multiDoctor:"Hayır",prevSurgery:"Hayır"},
+   outcome_procedures:["Meme Küçültme"],no_appointment:false,had_procedure:true,ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-10",doctor_id:"demo",created_at:new Date(Date.now()-4*86400000).toISOString(),risk_score:15,segment:"Randevuya Hazır",
+   answers:{name:"Ali Tekin",age:"52",gender:"Erkek",procedure:"Üst Göz Kapağı Estetiği",motivation:"Görünümümü iyileştirmek istiyorum",support:"Evet, destekliyorlar",revision:"Evet, ve olası revizyonu normal kabul ederim",riskKnowledge:"Genel olarak bilgi sahibiyim",expectation:"Küçük, doğal bir iyileştirme yeterli",multiDoctor:"Hayır",prevSurgery:"Hayır"},
+   outcome_procedures:[],no_appointment:false,ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-11",doctor_id:"demo",created_at:new Date(Date.now()-12*86400000).toISOString(),risk_score:12,segment:"Marka Elçisi",
+   answers:{name:"Pınar Erdoğan",age:"30",gender:"Kadın",procedure:"Botoks",motivation:"Kendim için daha iyi hissetmek istiyorum",support:"Evet, destekliyorlar",revision:"Evet, olası revizyonu normal karşılarım",riskKnowledge:"Detaylı araştırdım ve biliyorum",expectation:"Küçük, doğal bir iyileştirme yeterli",multiDoctor:"Hayır",prevSurgery:"Evet ve memnunum",sharing:"Evet, açıkça paylaşırım",socialInfluence:"Sık sık danışırlar",recommends:"Evet, sık öneririm"},
+   outcome_procedures:["Botoks"],no_appointment:false,had_procedure:true,satisfaction_1m:"Çok Memnun",satisfaction_6m:"Memnun",ambassador_sent:true,ambassador_code:"REF-X7K2",ai_text:"",model_source:"global_v5"},
+
+  {id:"demo-12",doctor_id:"demo",created_at:new Date(Date.now()-9*86400000).toISOString(),risk_score:10,segment:"Marka Elçisi",
+   answers:{name:"Derya Koç",age:"35",gender:"Kadın",procedure:"Dolgu Uygulaması",motivation:"Özgüvenimi artırmak istiyorum",support:"Evet, destekliyorlar",revision:"Evet, ve olası revizyonu normal kabul ederim",riskKnowledge:"Detaylı araştırdım ve biliyorum",expectation:"Küçük, doğal bir iyileştirme yeterli",multiDoctor:"Hayır",prevSurgery:"Evet ve memnunum",sharing:"Evet, açıkça paylaşırım",socialInfluence:"Evet, sık sık danışırlar",recommends:"Evet, sık öneririm"},
+   outcome_procedures:["Dolgu Uygulaması"],no_appointment:false,had_procedure:true,satisfaction_1m:"Memnun",ai_text:"",model_source:"global_v5"},
+];
+
+const DEMO_DOCTOR = {id:"demo",name:"Demo Kullanıcı",clinic_name:"Demo Klinik"};
+
+/* ─── KONSÜLTASYON PDF RAPORU ─────────────────────────────────────────── */
+function generateConsultPDF(patient, cls, pred, risks, comms, signals, modelInfo) {
+  const a = patient.answers || {};
+  const score = patient.risk_score || 0;
+  const date = patient.created_at ? new Date(patient.created_at).toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"}) : "";
+  const name = a.name || "İsimsiz Hasta";
+  const catColors = {red:"#dc2626",amber:"#d97706",green:"#059669",ambassador:"#7c3aed"};
+  const catBgs = {red:"#fef2f2",amber:"#fffbeb",green:"#ecfdf5",ambassador:"#faf5ff"};
+
+  const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
+<title>SculptAI — ${name}</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,300;0,400;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+@page{size:A4;margin:18mm 16mm 16mm 16mm}
+body{font-family:'Nunito',sans-serif;color:#1e3a5f;font-size:11px;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1e3a5f;padding-bottom:12px;margin-bottom:16px}
+.logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:300;color:#1e3a5f}
+.logo em{color:#1d4ed8;font-style:italic}
+.meta{text-align:right;font-size:9px;color:#7b9ab5;line-height:1.6}
+.patient-row{display:flex;gap:12px;margin-bottom:14px;align-items:stretch}
+.info-box{flex:1;background:#f8fafd;border:1px solid #d4e1ef;border-radius:8px;padding:10px 12px}
+.info-label{font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:#7b9ab5;margin-bottom:3px}
+.info-val{font-size:13px;font-weight:500;color:#1e3a5f}
+.score-box{width:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;padding:10px;border:2px solid ${catColors[cls.cat]||"#7b9ab5"};background:${catBgs[cls.cat]||"#f8fafd"}}
+.score-num{font-family:'Playfair Display',serif;font-size:32px;font-weight:300;color:${catColors[cls.cat]||"#1e3a5f"};line-height:1}
+.score-label{font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:${catColors[cls.cat]||"#7b9ab5"};margin-top:4px;text-align:center}
+.cat-strip{padding:8px 14px;border-radius:7px;margin-bottom:14px;display:flex;align-items:center;gap:10px;background:${catBgs[cls.cat]||"#f8fafd"};border:1px solid ${catColors[cls.cat]||"#d4e1ef"}33}
+.cat-icon{font-size:16px}
+.cat-text{font-size:12px;font-weight:600;color:${catColors[cls.cat]||"#1e3a5f"}}
+.cat-obs{font-size:11px;color:${catColors[cls.cat]||"#7b9ab5"};margin-left:4px;font-weight:400}
+.section{margin-bottom:12px}
+.section-title{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#2d5a8e;margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid #eef3f9}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.metric-box{background:#f8fafd;border:1px solid #d4e1ef;border-radius:6px;padding:8px;text-align:center}
+.metric-num{font-family:'Playfair Display',serif;font-size:20px;line-height:1;margin-bottom:2px}
+.metric-label{font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:#7b9ab5}
+.item{font-size:11px;color:#1e3a5f;padding:4px 0;line-height:1.55;display:flex;gap:6px}
+.item-dot{flex-shrink:0;margin-top:2px;color:#dc2626}
+.item-arrow{flex-shrink:0;margin-top:2px;color:#059669}
+.approach-box{background:#f8f7ff;border:1px solid #ddd6fe;border-radius:7px;padding:10px 12px;margin-bottom:12px}
+.approach-title{font-size:13px;font-weight:600;color:#3730a3;margin-bottom:2px}
+.approach-desc{font-size:11px;color:#6d28d9;line-height:1.5}
+.footer{margin-top:20px;padding-top:8px;border-top:1px solid #d4e1ef;display:flex;justify-content:space-between;font-size:8px;color:#7b9ab5}
+.neden{background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:8px 10px;margin-bottom:12px}
+.neden-text{font-size:11px;color:#991b1b;line-height:1.55}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+
+<div class="header">
+  <div><div class="logo">Sculpt<em>AI</em></div><div style="font-size:8px;color:#7b9ab5;letter-spacing:0.15em;text-transform:uppercase;margin-top:2px">Konsültasyon Brifing Raporu</div></div>
+  <div class="meta">${date}<br>${modelInfo.label} · Risk Skoru: ${score}/100</div>
+</div>
+
+<div class="patient-row">
+  <div class="info-box"><div class="info-label">Hasta</div><div class="info-val">${name}</div></div>
+  <div class="info-box"><div class="info-label">Yaş</div><div class="info-val">${a.age || "—"}</div></div>
+  <div class="info-box"><div class="info-label">İşlem</div><div class="info-val">${a.procedure || "—"}</div></div>
+  <div class="score-box"><div class="score-num">${score}</div><div class="score-label">Risk Skoru</div></div>
+</div>
+
+<div class="cat-strip">
+  <span class="cat-icon">${cls.icon}</span>
+  <span class="cat-text">${cls.label}</span>
+  <span class="cat-obs">— ${cls.obs}</span>
+</div>
+
+${cls.obsBody ? `<div class="neden"><div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:#dc2626;margin-bottom:3px;font-weight:700">Neden Bu Sınıflandırma?</div><div class="neden-text">${cls.obsBody}</div></div>` : ""}
+
+<div class="grid3">
+  <div class="metric-box"><div class="metric-num" style="color:${pred.rev>=50?"#dc2626":pred.rev>=30?"#d97706":"#059669"}">${pred.rev}%</div><div class="metric-label">Revizyon Riski</div></div>
+  <div class="metric-box"><div class="metric-num" style="color:${pred.fitColor};font-size:14px">${pred.fit}</div><div class="metric-label">Cerrahi Uygunluk</div></div>
+  <div class="metric-box"><div class="metric-num" style="color:#1d4ed8;font-size:14px">${signals.map(s=>s.val).join(" · ")}</div><div class="metric-label">Sinyaller</div></div>
+</div>
+
+<div class="approach-box">
+  <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:#8b5cf6;margin-bottom:4px;font-weight:700">Önerilen Yaklaşım</div>
+  <div class="approach-title">${pred.approach}</div>
+  <div class="approach-desc">${pred.approachDesc}</div>
+</div>
+
+${pred.revReasons && pred.revReasons.length > 0 ? `<div class="section"><div class="section-title">Tahmin Gerekçeleri</div>${pred.revReasons.slice(0,3).map(r=>`<div class="item"><span class="item-dot">↑</span>${r.txt}</div>`).join("")}</div>` : ""}
+
+<div class="section">
+  <div class="section-title">⚠ Risk Faktörleri</div>
+  ${risks.map(r=>`<div class="item"><span class="item-dot">·</span>${r}</div>`).join("")}
+</div>
+
+<div class="section">
+  <div class="section-title">💬 Konsültasyon Notları</div>
+  ${comms.map(c=>`<div class="item"><span class="item-arrow">→</span>${c}</div>`).join("")}
+</div>
+
+${a.openStory ? `<div class="section"><div class="section-title">Hastanın Kendi Anlatısı</div><div style="font-size:11px;color:#2d5a8e;line-height:1.6;background:#f8fafd;border:1px solid #d4e1ef;border-radius:6px;padding:8px 10px;font-style:italic">"${a.openStory}"</div></div>` : ""}
+
+<div class="footer">
+  <div>SculptAI Klinik Karar Desteği — Bu rapor otomatik olarak oluşturulmuştur.</div>
+  <div>Gizli · Sadece hekim kullanımı içindir</div>
+</div>
+
+<script>window.onload=function(){window.print();}</script>
+</body></html>`;
+
+  const w = window.open("", "_blank");
+  if(w) { w.document.write(html); w.document.close(); }
+}
+
 /* ─── PATIENT CARD ───────────────────────────────────────────────────────── */
 function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
   const [open,setOpen]=useState(false);
@@ -829,6 +990,44 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
     setAmbassadorSent(true);
     setShowAmbassador(false);
     alert(`Referans kodu: ${code}\nBu kodu hastaya paylaşın.`);
+  }
+
+  function handlePDF(e){
+    e.stopPropagation();
+    const name=a.name?.split(" ")[0]||"Hasta";
+    const proc=a.procedure||"işlem";
+    const risks=[];
+    if(a.multiDoctor?.includes("1-2")||a.multiDoctor?.includes("Birçok")) risks.push(`${name} daha önce ${a.multiDoctor?.includes("Birçok")?"birçok":"1-2"} doktora danışmış`);
+    if(a.motivation?.includes("Yakınlarımın yorumları")||a.motivation?.includes("Başka insanların")) risks.push("Dışsal baskıyla karar veriyor");
+    if(a.expectation?.includes("Tamamen farklı")) risks.push(`"Tamamen farklı görünmek" beklentisi ${proc} ile karşılanamayabilir`);
+    if(a.support?.includes("Kimseye söylemedim")) risks.push("Bu kararı tek başına veriyor — iyileşmede yalnız kalma riski");
+    if(a.revision?.includes("Kusursuz")) risks.push("Kusursuz sonuç beklentisi var — revizyon riski yüksek");
+    if(a.bodyFocus?.includes("işimi gücümü etkiliyor")) risks.push("Görünüm odaklanması günlük hayatı etkiliyor — BDD değerlendirmesi düşünülmeli");
+    if(a.prevSurgery?.includes("beklentimi karşılamadı")) risks.push("Önceki işlemden memnun değil — standartları daha yüksek");
+    if(a.prevSurgery?.includes("hiç memnun değilim")) risks.push("Önceki işlemden hiç memnun değil — yüksek riskli profil");
+    if(["Meme Asimetrisinin Giderilmesi"].includes(a.procedure)) risks.push("Meme asimetrisi vakaları yüksek beklenti riski taşıyor");
+    if(["Karın Germe","Yüz Germe"].includes(a.procedure)&&a.riskKnowledge==="Hiçbir bilgim yok") risks.push(`${a.procedure} için hiç bilgisi yok — süreç mutlaka anlatılmalı`);
+    if(a.procedure==="Burun Estetiği"&&["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].includes(a.motivation)) risks.push("Rinoplasti + dışsal motivasyon — bu kombinasyon çok yüksek risk");
+    if(storyRedFlag) risks.push("Açık cevabında yüksek beklenti sinyali var");
+    if(risks.length===0&&score>=68) risks.push("ML modeli yüksek risk tespit etti — profil kombinasyonu randevu almama ile ilişkili");
+    if(risks.length===0) risks.push("Belirgin risk sinyali saptanmadı — standart konsültasyon yeterli");
+
+    const comms=[];
+    const isAnalyst=a.riskKnowledge?.includes("Detaylı");
+    const isTrustSeeker=a.riskKnowledge?.includes("Hiçbir")||a.support?.includes("Kimseye");
+    if(isAnalyst){
+      comms.push(`Araştırmacı profil — teknik detayları paylaşmaktan çekinmeyin`);
+      comms.push(`${proc} için tercih ettiğiniz tekniği ve nedenini aktarın`);
+    } else if(isTrustSeeker){
+      comms.push(`Güven arayan profil — yargılanmayacağını hissettirin`);
+      comms.push("Riskleri liste halinde değil, nadir olduğunu vurgulayarak aktarın");
+    } else {
+      comms.push(`${name} motivasyonunu dinleyin, süreci güvenli hissettirin`);
+      if(a.imagineAfter?.includes("hayatımın daha iyi")||a.imagineAfter?.includes("Hayatımın")) comms.push("Hayat değişikliği beklentisi var — gerçekçi çerçeve oluşturun");
+    }
+
+    const pred=predictOutcomes(score,a);
+    generateConsultPDF(patient, cls, pred, risks, comms, signals, modelInfo);
   }
 
   const formProc=a.procedure||"";
@@ -1171,6 +1370,10 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                   ◈ Konsültasyon
                 </button>
               )}
+              {/* PDF Brifing */}
+              <button onClick={handlePDF} title="Konsültasyon Brifing PDF" style={{padding:"8px 10px",borderRadius:7,fontSize:12,fontWeight:400,border:"1px solid #d4e1ef",background:"transparent",color:"#2d5a8e",flexShrink:0,cursor:"pointer"}}>
+                📄 PDF
+              </button>
               {/* 1. Randevu sonucu */}
               <button onClick={e=>{e.stopPropagation();setShowOutcome(v=>!v);}} style={{flex:1,padding:"8px",borderRadius:7,fontSize:12,fontWeight:400,border:`1px solid ${outcomeProcedures.length>0?"#059669":"#d4e1ef"}`,background:"transparent",color:outcomeProcedures.length>0?"#059669":"#7b9ab5"}}>
                 {outcomeProcedures.length>0?"✓ Randevu":"Randevu?"}
@@ -1886,9 +2089,10 @@ function Analytics({patients}){
   );
 }
 
-function DoctorPanel({doctor,onLogout}){
-  const [patients,setPatients]=useState([]);
-  const [loading,setLoading]=useState(true);
+function DoctorPanel({doctor,onLogout,demoPatients}){
+  const isDemo = !!demoPatients;
+  const [patients,setPatients]=useState(demoPatients||[]);
+  const [loading,setLoading]=useState(!isDemo);
   const [filter,setFilter]=useState("all");
   const [thresholdMode,setThresholdMode]=useState(()=>localStorage.getItem('threshold_mode')||'balanced');
   const [tab,setTab]=useState("patients"); // patients | analytics | value | settings
@@ -1906,9 +2110,10 @@ function DoctorPanel({doctor,onLogout}){
   const [clinicName,setClinicName]=useState(doctor.clinic_name||"");
   const [clinicSaved,setClinicSaved]=useState(false);
 
-  useEffect(()=>{loadPatients();},[]);
+  useEffect(()=>{if(!isDemo) loadPatients();},[]);
 
   async function loadPatients(){
+    if(isDemo){setLoading(false);return;}
     setLoading(true);
     const {data}=await sb.from("patients").select("*").eq("doctor_id",doctor.id).order("created_at",{ascending:false});
     if(data){
@@ -1925,16 +2130,19 @@ function DoctorPanel({doctor,onLogout}){
   }
 
   async function deletePatient(id){
+    if(isDemo){setPatients(p=>p.filter(x=>x.id!==id));return;}
     await sb.from("patients").delete().eq("id",id);
     setPatients(p=>p.filter(x=>x.id!==id));
   }
 
   async function clearAll(){
+    if(isDemo){setPatients([]);setConfirmClear(false);return;}
     await sb.from("patients").delete().eq("doctor_id",doctor.id);
     setPatients([]);setConfirmClear(false);
   }
 
   async function saveNewCreds(){
+    if(isDemo){alert("Demo modunda kullanılamaz.");return;}
     if(!newU.trim()||!newP.trim()){setPwErr("Tüm alanları doldurun.");return;}
     if(newP!==newP2){setPwErr("Şifreler eşleşmiyor.");return;}
     await sb.from("doctors").update({username:newU.trim(),password_hash:newP}).eq("id",doctor.id);
@@ -1942,6 +2150,7 @@ function DoctorPanel({doctor,onLogout}){
   }
 
   async function saveClinicName(){
+    if(isDemo){alert("Demo modunda kullanılamaz.");return;}
     if(!clinicName.trim())return;
     await sb.from("doctors").update({clinic_name:clinicName.trim()}).eq("id",doctor.id);
     try{const saved=JSON.parse(sessionStorage.getItem("sculpt_doctor")||"{}");sessionStorage.setItem("sculpt_doctor",JSON.stringify({...saved,clinic_name:clinicName.trim()}));}catch{}
@@ -3517,6 +3726,8 @@ export class ErrorBoundary extends React.Component{
 export default function App(){
   const [view,setView]=useState(()=>{
     const path=window.location.pathname;
+    const params=new URLSearchParams(window.location.search);
+    if(params.get("demo")==="true") return "demo";
     if(path.match(/^\/form\/.+$/)) return "patient";
     if(path.startsWith("/admin")) return "admin";
     if(path.startsWith("/panel")) return "doctor_or_login";
@@ -3531,11 +3742,28 @@ export default function App(){
   useEffect(()=>{
     const path=window.location.pathname;
     if(path.startsWith("/panel")){
+      const params=new URLSearchParams(window.location.search);
+      if(params.get("demo")==="true"){setView("demo");return;}
       try{const saved=sessionStorage.getItem("sculpt_doctor");if(saved){const d=JSON.parse(saved);setDoctor(d);setView("doctor");}else{setView("login");}}catch{setView("login");}
     }
   },[]);
 
   if(view==="loading"||view==="doctor_or_login") return null;
+
+  if(view==="demo") return(
+    <div>
+      <div style={{position:"fixed",top:0,left:0,right:0,zIndex:9999,background:"linear-gradient(135deg,#1d4ed8,#7c3aed)",padding:"8px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{fontSize:14,color:"white",fontWeight:600,fontFamily:"'Nunito',sans-serif"}}>🎯 SculptAI Demo</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.75)",fontFamily:"'Nunito',sans-serif"}}>Gerçek veriler kullanılmamaktadır · Tüm hastalar örnektir</div>
+        </div>
+        <a href="/panel" style={{fontSize:11,color:"white",textDecoration:"underline",fontFamily:"'Nunito',sans-serif",opacity:0.8}}>Giriş Yap →</a>
+      </div>
+      <div style={{paddingTop:38}}>
+        <DoctorPanel doctor={DEMO_DOCTOR} onLogout={()=>{window.location.href="/panel";}} demoPatients={DEMO_PATIENTS}/>
+      </div>
+    </div>
+  );
 
   if(view==="patient") return(
     <div>
