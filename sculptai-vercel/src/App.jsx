@@ -3319,7 +3319,7 @@ function AdminPanel(){
       const [r1,r2,r3]=await Promise.all([
         sb.from("doctors").select("id,name,username,clinic_name"),
         sb.from("patients").select("id,doctor_id,created_at,risk_score,segment,outcome_procedures,no_appointment,ambassador_code,ambassador_sent,had_procedure,procedure_date,satisfaction_1m,satisfaction_6m,would_recommend,had_revision,revision_reason,referred_count,referral_source,answers"),
-        sb.from("clinic_models").select("doctor_id,version,threshold,threshold_src,n_train,label_count,n_neg,neg_count,accuracy,val_accuracy,val_f1,val_precision,val_recall,train_date,updated_at,is_active").catch(()=>({data:[]})),
+        Promise.resolve(sb.from("clinic_models").select("doctor_id,version,threshold,threshold_src,n_train,label_count,n_neg,neg_count,accuracy,val_accuracy,val_f1,val_precision,val_recall,train_date,updated_at,is_active")).catch(()=>({data:[]})),
       ]);
       if(r1.error) setLoadError("Doctors hatası: "+JSON.stringify(r1.error));
       else if(r2.error) setLoadError("Patients hatası: "+JSON.stringify(r2.error));
