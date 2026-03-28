@@ -3311,18 +3311,28 @@ function AdminPanel(){
     else setErr("Hatalı şifre.");
   }
 
+  const [loadError,setLoadError]=useState("");
+
   async function loadData(){
-    setLoading(true);
-    const [{data:docs},{data:pats},{data:models}]=await Promise.all([
-      sb.from("doctors").select("id,name,username,clinic_name"),
-      sb.from("patients").select("id,doctor_id,created_at,risk_score,segment,outcome_procedures,no_appointment,ambassador_code,ambassador_sent,had_procedure,procedure_date,satisfaction_1m,satisfaction_6m,would_recommend,had_revision,revision_reason,referred_count,referral_source,answers"),
-      sb.from("clinic_models").select("doctor_id,version,threshold,threshold_src,n_train,label_count,n_neg,neg_count,accuracy,val_accuracy,val_f1,val_precision,val_recall,train_date,updated_at,is_active").catch(()=>({data:[]})),
-    ]);
-    setDoctors(docs||[]);
-    setPatients(pats||[]);
-    const modelMap = {};
-    (models||[]).forEach(m=>{ modelMap[m.doctor_id]=m; });
-    setClinicModels(modelMap);
+    setLoading(true);setLoadError("");
+    try{
+      const [r1,r2,r3]=await Promise.all([
+        sb.from("doctors").select("id,name,username,clinic_name"),
+        sb.from("patients").select("id,doctor_id,created_at,risk_score,segment,outcome_procedures,no_appointment,ambassador_code,ambassador_sent,had_procedure,procedure_date,satisfaction_1m,satisfaction_6m,would_recommend,had_revision,revision_reason,referred_count,referral_source,answers"),
+        sb.from("clinic_models").select("doctor_id,version,threshold,threshold_src,n_train,label_count,n_neg,neg_count,accuracy,val_accuracy,val_f1,val_precision,val_recall,train_date,updated_at,is_active").catch(()=>({data:[]})),
+      ]);
+      if(r1.error) setLoadError("Doctors hatası: "+JSON.stringify(r1.error));
+      else if(r2.error) setLoadError("Patients hatası: "+JSON.stringify(r2.error));
+      else{
+        setDoctors(r1.data||[]);
+        setPatients(r2.data||[]);
+        const modelMap = {};
+        (r3.data||[]).forEach(m=>{ modelMap[m.doctor_id]=m; });
+        setClinicModels(modelMap);
+      }
+    }catch(e){
+      setLoadError("Bağlantı hatası: "+String(e));
+    }
     setLoading(false);
   }
 
@@ -3413,6 +3423,7 @@ function AdminPanel(){
 
       <div style={{maxWidth:1100,margin:"0 auto",padding:"28px 32px"}}>
         {loading&&<div style={{textAlign:"center",padding:40,color:C.muted}}>Yükleniyor...</div>}
+        {loadError&&<div style={{margin:20,padding:"16px 20px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,fontSize:13,color:"#dc2626",lineHeight:1.6,wordBreak:"break-all"}}>{loadError}</div>}
 
         {/* GENEL BAKIŞ */}
         {tab==="overview"&&!loading&&(
