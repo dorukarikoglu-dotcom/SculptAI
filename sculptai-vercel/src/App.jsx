@@ -1897,7 +1897,7 @@ function Analytics({patients}){
   const srcMap={};
   patients.forEach(p=>{
     const s=p.answers?.source||"Diğer";
-    const short=s.includes("tavsiye")?"Hasta tavsiyesi":s.includes("Hacettepe")?"Hacettepe itibarı":s.includes("Google")?"Google":s.includes("Instagram")?"Instagram":"Diğer";
+    const short=s.includes("tavsiye")?"Hasta tavsiyesi":s.includes("itibar")?"Klinik itibarı":s.includes("Google")?"Google":s.includes("Instagram")?"Instagram":"Diğer";
     srcMap[short]=(srcMap[short]||0)+1;
   });
   const sources=Object.entries(srcMap).sort((a,b)=>b[1]-a[1]);
@@ -2283,7 +2283,7 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
             <div style={{textAlign:"center",padding:"60px 20px",color:"#7b9ab5"}}>
               <div style={{fontSize:40,marginBottom:14}}>📋</div>
               <div style={{fontSize:16,color:"#2d5a8e",marginBottom:8}}>Henüz kayıt yok</div>
-              <div style={{fontSize:13}}>Hastalar <strong>sculptai-brown.vercel.app/form/{doctor.id}</strong> linkinden formu doldurunca burada görünecek</div>
+              <div style={{fontSize:13}}>Hastalar <strong>{window.location.origin}/form/{doctor.id}</strong> linkinden formu doldurunca burada görünecek</div>
             </div>
           )}
 
@@ -2670,7 +2670,7 @@ function PatientForm({doctorId}){
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
         model:"claude-sonnet-4-20250514",
         max_tokens:800,
-        messages:[{role:"user",content:`Sen empati yeteneği çok yüksek, klinik deneyimli bir hasta koordinatörüsün. Hacettepe Üniversitesi Plastik Cerrahi Kliniği'nde çalışıyorsun.
+        messages:[{role:"user",content:`Sen empati yeteneği çok yüksek, klinik deneyimli bir hasta koordinatörüsün. ${doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}'nde çalışıyorsun.
 
 Aşağıdaki kişi formu doldurdu ve şu an teşekkür ekranını okuyor. Bu kişiye özel, sadece ona yazılmış gibi hissettiren bir rehber yaz.
 
@@ -2969,7 +2969,7 @@ YAZIM KURALLARI:
           </div>
           <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1e3a5f",letterSpacing:"0.02em"}}>SculptAI</div>
         </div>
-        <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.06em"}}>Hacettepe Plastik Cerrahi</div>
+        <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.06em"}}>{doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
       </div>
 
       {/* Scrollable content */}
@@ -3003,7 +3003,7 @@ YAZIM KURALLARI:
 
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
                 <button onClick={()=>{
-                  const msg=`Merhaba! Hacettepe Üniversitesi Plastik Cerrahi'de çok iyi bir deneyim yaşadım. Seni de yönlendirmek istedim — formu doldurursan doktor seni çok daha hazırlıklı karşılıyor. İşte bağlantı: ${window.location.origin}/form/${doctorInfo?.id||""}%0AReferans kodum: ${ambassadorCode}`;
+                  const msg=`Merhaba! ${doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}'nde çok iyi bir deneyim yaşadım. Seni de yönlendirmek istedim — formu doldurursan doktor seni çok daha hazırlıklı karşılıyor. İşte bağlantı: ${window.location.origin}/form/${doctorInfo?.id||""}%0AReferans kodum: ${ambassadorCode}`;
                   window.open(`https://wa.me/?text=${msg}`,"_blank");
                 }} style={{padding:"10px",background:"#25D366",border:"none",borderRadius:8,color:"white",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.04em",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.116 1.528 5.845L0 24l6.335-1.508A11.93 11.93 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.853 0-3.601-.5-5.112-1.374l-.366-.217-3.76.896.951-3.666-.239-.379A9.946 9.946 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
@@ -3124,7 +3124,7 @@ YAZIM KURALLARI:
               <div style={{fontSize:20}}>🌿</div>
               <div>
                 <div style={{fontSize:13,fontWeight:600,color:"#065f46"}}>Bilmeniz gerekenler</div>
-                <div style={{fontSize:12,color:"#6ee7b7",marginTop:1}}>Hacettepe Plastik Cerrahi önerileri</div>
+                <div style={{fontSize:12,color:"#6ee7b7",marginTop:1}}>{doctorInfo?.clinic_name||"Plastik Cerrahi"} önerileri</div>
               </div>
             </div>
             <div style={{padding:"10px 14px 12px",display:"flex",flexDirection:"column",gap:7,borderTop:"1px solid #eef3f9"}}>
@@ -3227,7 +3227,7 @@ YAZIM KURALLARI:
       <main style={{maxWidth:580,margin:"0 auto",padding:currentQ===0?"0 20px 36px":"36px 20px"}}>
         {currentQ===0&&(
           <div style={{textAlign:"center",marginBottom:32,paddingTop:8}} className="f1">
-            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:12,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ Hacettepe Plastik Cerrahi Kliniği</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:12,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>Hoş Geldiniz</div>
             <div style={{fontSize:15,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.</div>
           </div>
@@ -3304,6 +3304,7 @@ function AdminPanel(){
   const [newDoc,setNewDoc]=useState({name:"",username:"",password:"",clinic_name:""});
   const [addErr,setAddErr]=useState("");
   const [addOk,setAddOk]=useState(false);
+  const [lastAddedLink,setLastAddedLink]=useState("");
 
   async function login(){
     if(pass===ADMIN_PASS){setAuthed(true);loadData();}
@@ -3334,7 +3335,7 @@ function AdminPanel(){
       password_hash:newDoc.password, clinic_name:newDoc.clinic_name
     });
     if(error){setAddErr("Hata: "+error.message);}
-    else{setAddOk(true);setNewDoc({name:"",username:"",password:"",clinic_name:""});loadData();}
+    else{setLastAddedLink(`${window.location.origin}/form/${id}`);setAddOk(true);setNewDoc({name:"",username:"",password:"",clinic_name:""});loadData();}
   }
 
   const C={border:"#d4e1ef",muted:"#7b9ab5",navy:"#1e3a5f",ivory:"#f8fafd",ivory2:"#eef3f9"};
@@ -3607,7 +3608,7 @@ function AdminPanel(){
                 </div>
               ))}
               {addErr&&<div style={{fontSize:12,color:"#dc2626",marginBottom:10}}>{addErr}</div>}
-              {addOk&&<div style={{fontSize:12,color:"#059669",marginBottom:10}}>✓ Klinik eklendi! Form linki: {window.location.origin}/form/dr-{newDoc.username||"..."}</div>}
+              {addOk&&<div style={{fontSize:12,color:"#059669",marginBottom:10}}>✓ Klinik eklendi! Form linki: {lastAddedLink}</div>}
               <button onClick={addDoctor} style={{width:"100%",padding:"11px",background:C.navy,border:"none",borderRadius:7,color:C.ivory,fontSize:13,fontWeight:500,cursor:"pointer",letterSpacing:"0.06em"}}>
                 KLİNİK EKLE
               </button>
@@ -3632,6 +3633,7 @@ function Login({onLogin}){
   const [regName,setRegName]=useState("");const [regClinic,setRegClinic]=useState("");
   const [regUser,setRegUser]=useState("");const [regPass,setRegPass]=useState("");const [regPass2,setRegPass2]=useState("");
   const [regOk,setRegOk]=useState(false);
+  const [regId,setRegId]=useState("");
 
   const [isMobile,setIsMobile]=useState(window.innerWidth<640);
   useEffect(()=>{
@@ -3664,6 +3666,7 @@ function Login({onLogin}){
       clinic_name:regClinic.trim()||"Klinik",
     });
     if(error){setErr("Kayıt oluşturulamadı: "+error.message);setLoading(false);return;}
+    setRegId(newId);
     setRegOk(true);
     setLoading(false);
   }
@@ -3758,7 +3761,7 @@ function Login({onLogin}){
               </div>
               <div style={{background:"white",border:"1px solid #a7f3d0",borderRadius:8,padding:"12px",marginBottom:12,textAlign:"left"}}>
                 <div style={{fontSize:10,letterSpacing:"0.12em",color:"#7b9ab5",marginBottom:6}}>HASTA FORM LİNKİ</div>
-                <div style={{fontSize:13,color:"#1e3a5f",wordBreak:"break-all",fontFamily:"'Nunito',monospace"}}>{window.location.origin}/form/{regUser}</div>
+                <div style={{fontSize:13,color:"#1e3a5f",wordBreak:"break-all",fontFamily:"'Nunito',monospace"}}>{window.location.origin}/form/{regId}</div>
               </div>
               <div style={{fontSize:12,color:"#7b9ab5",marginBottom:14}}>Bu linki hastalara verin veya QR kod olarak bekleme odasına asın.</div>
               <button onClick={()=>{setMode("login");setU(regUser);setRegOk(false);}}
