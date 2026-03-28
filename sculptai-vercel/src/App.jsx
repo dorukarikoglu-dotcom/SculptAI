@@ -715,19 +715,19 @@ function Sidebar({tab,setTab,onLogout,doctor}){
 const DEMO_PATIENTS = [
   {id:"demo-1",doctor_id:"demo",created_at:new Date(Date.now()-2*86400000).toISOString(),risk_score:82,segment:"Öncelikli Değerlendirme",
    answers:{name:"Elif Yılmaz",age:"28",gender:"Kadın",procedure:"Burun Estetiği",motivation:"Başka insanların yorumları beni kötü etkiliyor",support:"Kimseye söylemedim",revision:"Kusursuz sonuç bekliyorum",riskKnowledge:"Hiçbir bilgim yok",expectation:"Tamamen farklı bir görünüm istiyorum",multiDoctor:"Birçok doktorla görüştüm",prevSurgery:"Hayır",rhinoVision:"Aklımda belirli bir referans var — bir ünlü veya fotoğraf",openStory:"Burnumun mükemmel olmasını istiyorum, herkes fark etsin istiyorum."},
-   outcome_procedures:[],no_appointment:false,ai_text:"",model_source:"global_v5"},
+   outcome_procedures:[],no_appointment:false,ai_text:"Elif Hanım'ın profili birden fazla yüksek riskli sinyal barındırıyor. Birincisi, rinoplasti motivasyonu tamamen dışsal — çevresindeki insanların yorumları tetikleyici. Bu durumda ameliyat sonrası memnuniyet, kendi algısından çok başkalarının tepkisine bağımlı hale geliyor ki bu kontrol edilemeyen bir değişken. İkincisi, birçok doktora danışmış olması kararsızlık veya çok yüksek standart sinyali. Üçüncüsü, 'kusursuz sonuç' beklentisi rinoplastinin doğası gereği karşılanamaz — burun estetiğinde %100 simetri anatomik olarak mümkün değil. Aklındaki ünlü referansı mutlaka görün ve kendi yüz yapısıyla uyumluluğunu fotoğraf üzerinden somut olarak gösterin. Konsültasyonda önce motivasyonun gerçek kaynağını netleştirmeniz, ardından 'mükemmel' yerine 'doğal ve uyumlu' çerçevesini kurmanız kritik.",model_source:"global_v5"},
 
   {id:"demo-2",doctor_id:"demo",created_at:new Date(Date.now()-3*86400000).toISOString(),risk_score:71,segment:"Öncelikli Değerlendirme",
    answers:{name:"Mehmet Kara",age:"45",gender:"Erkek",procedure:"Karın Germe",motivation:"Hayatımda büyük bir değişime ihtiyacım var",support:"Bu işleme karşılar",revision:"Revizyon ihtimali beni çok endişelendiriyor",riskKnowledge:"Hiçbir bilgim yok",expectation:"Belirgin bir fark olmasını istiyorum",multiDoctor:"1-2 doktorla görüştüm",prevSurgery:"Hayır"},
-   outcome_procedures:[],no_appointment:false,ai_text:"",model_source:"global_v5"},
+   outcome_procedures:[],no_appointment:false,ai_text:"Mehmet Bey karın germe operasyonu istiyor ancak profili birden çok risk sinyali taşıyor. 'Hayatımda büyük bir değişime ihtiyacım var' motivasyonu, cerrahi sonucuna hayat değişikliği beklentisi yüklediğini gösteriyor — bu beklenti karşılanamayacağı için postoperatif hayal kırıklığı riski yüksek. Ailesi operasyona karşı ve risk bilgisi sıfır — karın germenin 3-4 haftalık ciddi iyileşme süreci, dren kullanımı ve aktivite kısıtlamalarını bilmiyor. Konsültasyonda öncelikle iyileşme sürecini çok somut ve açık anlatmanız gerekiyor. Hasta fotoğraflarıyla gerçekçi sonuç örnekleri gösterin. Ailesinin karşı olması, iyileşme döneminde destek eksikliği anlamına gelir — bunu doğrudan konuşun.",model_source:"global_v5"},
 
   {id:"demo-3",doctor_id:"demo",created_at:new Date(Date.now()-1*86400000).toISOString(),risk_score:65,segment:"Öncelikli Değerlendirme",
    answers:{name:"Ayşe Demir",age:"34",gender:"Kadın",procedure:"Meme Asimetrisinin Giderilmesi",motivation:"Özgüvenimi artırmak istiyorum",support:"Biliyorlar ama kararsızlar",revision:"Kusursuz sonuç bekliyorum",riskKnowledge:"Genel olarak bilgi sahibiyim",expectation:"Belirgin bir fark olmasını istiyorum",multiDoctor:"Birçok doktorla görüştüm",prevSurgery:"Evet ama beklentimi karşılamadı"},
-   outcome_procedures:[],no_appointment:true,ai_text:"",model_source:"global_v5"},
+   outcome_procedures:[],no_appointment:true,ai_text:"Ayşe Hanım'ın profili dikkatli ele alınması gereken bir vaka. Meme asimetrisi giderilmesi isteyen hastaların verimizde tamamı randevu almamış — bu prosedürde beklenti yönetimi en kritik faktör. Hastanın önceki ameliyattan memnun kalmaması standartlarını daha da yükseltmiş. 'Kusursuz sonuç bekliyorum' ifadesi, meme cerrahisinde tam simetrinin anatomik olarak imkânsız olduğu gerçeğiyle çelişiyor. Birçok doktora danışmış olması, ya hiçbirinin beklentisini karşılamaması ya da çok yüksek standart uyguladığı anlamına geliyor. Konsültasyonda ilk olarak önceki deneyimini dinleyin — ne bekledi, ne aldı, neden memnun kalmadı. Ardından asimetri düzeltmede ulaşılabilir sınırları fotoğraflarla somutlaştırın. 'Mükemmel simetri' yerine 'belirgin iyileşme' çerçevesini kurmanız gerekiyor.",model_source:"global_v5"},
 
   {id:"demo-4",doctor_id:"demo",created_at:new Date(Date.now()-5*86400000).toISOString(),risk_score:48,segment:"Dikkatli Değerlendir",
    answers:{name:"Zeynep Aksoy",age:"31",gender:"Kadın",procedure:"Meme Büyütme (Silikon Protez ile)",motivation:"Kendim için daha iyi hissetmek istiyorum",support:"Kararsızlar",revision:"Revizyon beni endişelendiriyor",riskKnowledge:"Genel olarak bilgi sahibiyim",expectation:"Belirgin bir fark olmasını istiyorum",multiDoctor:"1-2 doktorla görüştüm",prevSurgery:"Hayır"},
-   outcome_procedures:[],no_appointment:false,ai_text:"",model_source:"global_v5"},
+   outcome_procedures:[],no_appointment:false,ai_text:"Zeynep Hanım meme büyütme istiyor, motivasyonu içsel ve sağlıklı. Ancak iki sinyal dikkat gerektiriyor: ailesi kararsız ve revizyon ihtimali onu endişelendiriyor. 'Belirgin fark' beklentisi protez boyutu konusunda gerçekçi bir konuşma yapılması gerektiğini gösteriyor. Konsültasyonda önce beden oranlarına uygun protez aralığını somutlaştırın. Revizyon endişesini doğrudan ele alın — 'protezlerin ortalama ömrü 10-15 yıl, değişim gerekebilir' bilgisini verin. Ailesinin kararsızlığı iyileşme sürecinde destek sorununa dönüşebilir — bunu sormaktan çekinmeyin.",model_source:"global_v5"},
 
   {id:"demo-5",doctor_id:"demo",created_at:new Date(Date.now()-4*86400000).toISOString(),risk_score:52,segment:"Dikkatli Değerlendir",
    answers:{name:"Hakan Çelik",age:"38",gender:"Erkek",procedure:"Jinekomasti",motivation:"Sosyal özgüvenimi artırmak istiyorum",support:"Evet, destekliyorlar",revision:"Revizyon ihtimali beni çok endişelendiriyor",riskKnowledge:"Hiçbir bilgim yok",expectation:"Dengeli ve orantılı bir sonuç bekliyorum",multiDoctor:"Hayır",prevSurgery:"Hayır"},
@@ -743,7 +743,7 @@ const DEMO_PATIENTS = [
 
   {id:"demo-8",doctor_id:"demo",created_at:new Date(Date.now()-8*86400000).toISOString(),risk_score:22,segment:"Randevuya Hazır",
    answers:{name:"Burcu Şahin",age:"29",gender:"Kadın",procedure:"Burun Estetiği",motivation:"Görünümümü iyileştirmek istiyorum",support:"Evet, destekliyorlar",revision:"Evet, ve olası revizyonu normal kabul ederim",riskKnowledge:"Detaylı araştırdım ve biliyorum",expectation:"Küçük, doğal bir iyileştirme yeterli",multiDoctor:"1-2 doktorla görüştüm",prevSurgery:"Hayır",rhinoVision:"Sadece küçük düzeltmeler istiyorum"},
-   outcome_procedures:["Burun Estetiği"],no_appointment:false,had_procedure:true,satisfaction_1m:"Memnun",satisfaction_6m:"Memnun",ai_text:"",model_source:"global_v5"},
+   outcome_procedures:["Burun Estetiği"],no_appointment:false,had_procedure:true,satisfaction_1m:"Memnun",satisfaction_6m:"Memnun",ai_text:"Burcu Hanım rinoplasti için ideal bir aday profili çiziyor. Motivasyonu tamamen içsel, ailesi destekliyor, beklentisi küçük ve doğal bir iyileştirme ile sınırlı. Risk bilgisi yüksek — detaylı araştırma yapmış. Revizyonu normal karşılıyor, yani cerrahi sürecin doğasını anlamış. 1-2 doktora danışmış olması sağlıklı bir karar sürecine işaret ediyor. Konsültasyon standart ilerleyebilir. Tekniğinizi ve yaklaşımınızı somut anlatmanız, bu profildeki hastanın güvenini hızla kazanmanızı sağlar. Not: 1. ay ve 6. ay memnuniyet verileri de pozitif — bu hasta tipi kliniğin referans kaynağı olabilir.",model_source:"global_v5"},
 
   {id:"demo-9",doctor_id:"demo",created_at:new Date(Date.now()-10*86400000).toISOString(),risk_score:18,segment:"Randevuya Hazır",
    answers:{name:"Canan Korkmaz",age:"33",gender:"Kadın",procedure:"Meme Küçültme",motivation:"Kendim için daha iyi hissetmek istiyorum",support:"Evet, destekliyorlar",revision:"Evet, olası revizyonu normal karşılarım",riskKnowledge:"Detaylı araştırdım ve biliyorum",expectation:"Dengeli ve orantılı bir sonuç bekliyorum",multiDoctor:"Hayır",prevSurgery:"Hayır"},
@@ -755,7 +755,7 @@ const DEMO_PATIENTS = [
 
   {id:"demo-11",doctor_id:"demo",created_at:new Date(Date.now()-12*86400000).toISOString(),risk_score:12,segment:"Marka Elçisi",
    answers:{name:"Pınar Erdoğan",age:"30",gender:"Kadın",procedure:"Botoks",motivation:"Kendim için daha iyi hissetmek istiyorum",support:"Evet, destekliyorlar",revision:"Evet, olası revizyonu normal karşılarım",riskKnowledge:"Detaylı araştırdım ve biliyorum",expectation:"Küçük, doğal bir iyileştirme yeterli",multiDoctor:"Hayır",prevSurgery:"Evet ve memnunum",sharing:"Evet, açıkça paylaşırım",socialInfluence:"Sık sık danışırlar",recommends:"Evet, sık öneririm"},
-   outcome_procedures:["Botoks"],no_appointment:false,had_procedure:true,satisfaction_1m:"Çok Memnun",satisfaction_6m:"Memnun",ambassador_sent:true,ambassador_code:"REF-X7K2",ai_text:"",model_source:"global_v5"},
+   outcome_procedures:["Botoks"],no_appointment:false,had_procedure:true,satisfaction_1m:"Çok Memnun",satisfaction_6m:"Memnun",ambassador_sent:true,ambassador_code:"REF-X7K2",ai_text:"Pınar Hanım marka elçisi profili — düşük risk, yüksek memnuniyet, aktif sosyal çevre. Önceki deneyiminden memnun, çevresine açıkça paylaşıyor ve sık sık tavsiye veriyor. Bu profil kliniğinizin organik büyümesi için çok değerli. Referans programını aktive edin — her yönlendirdiği hasta için küçük bir avantaj sunmak (örn. sonraki seansta %10 indirim) referans döngüsünü güçlendirir. Konsültasyonda ekstra bir şey yapmanıza gerek yok — standart kaliteli hizmet bu hastayı doğal bir marka elçisi yapar.",model_source:"global_v5"},
 
   {id:"demo-12",doctor_id:"demo",created_at:new Date(Date.now()-9*86400000).toISOString(),risk_score:10,segment:"Marka Elçisi",
    answers:{name:"Derya Koç",age:"35",gender:"Kadın",procedure:"Dolgu Uygulaması",motivation:"Özgüvenimi artırmak istiyorum",support:"Evet, destekliyorlar",revision:"Evet, ve olası revizyonu normal kabul ederim",riskKnowledge:"Detaylı araştırdım ve biliyorum",expectation:"Küçük, doğal bir iyileştirme yeterli",multiDoctor:"Hayır",prevSurgery:"Evet ve memnunum",sharing:"Evet, açıkça paylaşırım",socialInfluence:"Evet, sık sık danışırlar",recommends:"Evet, sık öneririm"},
@@ -3624,9 +3624,15 @@ function AdminPanel(){
 }
 
 
-/* ─── LOGIN ──────────────────────────────────────────────────────────────── */
+/* ─── LOGIN + KAYIT ─────────────────────────────────────────────────────── */
 function Login({onLogin}){
+  const [mode,setMode]=useState("login"); // login | register
   const [u,setU]=useState("");const [p,setP]=useState("");const [err,setErr]=useState("");const [loading,setLoading]=useState(false);
+  // Register fields
+  const [regName,setRegName]=useState("");const [regClinic,setRegClinic]=useState("");
+  const [regUser,setRegUser]=useState("");const [regPass,setRegPass]=useState("");const [regPass2,setRegPass2]=useState("");
+  const [regOk,setRegOk]=useState(false);
+
   const [isMobile,setIsMobile]=useState(window.innerWidth<640);
   useEffect(()=>{
     const fn=()=>setIsMobile(window.innerWidth<640);
@@ -3638,6 +3644,27 @@ function Login({onLogin}){
     const {data}=await sb.from("doctors").select("*").eq("username",u).eq("password_hash",p).single();
     if(data) onLogin(data);
     else setErr("Kullanıcı adı veya şifre hatalı.");
+    setLoading(false);
+  }
+  async function register(){
+    setLoading(true);setErr("");
+    if(!regName.trim()||!regUser.trim()||!regPass.trim()){setErr("Tüm alanları doldurun.");setLoading(false);return;}
+    if(regPass!==regPass2){setErr("Şifreler eşleşmiyor.");setLoading(false);return;}
+    if(regUser.length<3){setErr("Kullanıcı adı en az 3 karakter olmalı.");setLoading(false);return;}
+    // Check if username exists
+    const {data:existing}=await sb.from("doctors").select("id").eq("username",regUser.trim()).maybeSingle();
+    if(existing){setErr("Bu kullanıcı adı zaten alınmış.");setLoading(false);return;}
+    // Insert
+    const newId=crypto.randomUUID?crypto.randomUUID():("dr-"+Date.now());
+    const {error}=await sb.from("doctors").insert({
+      id:newId,
+      name:regName.trim(),
+      username:regUser.trim(),
+      password_hash:regPass,
+      clinic_name:regClinic.trim()||"Klinik",
+    });
+    if(error){setErr("Kayıt oluşturulamadı: "+error.message);setLoading(false);return;}
+    setRegOk(true);
     setLoading(false);
   }
   return(
@@ -3662,40 +3689,87 @@ function Login({onLogin}){
         <div style={{width:"100%",maxWidth:360}}>
 
           {/* Logo */}
-          <div style={{display:"flex",flexDirection:"column",alignItems:isMobile?"center":"flex-start",gap:2,marginBottom:isMobile?32:52}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:isMobile?"center":"flex-start",gap:2,marginBottom:isMobile?24:40}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:22,height:22,border:"1px solid #d4e1ef",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <div style={{width:7,height:7,background:"#1e3a5f",borderRadius:"50%"}}/>
               </div>
               <div style={{fontSize:13,fontWeight:500,color:"#1e3a5f",letterSpacing:"0.04em"}}>SculptAI</div>
             </div>
-            {isMobile&&<div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.08em"}}>Hacettepe Plastik Cerrahi</div>}
+            {isMobile&&<div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.08em"}}>Klinik Karar Desteği</div>}
           </div>
 
           {/* Title */}
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?32:44,fontWeight:300,color:"#1e3a5f",lineHeight:1.1,marginBottom:10,letterSpacing:"-0.02em",textAlign:isMobile?"center":"left"}}>
-            Görünmeyeni<br/><em>görmek.</em>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?28:38,fontWeight:300,color:"#1e3a5f",lineHeight:1.1,marginBottom:8,letterSpacing:"-0.02em",textAlign:isMobile?"center":"left"}}>
+            {mode==="login"?<>Görünmeyeni<br/><em>görmek.</em></>:<>Kliniğinizi<br/><em>kurallım.</em></>}
           </div>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:isMobile?14:17,fontWeight:300,fontStyle:"italic",color:"#7b9ab5",lineHeight:1.7,marginBottom:isMobile?28:44,textAlign:isMobile?"center":"left"}}>
-            Hasta beklentisi, karar kalitesini<br/><span style={{color:"#1e3a5f",fontStyle:"normal",fontWeight:400}}>doğrudan etkiler.</span>
+          <div style={{fontSize:13,color:"#7b9ab5",lineHeight:1.6,marginBottom:24,textAlign:isMobile?"center":"left"}}>
+            {mode==="login"?"Panele giriş yapın.":"Hesap oluşturun, hemen kullanmaya başlayın."}
           </div>
 
-          {/* Fields */}
-          {[["KULLANICI ADI",u,setU,"text"],["ŞİFRE",p,setP,"password"]].map(([label,val,set,type])=>(
-            <div key={label} style={{marginBottom:14}}>
-              <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.15em",marginBottom:6}}>{label}</div>
-              <input type={type} value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} style={{width:"100%",padding:"12px 14px",background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:8,color:"#1e3a5f",fontSize:14,outline:"none",fontFamily:"'Nunito',sans-serif",boxSizing:"border-box"}}/>
+          {/* TAB */}
+          <div style={{display:"flex",gap:0,marginBottom:20,borderRadius:8,overflow:"hidden",border:"1px solid #d4e1ef"}}>
+            {[["login","Giriş Yap"],["register","Hesap Oluştur"]].map(([v,l])=>(
+              <button key={v} onClick={()=>{setMode(v);setErr("");setRegOk(false);}}
+                style={{flex:1,padding:"9px",fontSize:12,fontWeight:mode===v?600:400,letterSpacing:"0.06em",border:"none",
+                  background:mode===v?"#1e3a5f":"#f8fafd",color:mode===v?"#f8fafd":"#7b9ab5",cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {mode==="login"&&(
+            <>
+              {[["KULLANICI ADI",u,setU,"text"],["ŞİFRE",p,setP,"password"]].map(([label,val,set,type])=>(
+                <div key={label} style={{marginBottom:14}}>
+                  <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.15em",marginBottom:6}}>{label}</div>
+                  <input type={type} value={val} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()} style={{width:"100%",padding:"12px 14px",background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:8,color:"#1e3a5f",fontSize:14,outline:"none",fontFamily:"'Nunito',sans-serif",boxSizing:"border-box"}}/>
+                </div>
+              ))}
+              {err&&<div style={{marginBottom:14,padding:"9px 12px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:13,color:"#dc2626"}}>{err}</div>}
+              <button onClick={attempt} disabled={loading} style={{width:"100%",padding:"13px",background:"#1e3a5f",border:"none",borderRadius:8,color:"#f8fafd",fontSize:13,fontWeight:500,letterSpacing:"0.1em",cursor:"pointer",opacity:loading?0.7:1,fontFamily:"'Nunito',sans-serif",marginTop:4}}>
+                {loading?"GİRİŞ YAPILIYOR...":"GİRİŞ YAP"}
+              </button>
+            </>
+          )}
+
+          {mode==="register"&&!regOk&&(
+            <>
+              {[["AD SOYAD",regName,setRegName,"text","Dr. Ayşe Kaya"],["KLİNİK ADI",regClinic,setRegClinic,"text","Özel Plastik Cerrahi Kliniği"],["KULLANICI ADI",regUser,setRegUser,"text","dr-ayse"],["ŞİFRE",regPass,setRegPass,"password","En az 6 karakter"],["ŞİFRE TEKRAR",regPass2,setRegPass2,"password",""]].map(([label,val,set,type,ph])=>(
+                <div key={label} style={{marginBottom:12}}>
+                  <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.15em",marginBottom:5}}>{label}</div>
+                  <input type={type} value={val} placeholder={ph} onChange={e=>set(e.target.value)} onKeyDown={e=>e.key==="Enter"&&register()}
+                    style={{width:"100%",padding:"11px 14px",background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:8,color:"#1e3a5f",fontSize:14,outline:"none",fontFamily:"'Nunito',sans-serif",boxSizing:"border-box"}}/>
+                </div>
+              ))}
+              {err&&<div style={{marginBottom:14,padding:"9px 12px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:13,color:"#dc2626"}}>{err}</div>}
+              <button onClick={register} disabled={loading} style={{width:"100%",padding:"13px",background:"#1d4ed8",border:"none",borderRadius:8,color:"#f8fafd",fontSize:13,fontWeight:500,letterSpacing:"0.1em",cursor:"pointer",opacity:loading?0.7:1,fontFamily:"'Nunito',sans-serif",marginTop:4}}>
+                {loading?"OLUŞTURULUYOR...":"HESAP OLUŞTUR"}
+              </button>
+            </>
+          )}
+
+          {mode==="register"&&regOk&&(
+            <div style={{background:"#ecfdf5",border:"1px solid #a7f3d0",borderRadius:10,padding:"20px 18px",textAlign:"center"}}>
+              <div style={{fontSize:20,marginBottom:8}}>✓</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"#065f46",marginBottom:8}}>Hesabınız hazır!</div>
+              <div style={{fontSize:13,color:"#047857",lineHeight:1.6,marginBottom:16}}>
+                <strong>{regClinic||"Klinik"}</strong> için SculptAI paneli aktif.
+              </div>
+              <div style={{background:"white",border:"1px solid #a7f3d0",borderRadius:8,padding:"12px",marginBottom:12,textAlign:"left"}}>
+                <div style={{fontSize:10,letterSpacing:"0.12em",color:"#7b9ab5",marginBottom:6}}>HASTA FORM LİNKİ</div>
+                <div style={{fontSize:13,color:"#1e3a5f",wordBreak:"break-all",fontFamily:"'Nunito',monospace"}}>{window.location.origin}/form/{regUser}</div>
+              </div>
+              <div style={{fontSize:12,color:"#7b9ab5",marginBottom:14}}>Bu linki hastalara verin veya QR kod olarak bekleme odasına asın.</div>
+              <button onClick={()=>{setMode("login");setU(regUser);setRegOk(false);}}
+                style={{width:"100%",padding:"12px",background:"#1e3a5f",border:"none",borderRadius:8,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",letterSpacing:"0.08em",fontFamily:"'Nunito',sans-serif"}}>
+                GİRİŞ YAP →
+              </button>
             </div>
-          ))}
-
-          {err&&<div style={{marginBottom:14,padding:"9px 12px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:13,color:"#dc2626"}}>{err}</div>}
-
-          <button onClick={attempt} disabled={loading} style={{width:"100%",padding:"13px",background:"#1e3a5f",border:"none",borderRadius:8,color:"#f8fafd",fontSize:13,fontWeight:500,letterSpacing:"0.1em",cursor:"pointer",opacity:loading?0.7:1,fontFamily:"'Nunito',sans-serif",marginTop:4}}>
-            {loading?"GİRİŞ YAPILIYOR...":"GİRİŞ YAP"}
-          </button>
+          )}
 
           <div style={{textAlign:"center",fontSize:11,color:"#d4e1ef",marginTop:20,letterSpacing:"0.06em"}}>
-            Hacettepe Üniversitesi · Plastik Cerrahi
+            SculptAI · Klinik Karar Desteği
           </div>
         </div>
       </div>
