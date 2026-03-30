@@ -2085,6 +2085,101 @@ function Analytics({patients}){
         </div>
       </div>
 
+      {/* DOĞRULAMA TABLOSU — Confusion Matrix */}
+      {(()=>{
+        // Etiketli hastalar — outcome girilmiş olanlar
+        const labeled=patients.filter(p=>p.no_appointment===true||p.outcome_procedures?.length>0||p.had_procedure===true);
+        if(labeled.length<5) return(
+          <div style={card()}>
+            <div style={{fontSize:13,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#2d5a8e",marginBottom:8}}>Sistem Doğrulama</div>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.6}}>En az 5 hastanın outcome'u girildiğinde doğrulama tablosu burada görünecek. Şu an {labeled.length} etiketli hasta var.</div>
+          </div>
+        );
+
+        // Her segment için: kaç hasta var, kaçı gelmedi (no_appointment), kaçı geldi (outcome var)
+        const segData={red:{total:0,noShow:0,came:0},amber:{total:0,noShow:0,came:0},green:{total:0,noShow:0,came:0},ambassador:{total:0,noShow:0,came:0}};
+        labeled.forEach(p=>{
+          const c=classify(p.risk_score||0,p.answers||{});
+          const seg=segData[c.cat]||segData.green;
+          seg.total++;
+          if(p.no_appointment) seg.noShow++;
+          else seg.came++;
+        });
+
+        // "Kırmızı deyince ne kadar haklıyız?" — kırmızının gerçekten gelmeme oranı
+        const redAccuracy=segData.red.total>0?Math.round(segData.red.noShow/segData.red.total*100):0;
+        // "Yeşil deyince ne kadar haklıyız?" — yeşilin gerçekten gelme oranı  
+        const greenAccuracy=segData.green.total>0?Math.round(segData.green.came/segData.green.total*100):0;
+        const ambAccuracy=segData.ambassador.total>0?Math.round(segData.ambassador.came/segData.ambassador.total*100):0;
+        // Genel doğruluk — (doğru kırmızı + doğru yeşil+amb) / toplam
+        const correct=segData.red.noShow+segData.green.came+segData.ambassador.came+segData.amber.came;
+        const overallAcc=labeled.length>0?Math.round(correct/labeled.length*100):0;
+
+        // Outcome girilmemiş hasta sayısı
+        const noOutcome=patients.filter(p=>!p.no_appointment&&(!p.outcome_procedures||p.outcome_procedures.length===0)&&p.had_procedure===null).length;
+
+        const segColors={red:"#dc2626",amber:"#d97706",green:"#059669",ambassador:"#7c3aed"};
+        const segLabels={red:"🔴 Öncelikli",amber:"🟡 Dikkatli",green:"🟢 Uygun",ambassador:"🌟 Elçi"};
+
+        return(
+          <div style={card()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#2d5a8e"}}>Sistem Doğrulama</div>
+              <div style={{fontSize:12,color:C.muted}}>{labeled.length} etiketli / {total} toplam hasta</div>
+            </div>
+
+            {/* Genel doğruluk */}
+            <div style={{display:"flex",gap:10,marginBottom:14}}>
+              <div style={{flex:1,background:"#ecfdf5",border:"1px solid #a7f3d0",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:32,color:"#059669",lineHeight:1}}>%{overallAcc}</div>
+                <div style={{fontSize:11,color:"#065f46",marginTop:4}}>Genel Doğruluk</div>
+              </div>
+              <div style={{flex:1,background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:32,color:"#dc2626",lineHeight:1}}>%{redAccuracy}</div>
+                <div style={{fontSize:11,color:"#991b1b",marginTop:4}}>Kırmızı İsabet</div>
+                <div style={{fontSize:10,color:"#dc2626",marginTop:2}}>{segData.red.noShow}/{segData.red.total} gelmedi</div>
+              </div>
+              <div style={{flex:1,background:"#ecfdf5",border:"1px solid #a7f3d0",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:32,color:"#059669",lineHeight:1}}>%{greenAccuracy}</div>
+                <div style={{fontSize:11,color:"#065f46",marginTop:4}}>Yeşil İsabet</div>
+                <div style={{fontSize:10,color:"#059669",marginTop:2}}>{segData.green.came}/{segData.green.total} geldi</div>
+              </div>
+            </div>
+
+            {/* Segment bazlı tablo */}
+            <div style={{border:"1px solid #d4e1ef",borderRadius:8,overflow:"hidden",marginBottom:10}}>
+              <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",background:"#eef3f9",padding:"8px 12px",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",color:C.muted,fontWeight:600}}>
+                <div>Segment</div><div style={{textAlign:"center"}}>Toplam</div><div style={{textAlign:"center"}}>Geldi</div><div style={{textAlign:"center"}}>Gelmedi</div><div style={{textAlign:"center"}}>İsabet</div>
+              </div>
+              {["red","amber","green","ambassador"].map(seg=>{
+                const d=segData[seg];
+                if(d.total===0) return null;
+                const acc=seg==="red"?(d.total>0?Math.round(d.noShow/d.total*100):0):(d.total>0?Math.round(d.came/d.total*100):0);
+                return(
+                  <div key={seg} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",padding:"9px 12px",borderTop:"1px solid #eef3f9",fontSize:13}}>
+                    <div style={{color:segColors[seg],fontWeight:500}}>{segLabels[seg]}</div>
+                    <div style={{textAlign:"center",color:C.navy}}>{d.total}</div>
+                    <div style={{textAlign:"center",color:"#059669"}}>{d.came}</div>
+                    <div style={{textAlign:"center",color:"#dc2626"}}>{d.noShow}</div>
+                    <div style={{textAlign:"center",fontWeight:600,color:acc>=70?"#059669":acc>=50?"#d97706":"#dc2626"}}>%{acc}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {noOutcome>0&&(
+              <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:8,padding:"9px 12px",fontSize:12,color:"#92400e",lineHeight:1.5}}>
+                ⚠ {noOutcome} hastanın outcome'u henüz girilmedi. Doğrulama tablosu daha güvenilir olması için tüm hastaların sonucunu girin.
+              </div>
+            )}
+
+            <div style={{fontSize:11,color:C.muted,marginTop:8,lineHeight:1.5}}>
+              Kırmızı isabet: "Kırmızı dediğimizin kaçı gerçekten gelmedi?" · Yeşil isabet: "Yeşil dediğimizin kaçı gerçekten geldi?"
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
@@ -2094,6 +2189,7 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
   const [patients,setPatients]=useState(demoPatients||[]);
   const [loading,setLoading]=useState(!isDemo);
   const [filter,setFilter]=useState("all");
+  const [search,setSearch]=useState("");
   const [thresholdMode,setThresholdMode]=useState(()=>localStorage.getItem('threshold_mode')||'balanced');
   const [tab,setTab]=useState("patients"); // patients | analytics | value | settings
   const [consultPatient,setConsultPatient]=useState(null); // konsültasyon modu
@@ -2167,9 +2263,14 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
   const elci=patients.filter(p=>classify(p.risk_score||0,p.answers||{}).ambassador).length;
   const crossSell=patients.filter(p=>p.outcome_procedures?.length>0&&p.outcome_procedures.some(x=>x!==(p.answers?.procedure||""))).length;
 
-  const displayed=filter==="all"?patients:patients.filter(p=>{
+  const displayed=(filter==="all"?patients:patients.filter(p=>{
     const cls=classify(p.risk_score||0,p.answers||{});
     return cls.cat===filter;
+  })).filter(p=>{
+    if(!search.trim()) return true;
+    const q=search.toLowerCase();
+    const a=p.answers||{};
+    return (a.name||"").toLowerCase().includes(q)||(a.procedure||"").toLowerCase().includes(q);
   });
   const clinical=displayed.filter(p=>!classify(p.risk_score||0,p.answers||{}).ambassador);
   const ambassadors=displayed.filter(p=>classify(p.risk_score||0,p.answers||{}).ambassador);
@@ -2255,8 +2356,14 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
           </div>
 
           {/* LIST HEADER */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}} className="f3">
-            <div style={{fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#2d5a8e"}}>Hasta Listesi</div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,gap:10}} className="f3">
+            <div style={{fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#2d5a8e",flexShrink:0}}>Hasta Listesi</div>
+            <div style={{position:"relative",flex:isMobile?"1":"0 0 200px"}}>
+              <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Hasta veya işlem ara..."
+                style={{width:"100%",padding:"6px 12px 6px 30px",borderRadius:20,border:"1.5px solid #d4e1ef",background:"#f8fafd",fontSize:12,color:"#1e3a5f",outline:"none",fontFamily:"'Nunito',sans-serif"}}/>
+              <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#7b9ab5",pointerEvents:"none"}}>⌕</span>
+              {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:13,color:"#7b9ab5",cursor:"pointer",padding:0,lineHeight:1}}>✕</button>}
+            </div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
               {[["all","Tümü"],["red","🔴 Dikkat"],["amber","🟡 Değerlendirme"],["green","🟢 Uygun"],["ambassador","🌟 Elçi"]].map(([v,l])=>(
                 <button key={v} onClick={()=>setFilter(v)} style={{padding:"5px 13px",borderRadius:20,fontSize:13,fontWeight:500,border:`1.5px solid ${filter===v?"#1e3a5f":"#d4e1ef"}`,background:filter===v?"#1e3a5f":"#f8fafd",color:filter===v?"#f8fafd":"#7b9ab5",transition:"all 0.15s"}}>{l}</button>
@@ -2287,6 +2394,9 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
             </div>
           )}
 
+          {search.trim()&&(
+            <div style={{fontSize:12,color:"#7b9ab5",marginBottom:8}}>"{search}" için {displayed.length} sonuç</div>
+          )}
           <div className="f4">{clinical.map(p=><PatientCard key={p.id} patient={p} onDelete={deletePatient} isMobile={isMobile} onConsult={setConsultPatient} mode={thresholdMode}/>)}</div>
 
           {ambassadors.length>0&&(
@@ -2564,6 +2674,12 @@ const PROCEDURE_INFO = {
   "Popo estetiği":{category:"Vücut Şekillendirme",desc:"Popo bölgesine yağ enjeksiyonu veya protez ile şekil ve hacim kazandırılması.",stats:[{val:"1–3 saat",lbl:"Süre"},{val:"1–2 gece",lbl:"Hastane"},{val:"3–6 ay",lbl:"Sonuç"}],process:"Ameliyat sonrası 2–4 hafta sırt üstü yatmaktan ve uzun süre oturmaktan kaçınılır. Kompresyon giysi önemli.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Kompresyon giysi uygulanır."},{time:"2–4. hafta",emoji:"💊",color:"#6d28d9",title:"Oturma Kısıtlı",desc:"Uzun süre oturmaktan ve sırt üstü yatmaktan kaçının."},{time:"3–6. ay",emoji:"✨",color:"#10b981",title:"Nihai Şekil",desc:"Yağ tutulumu stabil hale gelir, final şekil oturur."}],prep:["Kompresyon giysiyi sürekli takın","2–4 hafta oturma aktivitelerini kısıtlayın"],normal:["İlk haftalarda oturma rahatsızlığı olabilir","Yağ enjeksiyonunun bir kısmı emilir, bu normal","Bölgede geçici sertlik ve hassasiyet olabilir"],followup:"1., 3. ve 6. aylarda kontrol"},
 
   "Jinekomasti":{category:"Erkek Estetiği",desc:"Erkeklerde meme bezi büyümesinin cerrahi veya liposuction ile düzeltilmesi.",stats:[{val:"1–2 saat",lbl:"Süre"},{val:"1 gece",lbl:"Hastane"},{val:"6 hafta",lbl:"İyileşme"}],process:"Ameliyat sonrası kompresyon giysi uygulanır. İlk hafta kol hareketleri kısıtlı. 3. günden şişlik azalır.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel veya sedasyon anestezi. Kompresyon giysi takılır."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Kompresyon giysi sürekli. Kol hareketleri kısıtlı."},{time:"6 hafta",emoji:"✨",color:"#10b981",title:"İyileşme",desc:"Nihai sonuç oturur. Ağır spora dönüş mümkün."}],prep:["Kompresyon giysiyi sürekli takın","6 hafta ağır koldan egzersizden kaçının"],normal:["İlk hafta şişlik ve hassasiyet normaldir","Meme başı çevresinde geçici uyuşukluk olabilir","Kesi izi meme başı çevresinde gizli kalır"],followup:"1., 3. ve 6. aylarda kontrol"},
+
+  "Meme Asimetrisinin Giderilmesi":{category:"Meme Estetiği",desc:"Memeler arasındaki boyut, şekil veya pozisyon farkının cerrahi olarak düzeltilmesi. Tek veya çift taraflı müdahale planlanabilir.",stats:[{val:"2–4 saat",lbl:"Süre"},{val:"1–2 gece",lbl:"Hastane"},{val:"6–12 ay",lbl:"Sonuç"}],process:"Ameliyat planı asimetrinin tipine göre kişiselleştirilir — tek taraflı küçültme, büyütme, dikleştirme veya kombinasyon olabilir. Destek sütyeni uygulanır. Cilt altı eriyen dikişler kullanılır.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Asimetrinin tipine göre tek veya çift taraflı müdahale."},{time:"1–3. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Destek sütyeni sürekli. Kol hareketleri kısıtlı."},{time:"2–4. hafta",emoji:"🌤",color:"#0891b2",title:"Normalleşme",desc:"Şişlik azalır. Hafif aktivitelere dönüş. Memeler arasındaki fark azalmaya başlar."},{time:"3–6. ay",emoji:"🩹",color:"#059669",title:"Şekil Oturur",desc:"Şişlik tamamen geçer, dokular yerleşir."},{time:"6–12. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Son simetri ortaya çıkar. Kesi izleri solmaya başlar."}],prep:["Destek sütyeni sürekli takın","4 hafta havuzdan kaçının","6 hafta ağır kol egzersizlerinden kaçının","Meme boyutları arasındaki farkı fotoğraflarla belgeleyin"],normal:["İlk haftalarda iki meme arasında şişlik farkı olabilir — bu geçicidir","Meme başı duyusunda geçici değişiklik olabilir","Kesi izleri ilk 3–4 ay belirgin olabilir","Tam simetri anatomik olarak garanti edilemez — belirgin iyileşme hedeflenir"],followup:"1., 3., 6. ve 12. aylarda kontrol"},
+
+  "Meme Onarımı (Kanser sonrası)":{category:"Rekonstrüktif Cerrahi",desc:"Meme kanseri ameliyatı sonrası kaybedilen meme dokusunun cerrahi olarak yeniden oluşturulması. Protez veya kendi dokularınız kullanılabilir.",stats:[{val:"2–6 saat",lbl:"Süre"},{val:"2–5 gece",lbl:"Hastane"},{val:"6–12 ay",lbl:"Sonuç"}],process:"Rekonstrüksiyon yöntemi onkolojik tedavi sürecinize göre planlanır. Ekspander, silikon protez veya flep (kendi doku transferi) seçenekleri değerlendirilir. Süreç birden fazla aşama gerektirebilir.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Yönteme göre 2–6 saat sürebilir."},{time:"1–5. gün",emoji:"💊",color:"#6d28d9",title:"Hastane Takibi",desc:"Drenler takılabilir. Ağrı yönetimi ve erken mobilizasyon."},{time:"2–6. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Drenler alınır. Günlük aktivitelere kademeli dönüş."},{time:"3–6. ay",emoji:"🩹",color:"#059669",title:"Şekillendirme",desc:"Gerekirse ikinci aşama (meme başı rekonstrüksiyonu, simetri düzeltmesi)."},{time:"6–12. ay",emoji:"✨",color:"#10b981",title:"Nihai Görünüm",desc:"Tüm aşamalar tamamlandığında son sonuç ortaya çıkar."}],prep:["Onkolojik tedavi ekibinizle koordinasyon sağlanacak","Destek sütyeni sürekli takın","Radyoterapi planınız varsa cerrahınıza bildirin","6 hafta ağır kol egzersizlerinden kaçının"],normal:["Rekonstrüksiyon bölgesinde uzun süreli uyuşukluk olabilir","Protez kullanıldıysa yerleşme süreci 3–6 ay sürer","Flep kullanıldıysa verici bölgede de iyileşme süreci olur","Süreç birden fazla ameliyat gerektirebilir — bu normaldir"],followup:"Onkoloji ve plastik cerrahi ekibi ile koordineli takip"},
+
+  "Doğumsal Meme Anomalisinin Düzeltilmesi":{category:"Rekonstrüktif Cerrahi",desc:"Doğumsal meme gelişim bozukluklarının (tübüler meme, Poland sendromu, asimetri vb.) cerrahi olarak düzeltilmesi.",stats:[{val:"2–4 saat",lbl:"Süre"},{val:"1–2 gece",lbl:"Hastane"},{val:"6–12 ay",lbl:"Sonuç"}],process:"Ameliyat planı anomalinin tipine göre kişiselleştirilir. Protez, yağ enjeksiyonu, doku genişletici veya bunların kombinasyonu kullanılabilir. Birden fazla aşama gerekebilir.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Anomali tipine göre kişiselleştirilmiş plan."},{time:"1–3. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Destek sütyeni uygulanır. Kol hareketleri kısıtlı."},{time:"2–6. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Şişlik azalır. Günlük aktivitelere kademeli dönüş."},{time:"6–12. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Tüm aşamalar tamamlandığında son görünüm ortaya çıkar."}],prep:["Destek sütyeni sürekli takın","4 hafta havuzdan kaçının","6 hafta ağır kol egzersizlerinden kaçının"],normal:["Şişlik ve hassasiyet ilk haftalarda belirgin olabilir","Meme başı duyusunda geçici değişiklik olabilir","Birden fazla ameliyat aşaması gerekebilir","Kesi izleri ilk aylarda belirgin, zamanla solar"],followup:"1., 3., 6. ve 12. aylarda kontrol"},
 };
 
 function PatientForm({doctorId}){
@@ -3004,7 +3120,7 @@ YAZIM KURALLARI:
 
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
                 <button onClick={()=>{
-                  const msg=`Merhaba! ${doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}'nde çok iyi bir deneyim yaşadım. Seni de yönlendirmek istedim — formu doldurursan doktor seni çok daha hazırlıklı karşılıyor. İşte bağlantı: ${window.location.origin}/form/${doctorInfo?.id||""}%0AReferans kodum: ${ambassadorCode}`;
+                  const msg=`Merhaba! ${doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}'nde konsültasyona gidiyorum ve çok güvendim. Seni de yönlendirmek istedim — formu doldurursan doktor seni çok daha hazırlıklı karşılıyor. İşte bağlantı: ${window.location.origin}/form/${doctorInfo?.id||""}%0AReferans kodum: ${ambassadorCode}`;
                   window.open(`https://wa.me/?text=${msg}`,"_blank");
                 }} style={{padding:"10px",background:"#25D366",border:"none",borderRadius:8,color:"white",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.04em",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.116 1.528 5.845L0 24l6.335-1.508A11.93 11.93 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.853 0-3.601-.5-5.112-1.374l-.366-.217-3.76.896.951-3.666-.239-.379A9.946 9.946 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
@@ -3114,11 +3230,6 @@ YAZIM KURALLARI:
           </div>
 
           {/* Prep tips */}
-          {/* Kişiselleştirilmiş giriş */}
-          <div style={{background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
-            <div style={{fontSize:13,color:"#2d5a8e",lineHeight:1.7,fontStyle:"italic"}}>{PC.recoveryIntro}</div>
-          </div>
-
           <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"0 0 8px 2px"}}>İşlem öncesi hazırlık</div>
           <div style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
             <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10,background:"#f0fdf4"}}>
