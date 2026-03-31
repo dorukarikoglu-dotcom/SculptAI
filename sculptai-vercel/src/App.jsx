@@ -1249,7 +1249,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                   const multiDoctor=a.doctorCount?.includes("3")||a.doctorCount?.includes("4")||a.doctorCount?.includes("5");
                   comms.push(`${name} araştırmacı bir profil${multiDoctor?`, ${a.doctorCount} doktora gitmiş`:""} — teknik detayları paylaşmaktan çekinmeyebilirsiniz, genel konuşmadan pek hoşlanmaz`);
                   const proc=a.procedure||"işlem";
-                  comms.push(`${proc} için tercih ettiğiniz tekniği ve neden seçtiğinizi aktarabilirsiniz — "neden siz" sorusunu sormadan yanıtlamış olursunuz`);
+                  comms.push(`${proc} için tercih ettiğiniz tekniği ve neden seçtiğinizi aktarabilirsiniziz — "neden siz" sorusunu sormadan yanıtlamış olursunuz`);
                 } else if(isPragmatic){
                   const recoveryHint=a.procedure?.includes("Botoks")||a.procedure?.includes("Dolgu")?"aynı gün işe dönebileceğini":"2 haftada normale döneceğini";
                   comms.push(`${name} hızlı karar veren biri — uzun açıklamalar yerine net bir takvim ve birkaç kritik nokta yeterli olabilir`);
@@ -1267,11 +1267,11 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                   }
 
                   if(hasAnxiety){
-                    comms.push(`En kötü senaryoyu düşünmekten kaçınıyor — riskleri "bu çok nadir karşılaşılan bir durum" diye başlayarak aktarabilirsiniz, liste halinde sıralamak yerine`);
+                    comms.push(`En kötü senaryoyu düşünmekten kaçınıyor — riskleri "bu çok nadir karşılaşılan bir durum" diye başlayarak aktarabilirsiniziz, liste halinde sıralamak yerine`);
                   } else if(longDecision){
                     comms.push(`${a.decisionAge} süredir düşünüyor — "bu kadar süre düşünmüşseniz zaten doğru adaylardan birisiniz" gibi onaylayıcı bir cümleyle başlayabilirsiniz`);
                   } else if(firstTime){
-                    comms.push(`İlk kez konsültasyona geliyor — sürecin nasıl ilerleyeceğini adım adım aktarabilirsiniz, belirsizlik bırakmamak rahatlatıcı olur`);
+                    comms.push(`İlk kez konsültasyona geliyor — sürecin nasıl ilerleyeceğini adım adım aktarabilirsiniziz, belirsizlik bırakmamak rahatlatıcı olur`);
                   } else {
                     comms.push(`Güven arayan bir profil — "Sizin durumunuzda ben de bunu düşünürdüm" gibi kişisel bir yaklaşım etkili olabilir`);
                   }
@@ -1612,13 +1612,13 @@ function ConsultationMode({patient, onClose, mode}){
 
   // Dikkat Edilmesi Gerekenler
   const donts=[];
-  if(a.revision==="Kusursuz sonuç bekliyorum") donts.push("\"Mükemmel sonuç garantisi\" ifadesinden kaçınmak faydalı olabilir — beklentiyi yukarı çekebilir");
-  if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x)) donts.push("\"Çevreniz de farkı görecek\" gibi ifadeler yerine kişisel memnuniyete odaklanmak daha sağlıklı olabilir");
-  if(a.decisionDuration==="Yeni karar verdim — heyecanlı ve kararlı hissediyorum") donts.push("Hemen operasyon tarihi vermek yerine biraz düşünme süresi tanımak yararlı olabilir");
-  if(a.multiDoctor==="Birçok doktora danıştım") donts.push("Diğer doktorlar hakkında yorum yapmaktan kaçınmak güven açısından daha destekleyici olabilir");
-  if(a.expectation?.includes("Tamamen farklı")) donts.push("\"Tamamen değişeceksiniz\" yerine doğal sınırları nazikçe çerçevelemek daha iyi sonuç verebilir");
-  if(a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor") donts.push("\"Fark yok\" demek yerine hastanın algısını anlamaya çalışmak daha yapıcı olabilir");
-  if(pred.rev>=40) donts.push("Operasyon sonrası fotoğraf sözü konusunda temkinli olmak beklenti yönetimi açısından faydalı olabilir");
+  if(a.revision==="Kusursuz sonuç bekliyorum") donts.push("\"Mükemmel sonuç garantisi\" ifadesinden kaçınmak faydalı olabilir — beklentiyi artırabilir");
+  if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x)) donts.push("\"Çevreniz de farkı görecek\" ifadesinden kaçınılabilir — dışsal motivasyonu pekiştirebilir");
+  if(a.decisionDuration==="Yeni karar verdim — heyecanlı ve kararlı hissediyorum") donts.push("Hemen operasyon tarihi vermek yerine düşünme süresi tanımak faydalı olabilir");
+  if(a.multiDoctor==="Birçok doktora danıştım") donts.push("Diğer doktorları eleştirmekten kaçınmak önerilir — güvensizliği artırabilir");
+  if(a.expectation?.includes("Tamamen farklı")) donts.push("\"Tamamen değişeceksiniz\" yerine doğal sınırları erken netleştirmek faydalı olabilir");
+  if(a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor") donts.push("\"Fark yok\" ifadesinden kaçınılabilir — hastanın algısını küçümseyebilir");
+  if(pred.rev>=40) donts.push("Operasyon sonrası fotoğraf sözü vermekten kaçınılabilir — beklenti tuzağı oluşturabilir");
 
   // Konsültasyon checklist
   const checklist=[];
@@ -1629,39 +1629,39 @@ function ConsultationMode({patient, onClose, mode}){
   if(a.support?.includes("Kimseye")||a.support?.includes("karşılar")) checklist.push("İyileşme sürecinde destek durumunu sormak değerli olabilir");
   if(a.prevSurgery?.includes("memnun kalmadım")) checklist.push("Önceki deneyimini dinlemek faydalı olabilir — ne bekledi, ne aldı?");
   checklist.push("İyileşme sürecini somut bir takvimle paylaşabilirsiniz");
-  checklist.push("Sorularını sormaya teşvik edebilirsiniz — \"başka merak ettiğiniz bir şey var mı?\" gibi");
+  checklist.push("Sorularını sormaya teşvik edebilirsiniz — sessiz kalırsa \"başka merak ettiğiniz?\" de");
   // Konuşulacaklar — risk sinyallerinden otomatik üret
   const talkingPoints=[];
   if(a.rhinoVision==="Aklımda belirli bir referans var — bir ünlü veya fotoğraf")
-    talkingPoints.push({text:"Referans beklentisini birlikte değerlendirebilirsiniz",sub:"Aklında belirli bir referans olduğunu belirtti — kendi yüz yapısına uygun sonucu birlikte konuşmanız faydalı olabilir"});
+    talkingPoints.push({text:"Referans beklentisini netleştirmek",sub:"Aklında belirli bir referans olduğunu belirtti — kendi yüz yapısına uygun sonucu açıklamak faydalı olabilir"});
   if(a.revision==="Kusursuz sonuç bekliyorum")
-    talkingPoints.push({text:"Revizyon ihtimalini nazikçe paylaşabilirsiniz",sub:"Kusursuz sonuç beklentisi var — revizyonun nadir ama olası bir süreç olduğunu nazikçe çerçevelemeniz düşünülebilir"});
+    talkingPoints.push({text:"Revizyon ihtimali konuşması",sub:"Kusursuz sonuç beklentisi var — revizyonun nadir ama olası bir süreç olduğunu çerçeveleyerek aktarabilirsiniz"});
   if(a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor")
-    talkingPoints.push({text:"Simetri beklentisini birlikte konuşabilirsiniz",sub:"Mevcut asimetri küçük ama rahatsız ediyor — doğal simetri farklılıklarını anlayışla paylaşmanız yararlı olabilir"});
+    talkingPoints.push({text:"Simetri beklentisini çerçevelemek",sub:"Mevcut asimetri küçük ama çok rahatsız ediyor — memeler kardeştir, ikiz değildir"});
   if(a.expectation?.includes("Tamamen farklı"))
-    talkingPoints.push({text:"Beklentiyi birlikte şekillendirebilirsiniz",sub:"Tamamen farklı görünmek istiyor — mümkün olan değişimi fotoğraflarla birlikte değerlendirmeniz iyi olabilir"});
+    talkingPoints.push({text:"Beklenti yönetimi",sub:"Tamamen farklı görünmek istiyor — mümkün olan değişimi fotoğraflarla somutlaştırabilirsiniz"});
   if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x))
-    talkingPoints.push({text:"Motivasyonu anlamaya çalışabilirsiniz",sub:"Dışsal baskı bileşeni olabilir — kendi isteği mi çevre etkisi mi olduğunu nazikçe keşfetmeniz değerli olabilir"});
+    talkingPoints.push({text:"Motivasyonu netleştirmek",sub:"Dışsal baskı bileşeni var — kendi isteği mi çevre baskısı mı olduğunu anlamak değerli"});
   if(a.decisionDuration==="Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum")
-    talkingPoints.push({text:"Karar sürecini destekleyebilirsiniz",sub:"Uzun süredir düşünüyor ama hâlâ kararsız — ne engelliyor olabileceğini birlikte anlamanız faydalı olabilir"});
+    talkingPoints.push({text:"Karar netliği düşük görünüyor",sub:"Uzun süredir düşünüyor ama hâlâ kararsız — ne engelliyor? Bilgi mi, destek mi, korku mu?"});
   if(a.decisionDuration==="Yeni karar verdim — heyecanlı ve kararlı hissediyorum")
-    talkingPoints.push({text:"Karar sürecini destekleyebilirsiniz",sub:"Çok yeni bir karar — heyecanın yanına gerçekçi beklentiler ekleyip süreci birlikte konuşmanız yararlı olabilir"});
+    talkingPoints.push({text:"Acele karar sinyali",sub:"Çok yeni karar — heyecanın yerini gerçekçi beklentiye bırakması için süreci paylaşabilirsiniz"});
   if((a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge")||(a.otherConsidered&&a.otherConsidered!=="Hayır")){
     const crossSuggs = getCrossSellSuggestion(a);
     if(crossSuggs.length>0){
-      talkingPoints.push({text:"Ek işlem ilgisini değerlendirebilirsiniz",sub:`${crossSuggs[0].proc} — %${crossSuggs[0].prob} ihtimal (${crossSuggs[0].reason})`});
+      talkingPoints.push({text:"Ek işlem fırsatı",sub:`${crossSuggs[0].proc} — %${crossSuggs[0].prob} ihtimal (${crossSuggs[0].reason})`});
     } else {
-      talkingPoints.push({text:"Ek işlem ilgisini sorabilirsiniz",sub:`Başka bölge ilgisi var — ${a.otherAreas||a.otherConsidered}`});
+      talkingPoints.push({text:"Ek işlem sinyali",sub:`Başka bölge ilgisi var — ${a.otherAreas||a.otherConsidered}`});
     }
   } else {
     // Prosedüre göre otomatik cross-sell önerisi
     const crossSuggs = getCrossSellSuggestion(a);
     if(crossSuggs.length>0){
-      talkingPoints.push({text:"Ek işlem önerisini düşünebilirsiniz",sub:`${crossSuggs[0].proc} sorulabilir — %${crossSuggs[0].prob} ihtimal`});
+      talkingPoints.push({text:"Cross-sell fırsatı",sub:`${crossSuggs[0].proc} sorulabilir — %${crossSuggs[0].prob} ihtimal`});
     }
   }
   if(talkingPoints.length===0)
-    talkingPoints.push({text:"Standart konsültasyon",sub:"Belirgin risk sinyali yok — beklentiyi birlikte teyit edip süreci paylaşmanız yeterli olabilir"});
+    talkingPoints.push({text:"Standart konsültasyon",sub:"Belirgin risk sinyali yok — beklentiyi teyit etmek ve süreci paylaşmak yeterli olacaktır"});
 
   // Risk sinyalleri
   const flags=[];
