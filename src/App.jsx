@@ -1622,46 +1622,46 @@ function ConsultationMode({patient, onClose, mode}){
 
   // Konsültasyon checklist
   const checklist=[];
-  checklist.push("Hastanın kendi motivasyonunu dinlemek için ilk 2 dakika alan tanımak faydalı olabilir");
-  if(cls.cat==="red"||cls.cat==="amber") checklist.push("Beklenti sınırlarını erken aşamada nazikçe çerçevelemek ve referans fotoğraflarla somutlaştırmak düşünülebilir");
-  if(proc.includes("Burun")) checklist.push("Dijital simülasyon veya benzer vaka fotoğrafı paylaşmak hastanın beklentisini netleştirmeye yardımcı olabilir");
-  if(proc.includes("Meme")) checklist.push("Beden oranlarına uygun protez/yöntem aralığını birlikte değerlendirmek iyi bir başlangıç olabilir");
-  if(a.support?.includes("Kimseye")||a.support?.includes("karşılar")) checklist.push("İyileşme sürecinde destek durumunu sormak yararlı olabilir");
-  if(a.prevSurgery?.includes("memnun kalmadım")) checklist.push("Önceki deneyimini anlamak için ne beklediğini ve ne aldığını dinlemek değerli olabilir");
-  checklist.push("İyileşme sürecini somut bir takvimle paylaşmak hastanın hazırlığını destekleyebilir");
-  checklist.push("Sorularına alan açmak — sessiz kalırsa \"başka merak ettiğiniz bir şey var mı?\" diye nazikçe sormak düşünülebilir");
+  checklist.push("Hastanın kendi motivasyonunu dinlemek faydalı olabilir (ilk 2 dk söz kesmeden)");
+  if(cls.cat==="red"||cls.cat==="amber") checklist.push("Beklenti sınırlarını erken netleştirmek faydalı olabilir — referans fotoğraflarla somutlaştırabilirsiniz");
+  if(proc.includes("Burun")) checklist.push("Dijital simülasyon veya benzer vaka fotoğrafı paylaşmayı düşünebilirsiniz");
+  if(proc.includes("Meme")) checklist.push("Beden oranlarına uygun protez/yöntem aralığını paylaşabilirsiniz");
+  if(a.support?.includes("Kimseye")||a.support?.includes("karşılar")) checklist.push("İyileşme sürecinde destek durumunu sormak değerli olabilir");
+  if(a.prevSurgery?.includes("memnun kalmadım")) checklist.push("Önceki deneyimini dinlemek faydalı olabilir — ne bekledi, ne aldı?");
+  checklist.push("İyileşme sürecini somut bir takvimle paylaşabilirsiniz");
+  checklist.push("Sorularını sormaya teşvik edebilirsiniz — \"başka merak ettiğiniz bir şey var mı?\" gibi");
   // Konuşulacaklar — risk sinyallerinden otomatik üret
   const talkingPoints=[];
   if(a.rhinoVision==="Aklımda belirli bir referans var — bir ünlü veya fotoğraf")
-    talkingPoints.push({text:"Referans beklentisini birlikte değerlendirmek",sub:"Aklında belirli bir referans olduğunu belirtti — kendi yüz yapısına uygun sonucu birlikte konuşmak faydalı olabilir"});
+    talkingPoints.push({text:"Referans beklentisini birlikte değerlendirebilirsiniz",sub:"Aklında belirli bir referans olduğunu belirtti — kendi yüz yapısına uygun sonucu birlikte konuşmanız faydalı olabilir"});
   if(a.revision==="Kusursuz sonuç bekliyorum")
-    talkingPoints.push({text:"Revizyon ihtimalini nazikçe paylaşmak",sub:"Kusursuz sonuç beklentisi var — revizyonun nadir ama olası bir süreç olduğunu nazikçe çerçevelemek düşünülebilir"});
+    talkingPoints.push({text:"Revizyon ihtimalini nazikçe paylaşabilirsiniz",sub:"Kusursuz sonuç beklentisi var — revizyonun nadir ama olası bir süreç olduğunu nazikçe çerçevelemeniz düşünülebilir"});
   if(a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor")
-    talkingPoints.push({text:"Simetri beklentisini birlikte konuşmak",sub:"Mevcut asimetri küçük ama rahatsız ediyor — doğal simetri farklılıklarını anlayışla paylaşmak yararlı olabilir"});
+    talkingPoints.push({text:"Simetri beklentisini birlikte konuşabilirsiniz",sub:"Mevcut asimetri küçük ama rahatsız ediyor — doğal simetri farklılıklarını anlayışla paylaşmanız yararlı olabilir"});
   if(a.expectation?.includes("Tamamen farklı"))
-    talkingPoints.push({text:"Beklentiyi birlikte şekillendirmek",sub:"Tamamen farklı görünmek istiyor — mümkün olan değişimi fotoğraflarla birlikte değerlendirmek iyi olabilir"});
+    talkingPoints.push({text:"Beklentiyi birlikte şekillendirebilirsiniz",sub:"Tamamen farklı görünmek istiyor — mümkün olan değişimi fotoğraflarla birlikte değerlendirmeniz iyi olabilir"});
   if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x))
-    talkingPoints.push({text:"Motivasyonu anlamaya çalışmak",sub:"Dışsal baskı bileşeni olabilir — kendi isteği mi çevre etkisi mi olduğunu nazikçe keşfetmek değerli olabilir"});
+    talkingPoints.push({text:"Motivasyonu anlamaya çalışabilirsiniz",sub:"Dışsal baskı bileşeni olabilir — kendi isteği mi çevre etkisi mi olduğunu nazikçe keşfetmeniz değerli olabilir"});
   if(a.decisionDuration==="Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum")
-    talkingPoints.push({text:"Karar sürecini desteklemek",sub:"Uzun süredir düşünüyor ama hâlâ kararsız — ne engelliyor olabileceğini birlikte anlamak faydalı olabilir"});
+    talkingPoints.push({text:"Karar sürecini destekleyebilirsiniz",sub:"Uzun süredir düşünüyor ama hâlâ kararsız — ne engelliyor olabileceğini birlikte anlamanız faydalı olabilir"});
   if(a.decisionDuration==="Yeni karar verdim — heyecanlı ve kararlı hissediyorum")
-    talkingPoints.push({text:"Karar sürecini desteklemek",sub:"Çok yeni bir karar — heyecanın yanına gerçekçi beklentiler eklemek ve süreci birlikte konuşmak yararlı olabilir"});
+    talkingPoints.push({text:"Karar sürecini destekleyebilirsiniz",sub:"Çok yeni bir karar — heyecanın yanına gerçekçi beklentiler ekleyip süreci birlikte konuşmanız yararlı olabilir"});
   if((a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge")||(a.otherConsidered&&a.otherConsidered!=="Hayır")){
     const crossSuggs = getCrossSellSuggestion(a);
     if(crossSuggs.length>0){
-      talkingPoints.push({text:"Ek işlem ilgisini değerlendirmek",sub:`${crossSuggs[0].proc} — %${crossSuggs[0].prob} ihtimal (${crossSuggs[0].reason})`});
+      talkingPoints.push({text:"Ek işlem ilgisini değerlendirebilirsiniz",sub:`${crossSuggs[0].proc} — %${crossSuggs[0].prob} ihtimal (${crossSuggs[0].reason})`});
     } else {
-      talkingPoints.push({text:"Ek işlem ilgisini anlamak",sub:`Başka bölge ilgisi var — ${a.otherAreas||a.otherConsidered}`});
+      talkingPoints.push({text:"Ek işlem ilgisini sorabilirsiniz",sub:`Başka bölge ilgisi var — ${a.otherAreas||a.otherConsidered}`});
     }
   } else {
     // Prosedüre göre otomatik cross-sell önerisi
     const crossSuggs = getCrossSellSuggestion(a);
     if(crossSuggs.length>0){
-      talkingPoints.push({text:"Ek işlem önerisi düşünülebilir",sub:`${crossSuggs[0].proc} sorulabilir — %${crossSuggs[0].prob} ihtimal`});
+      talkingPoints.push({text:"Ek işlem önerisini düşünebilirsiniz",sub:`${crossSuggs[0].proc} sorulabilir — %${crossSuggs[0].prob} ihtimal`});
     }
   }
   if(talkingPoints.length===0)
-    talkingPoints.push({text:"Standart konsültasyon",sub:"Belirgin risk sinyali yok — beklentiyi birlikte teyit etmek ve süreci paylaşmak yeterli olabilir"});
+    talkingPoints.push({text:"Standart konsültasyon",sub:"Belirgin risk sinyali yok — beklentiyi birlikte teyit edip süreci paylaşmanız yeterli olabilir"});
 
   // Risk sinyalleri
   const flags=[];
