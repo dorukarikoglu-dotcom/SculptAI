@@ -463,7 +463,7 @@ function classify(score,a,threshold=60){
       reasons.push({txt:"Çevresinden gizliyor veya karşı çıkıyorlar — karar kırılganlığı yüksek.",weight:5});
 
     if(score>=threshold && reasons.length===0)
-      reasons.push({txt:`ML risk skoru ${score}/100 — profil kombinasyonu randevusuzluk ile ilişkili.`,weight:4});
+      reasons.push({txt:`Risk değerlendirmesi ${score}/100 — profil kombinasyonu randevusuzluk ile ilişkili.`,weight:4});
 
     // En yüksek ağırlıklı 1-2 sebebi döndür
     reasons.sort((a,b)=>b.weight-a.weight);
@@ -638,9 +638,14 @@ function getFlags(a,cat){
 }
 
 function getSignals(a,cat){
+  // Kısa etiketler
+  const motShort={"Kendim için daha iyi hissetmek istiyorum":"İçsel motivasyon","Özgüvenimi artırmak istiyorum":"Özgüven odaklı","Yakınlarımın yorumları etkili oldu":"Dışsal baskı","Hayatımın daha iyi gideceğini düşünüyorum":"Yaşam kalitesi","Başka insanların yorumları beni kötü etkiliyor":"Dışsal baskı"};
+  const expShort={"Küçük, doğal bir iyileştirme yeterli":"Doğal iyileştirme","Dengeli ve orantılı bir sonuç bekliyorum":"Dengeli sonuç","Belirgin bir fark olmasını istiyorum":"Belirgin fark","Tamamen farklı bir görünüm istiyorum":"Tam değişim"};
+  const mot=motShort[a.motivation]||a.motivation||"—";
+  const exp=expShort[a.expectation]||a.expectation||"—";
   if(cat==="red"||cat==="amber") return [
-    {label:"Motivasyon",val:a.motivation?.split(" ").slice(0,3).join(" ")||"—"},
-    {label:"Beklenti",val:a.expectation?.split(" ").slice(0,3).join(" ")||"—"},
+    {label:"Motivasyon",val:mot},
+    {label:"Beklenti",val:exp},
     {label:"Önceki Danışma",val:a.multiDoctor||"—"},
   ];
   if(cat==="ambassador") return [
@@ -649,8 +654,8 @@ function getSignals(a,cat){
     {label:"Ek Prosedür",val:a.otherConsidered||"—"},
   ];
   return [
-    {label:"Motivasyon",val:a.motivation?.split(" ").slice(0,3).join(" ")||"—"},
-    {label:"Beklenti",val:a.expectation?.split(" ").slice(0,3).join(" ")||"—"},
+    {label:"Motivasyon",val:mot},
+    {label:"Beklenti",val:exp},
     {label:"Sosyal Destek",val:a.support||"—"},
   ];
 }
@@ -1016,7 +1021,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
     if(["Karın Germe","Yüz Germe"].includes(a.procedure)&&a.riskKnowledge==="Hiçbir bilgim yok") risks.push(`${a.procedure} için hiç bilgisi yok — süreç mutlaka anlatılmalı`);
     if(a.procedure==="Burun Estetiği"&&["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].includes(a.motivation)) risks.push("Rinoplasti + dışsal motivasyon — bu kombinasyon çok yüksek risk");
     if(storyRedFlag) risks.push("Açık cevabında yüksek beklenti sinyali var");
-    if(risks.length===0&&score>=68) risks.push("ML modeli yüksek risk tespit etti — profil kombinasyonu randevu almama ile ilişkili");
+    if(risks.length===0&&score>=68) risks.push("Profil kombinasyonu yüksek risk gösteriyor — form cevaplarının bütünü randevu almama ile ilişkili");
     if(risks.length===0) risks.push("Belirgin risk sinyali saptanmadı — standart konsültasyon yeterli");
 
     const comms=[];
@@ -1228,7 +1233,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                 if(breastSymRedFlag) risks.push(`Küçük asimetri bile çok rahatsız ediyor — postop memnuniyetsizlik riski`);
                 if(storyRedFlag) risks.push(`Açık cevabında yüksek beklenti sinyali — "mükemmel", "kusursuz" gibi ifadeler kullanmış`);
                 // ML skoru yüksek ama kural sinyali yoksa açıkla
-                if(risks.length===0 && s>=68) risks.push(`ML modeli bu profili yüksek risk olarak değerlendirdi — form cevaplarının kombinasyonu randevu almama riskiyle ilişkili. Genel beklenti yönetimi önerilir`);
+                if(risks.length===0 && s>=68) risks.push(`Sistem bu profili yüksek risk olarak değerlendirdi — form cevaplarının kombinasyonu randevu almama riskiyle ilişkili. Genel beklenti yönetimi önerilir`);
                 if(risks.length===0) risks.push(`${name} için belirgin risk sinyali saptanmadı — standart konsültasyon yeterli`);
 
                 // ── İLETİŞİM TARZI — spesifik ──
@@ -2881,7 +2886,7 @@ FORM CEVAPLARI:
 · Sosyal kaçınma: ${a.avoidance||"belirtmedi"}
 · Hayal ettiği: ${a.imagineAfter||"belirtmedi"}
 
-· ML risk skoru: ${score}/100
+· Risk değerlendirmesi: ${score}/100
 
 FORM DAVRANIŞI:
 · Uzun düşündüğü sorular: ${slowQ.length>0?slowQ.join(", "):"yok"}
