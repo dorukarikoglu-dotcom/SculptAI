@@ -12,6 +12,13 @@ async function getKey(doctorId){
   const raw=new TextEncoder().encode(doctorId.padEnd(16,"0").slice(0,16));
   return crypto.subtle.importKey("raw",raw,{name:"AES-GCM"},false,["encrypt","decrypt"]);
 }
+
+/* ─── ŞİFRE HASHING — SHA-256 ───────────────────────────────────────────── */
+async function hashPassword(password){
+  const data=new TextEncoder().encode(password+"_sculptai_salt_2026");
+  const buf=await crypto.subtle.digest("SHA-256",data);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
 async function encryptName(name,doctorId){
   if(!name||!doctorId) return name||"";
   try{
@@ -2216,7 +2223,9 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
       const decrypted=await Promise.all(data.map(async p=>{
         if(p.answers?.name){
           const realName=await decryptName(p.answers.name,doctor.id);
-          return{...p,answers:{...p.answers,name:realName}};
+          const realGender=p.answers.gender?await decryptName(p.answers.gender,doctor.id):p.answers.gender;
+          const realStory=p.answers.openStory?await decryptName(p.answers.openStory,doctor.id):p.answers.openStory;
+          return{...p,answers:{...p.answers,name:realName,gender:realGender,openStory:realStory}};
         }
         return p;
       }));
@@ -2241,7 +2250,17 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
     if(isDemo){alert("Demo modunda kullanılamaz.");return;}
     if(!newU.trim()||!newP.trim()){setPwErr("Tüm alanları doldurun.");return;}
     if(newP!==newP2){setPwErr("Şifreler eşleşmiyor.");return;}
-    await sb.from("doctors").update({username:newU.trim(),password_hash:newP}).eq("id",doctor.id);
+    if(newP.length<6){setPwErr("Şifre en az 6 karakter olmalı.");return;}
+    // Supabase Auth şifre güncelle
+    try{
+      const {error:authErr}=await sb.auth.updateUser({
+        email:`${newU.trim().toLowerCase()}@sculptai.health`,
+        password:newP
+      });
+      if(authErr) console.warn("Auth update warning:",authErr.message);
+    }catch(e){}
+    // Doctor tablosunu da güncelle
+    await sb.from("doctors").update({username:newU.trim().toLowerCase(),password_hash:"managed_by_auth"}).eq("id",doctor.id);
     setShowPw(false);setNewU("");setNewP("");setNewP2("");setPwErr("");
   }
 
@@ -2738,7 +2757,9 @@ function PatientForm({doctorId}){
 
     // İsmi şifrele
     const encryptedName=await encryptName(answers.name||"",doctorId||"default");
-    const safeAnswers={...answers,name:encryptedName,kvkk_consent:true,kvkk_date:new Date().toISOString()};
+    const encryptedGender=await encryptName(answers.gender||"",doctorId||"default");
+    const encryptedStory=answers.openStory?await encryptName(answers.openStory,doctorId||"default"):"";
+    const safeAnswers={...answers,name:encryptedName,gender:encryptedGender,openStory:encryptedStory,kvkk_consent:true,kvkk_date:new Date().toISOString()};
 
     const rec={
       id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),
@@ -3416,7 +3437,6 @@ YAZIM KURALLARI:
 
 /* ─── ADMIN PANEL ────────────────────────────────────────────────────────── */
 function AdminPanel(){
-  const ADMIN_PASS="sculpt_admin_2024";
   const [authed,setAuthed]=useState(false);
   const [pass,setPass]=useState("");
   const [err,setErr]=useState("");
@@ -3431,7 +3451,13 @@ function AdminPanel(){
   const [lastAddedLink,setLastAddedLink]=useState("");
 
   async function login(){
-    if(pass===ADMIN_PASS){setAuthed(true);loadData();}
+    setErr("");
+    // Supabase Auth ile admin girişi
+    const {data,error}=await sb.auth.signInWithPassword({
+      email:"admin@sculptai.health",
+      password:pass
+    });
+    if(data?.user){setAuthed(true);loadData();}
     else setErr("Hatalı şifre.");
   }
 
@@ -3464,9 +3490,10 @@ function AdminPanel(){
     setAddErr("");setAddOk(false);
     if(!newDoc.name||!newDoc.username||!newDoc.password||!newDoc.clinic_name){setAddErr("Tüm alanları doldurun.");return;}
     const id="dr-"+newDoc.username.toLowerCase().replace(/\s/g,"-");
+    const hashedPass=await hashPassword(newDoc.password);
     const {error}=await sb.from("doctors").insert({
       id, name:newDoc.name, username:newDoc.username,
-      password_hash:newDoc.password, clinic_name:newDoc.clinic_name
+      password_hash:hashedPass, clinic_name:newDoc.clinic_name
     });
     if(error){setAddErr("Hata: "+error.message);}
     else{setLastAddedLink(`${window.location.origin}/form/${id}`);setAddOk(true);setNewDoc({name:"",username:"",password:"",clinic_name:""});loadData();}
@@ -3776,28 +3803,77 @@ function Login({onLogin}){
     window.addEventListener("resize",fn);
     return()=>window.removeEventListener("resize",fn);
   },[]);
+  const AUTH_EMAIL_DOMAIN="sculptai.health";
+
   async function attempt(){
     setLoading(true);setErr("");
-    const {data}=await sb.from("doctors").select("*").eq("username",u).eq("password_hash",p).single();
-    if(data) onLogin(data);
-    else setErr("Kullanıcı adı veya şifre hatalı.");
+    const email=`${u.trim().toLowerCase()}@${AUTH_EMAIL_DOMAIN}`;
+
+    // 1. Supabase Auth ile dene
+    const {data:authData,error:authErr}=await sb.auth.signInWithPassword({email,password:p});
+    if(authData?.user){
+      // Auth başarılı — doctor kaydını çek
+      const {data:doc}=await sb.from("doctors").select("*").eq("auth_id",authData.user.id).maybeSingle();
+      if(doc){ onLogin(doc); setLoading(false); return; }
+      // auth_id eşleşmedi — username ile dene (migrasyon)
+      const {data:doc2}=await sb.from("doctors").select("*").eq("username",u.trim()).maybeSingle();
+      if(doc2){
+        await sb.from("doctors").update({auth_id:authData.user.id}).eq("id",doc2.id);
+        onLogin(doc2); setLoading(false); return;
+      }
+    }
+
+    // 2. Auth başarısız — legacy login dene (mevcut doktorlar için migrasyon)
+    const hashed=await hashPassword(p);
+    const {data:legacy}=await sb.from("doctors").select("*").eq("username",u.trim()).maybeSingle();
+    if(legacy && (legacy.password_hash===hashed || legacy.password_hash===p || legacy.password_hash==="migrated_to_auth")){
+      // Legacy login başarılı — Supabase Auth kullanıcısı oluştur veya giriş yap
+      let authUserId=null;
+      try{
+        // Önce signUp dene (yeni auth kullanıcısı)
+        const {data:newAuth,error:signUpErr}=await sb.auth.signUp({email,password:p});
+        if(newAuth?.user && !signUpErr){
+          authUserId=newAuth.user.id;
+        } else {
+          // signUp başarısız — muhtemelen zaten var, signIn dene
+          const {data:existAuth}=await sb.auth.signInWithPassword({email,password:p});
+          if(existAuth?.user) authUserId=existAuth.user.id;
+        }
+      }catch(e){}
+      // auth_id'yi güncelle
+      if(authUserId){
+        await sb.from("doctors").update({auth_id:authUserId,password_hash:"migrated_to_auth"}).eq("id",legacy.id);
+        legacy.auth_id=authUserId; // local objeyi de güncelle
+      }
+      onLogin(legacy); setLoading(false); return;
+    }
+
+    setErr("Kullanıcı adı veya şifre hatalı.");
     setLoading(false);
   }
   async function register(){
     setLoading(true);setErr("");
     if(!regName.trim()||!regUser.trim()||!regPass.trim()){setErr("Tüm alanları doldurun.");setLoading(false);return;}
     if(regPass!==regPass2){setErr("Şifreler eşleşmiyor.");setLoading(false);return;}
+    if(regPass.length<6){setErr("Şifre en az 6 karakter olmalı.");setLoading(false);return;}
     if(regUser.length<3){setErr("Kullanıcı adı en az 3 karakter olmalı.");setLoading(false);return;}
     // Check if username exists
-    const {data:existing}=await sb.from("doctors").select("id").eq("username",regUser.trim()).maybeSingle();
+    const {data:existing}=await sb.from("doctors").select("id").eq("username",regUser.trim().toLowerCase()).maybeSingle();
     if(existing){setErr("Bu kullanıcı adı zaten alınmış.");setLoading(false);return;}
-    // Insert
-    const newId=crypto.randomUUID?crypto.randomUUID():("dr-"+Date.now());
+
+    // Supabase Auth ile kayıt
+    const email=`${regUser.trim().toLowerCase()}@${AUTH_EMAIL_DOMAIN}`;
+    const {data:authData,error:authErr}=await sb.auth.signUp({email,password:regPass});
+    if(authErr){setErr("Kayıt oluşturulamadı: "+authErr.message);setLoading(false);return;}
+
+    const authId=authData?.user?.id;
+    const newId=authId||crypto.randomUUID?crypto.randomUUID():("dr-"+Date.now());
     const {error}=await sb.from("doctors").insert({
       id:newId,
+      auth_id:authId||null,
       name:regName.trim(),
-      username:regUser.trim(),
-      password_hash:regPass,
+      username:regUser.trim().toLowerCase(),
+      password_hash:"managed_by_auth",
       clinic_name:regClinic.trim()||"Klinik",
     });
     if(error){setErr("Kayıt oluşturulamadı: "+error.message);setLoading(false);return;}
@@ -3951,12 +4027,45 @@ export default function App(){
     return m?m[1]:null;
   });
 
+  const SESSION_MAX_HOURS=8;
+
   useEffect(()=>{
     const path=window.location.pathname;
     if(path.startsWith("/panel")){
       const params=new URLSearchParams(window.location.search);
       if(params.get("demo")==="true"){setView("demo");return;}
-      try{const saved=sessionStorage.getItem("sculpt_doctor");if(saved){const d=JSON.parse(saved);setDoctor(d);setView("doctor");}else{setView("login");}}catch{setView("login");}
+
+      // Supabase Auth session kontrolü
+      sb.auth.getSession().then(({data:{session}})=>{
+        if(session?.user){
+          // Auth session var — doctor kaydını çek
+          sb.from("doctors").select("*").eq("auth_id",session.user.id).maybeSingle()
+            .then(({data:doc})=>{
+              if(doc){setDoctor(doc);setView("doctor");return;}
+              // auth_id eşleşmedi — sessionStorage fallback
+              trySessionStorage();
+            });
+        } else {
+          // Auth session yok — sessionStorage fallback (legacy)
+          trySessionStorage();
+        }
+      });
+
+      function trySessionStorage(){
+        try{
+          const saved=sessionStorage.getItem("sculpt_doctor");
+          const loginTime=sessionStorage.getItem("sculpt_login_time");
+          if(saved){
+            if(loginTime && (Date.now()-parseInt(loginTime)) > SESSION_MAX_HOURS*60*60*1000){
+              sessionStorage.removeItem("sculpt_doctor");
+              sessionStorage.removeItem("sculpt_login_time");
+              setView("login"); return;
+            }
+            const d=JSON.parse(saved);
+            setDoctor(d);setView("doctor");
+          }else{setView("login");}
+        }catch{setView("login");}
+      }
     }
   },[]);
 
@@ -3985,7 +4094,7 @@ export default function App(){
   );
 
   if(view==="admin") return <AdminPanel/>;
-  if(view==="login") return <Login onLogin={d=>{try{sessionStorage.setItem("sculpt_doctor",JSON.stringify(d));}catch{}setDoctor(d);setView("doctor");}}/>;
+  if(view==="login") return <Login onLogin={d=>{try{sessionStorage.setItem("sculpt_doctor",JSON.stringify(d));sessionStorage.setItem("sculpt_login_time",String(Date.now()));}catch{}setDoctor(d);setView("doctor");}}/>;
 
-  return <DoctorPanel doctor={doctor} onLogout={()=>{try{sessionStorage.removeItem("sculpt_doctor");}catch{}setDoctor(null);setView("login");}}/>;
+  return <DoctorPanel doctor={doctor} onLogout={async()=>{try{await sb.auth.signOut();}catch{}try{sessionStorage.removeItem("sculpt_doctor");sessionStorage.removeItem("sculpt_login_time");}catch{}setDoctor(null);setView("login");}}/>;
 }
