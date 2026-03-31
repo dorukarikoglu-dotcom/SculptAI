@@ -3489,10 +3489,11 @@ function AdminPanel(){
   async function addDoctor(){
     setAddErr("");setAddOk(false);
     if(!newDoc.name||!newDoc.username||!newDoc.password||!newDoc.clinic_name){setAddErr("Tüm alanları doldurun.");return;}
+    if(newDoc.password.length<6){setAddErr("Şifre en az 6 karakter olmalı.");return;}
     const id="dr-"+newDoc.username.toLowerCase().replace(/\s/g,"-");
     const hashedPass=await hashPassword(newDoc.password);
     const {error}=await sb.from("doctors").insert({
-      id, name:newDoc.name, username:newDoc.username,
+      id, name:newDoc.name, username:newDoc.username.toLowerCase(),
       password_hash:hashedPass, clinic_name:newDoc.clinic_name
     });
     if(error){setAddErr("Hata: "+error.message);}
@@ -3867,7 +3868,7 @@ function Login({onLogin}){
     if(authErr){setErr("Kayıt oluşturulamadı: "+authErr.message);setLoading(false);return;}
 
     const authId=authData?.user?.id;
-    const newId=authId||crypto.randomUUID?crypto.randomUUID():("dr-"+Date.now());
+    const newId=authId||(crypto.randomUUID?crypto.randomUUID():("dr-"+Date.now()));
     const {error}=await sb.from("doctors").insert({
       id:newId,
       auth_id:authId||null,
