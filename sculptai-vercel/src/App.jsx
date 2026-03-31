@@ -3454,6 +3454,7 @@ function AdminPanel(){
   const [addErr,setAddErr]=useState("");
   const [addOk,setAddOk]=useState(false);
   const [lastAddedLink,setLastAddedLink]=useState("");
+  const [confirmDeleteId,setConfirmDeleteId]=useState(null);
 
   async function login(){
     setErr("");
@@ -3503,6 +3504,19 @@ function AdminPanel(){
     });
     if(error){setAddErr("Hata: "+error.message);}
     else{setLastAddedLink(`${window.location.origin}/form/${id}`);setAddOk(true);setNewDoc({name:"",username:"",password:"",clinic_name:""});loadData();}
+  }
+
+  async function deleteDoctor(id){
+    // 1. Doktorun tüm hastalarını sil
+    await sb.from("patients").delete().eq("doctor_id",id);
+    // 2. Klinik modelini sil (varsa)
+    await Promise.resolve(sb.from("clinic_models").delete().eq("doctor_id",id)).catch(()=>{});
+    await Promise.resolve(sb.from("clinic_model_history").delete().eq("doctor_id",id)).catch(()=>{});
+    // 3. Doktor kaydını sil
+    await sb.from("doctors").delete().eq("id",id);
+    // 4. UI güncelle
+    setConfirmDeleteId(null);
+    loadData();
   }
 
   const C={border:"#d4e1ef",muted:"#7b9ab5",navy:"#1e3a5f",ivory:"#f8fafd",ivory2:"#eef3f9"};
@@ -3649,9 +3663,19 @@ function AdminPanel(){
                     <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:C.navy}}>{s.clinic_name||"İsimsiz"}</div>
                     <div style={{fontSize:12,color:C.muted}}>Dr. {s.name} · @{s.username} · ID: {s.id}</div>
                   </div>
-                  <span style={{fontSize:11,padding:"3px 10px",borderRadius:10,background:s.isActive?"#ecfdf5":"#fff5f5",color:s.isActive?"#059669":"#dc2626",border:`1px solid ${s.isActive?"#a7f3d0":"#fecaca"}`}}>
-                    {s.isActive?"Son 30 günde aktif":"30+ gündür işlem yok"}
-                  </span>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:11,padding:"3px 10px",borderRadius:10,background:s.isActive?"#ecfdf5":"#fff5f5",color:s.isActive?"#059669":"#dc2626",border:`1px solid ${s.isActive?"#a7f3d0":"#fecaca"}`}}>
+                      {s.isActive?"Son 30 günde aktif":"30+ gündür işlem yok"}
+                    </span>
+                    {confirmDeleteId===s.id?(
+                      <div style={{display:"flex",gap:4}}>
+                        <button onClick={()=>deleteDoctor(s.id)} style={{padding:"3px 10px",borderRadius:6,border:"1px solid #dc2626",background:"#dc2626",color:"white",fontSize:11,cursor:"pointer"}}>Sil</button>
+                        <button onClick={()=>setConfirmDeleteId(null)} style={{padding:"3px 10px",borderRadius:6,border:"1px solid #d4e1ef",background:"#f8fafd",color:"#7b9ab5",fontSize:11,cursor:"pointer"}}>İptal</button>
+                      </div>
+                    ):(
+                      <button onClick={()=>setConfirmDeleteId(s.id)} title="Hesabı ve tüm hastaları sil" style={{padding:"3px 8px",borderRadius:6,border:"1px solid #fecaca",background:"#fff5f5",color:"#dc2626",fontSize:12,cursor:"pointer"}}>🗑</button>
+                    )}
+                  </div>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
                   {[
