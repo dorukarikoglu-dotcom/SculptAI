@@ -9,6 +9,13 @@ const sb = createClient(
 
 /* ─── ŞİFRELEME — AES-GCM ────────────────────────────────────────────────── */
 async function getKey(doctorId){
+  // PBKDF2 ile güçlü key derivation — doctorId + sabit salt
+  const salt=new TextEncoder().encode("sculptai_enc_2026_"+doctorId);
+  const baseKey=await crypto.subtle.importKey("raw",new TextEncoder().encode(doctorId),{name:"PBKDF2"},false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:100000,hash:"SHA-256"},baseKey,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+// Legacy fallback — eski şifreli verileri okumak için
+async function getLegacyKey(doctorId){
   const raw=new TextEncoder().encode(doctorId.padEnd(16,"0").slice(0,16));
   return crypto.subtle.importKey("raw",raw,{name:"AES-GCM"},false,["encrypt","decrypt"]);
 }
@@ -35,10 +42,28 @@ async function decryptName(cipher,doctorId){
     const buf=Uint8Array.from(atob(cipher),c=>c.charCodeAt(0));
     const iv=buf.slice(0,12);
     const data=buf.slice(12);
-    const key=await getKey(doctorId);
-    const dec=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,data);
-    return new TextDecoder().decode(dec);
-  }catch{return cipher;} // şifre çözülemezse olduğu gibi göster
+    // Yeni PBKDF2 key ile dene
+    try{
+      const key=await getKey(doctorId);
+      const dec=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,data);
+      return new TextDecoder().decode(dec);
+    }catch{
+      // Yeni key başarısız — legacy key ile dene (eski veriler)
+      const legKey=await getLegacyKey(doctorId);
+      const dec=await crypto.subtle.decrypt({name:"AES-GCM",iv},legKey,data);
+      return new TextDecoder().decode(dec);
+    }
+  }catch{return cipher;}
+}
+
+/* ─── API RATE LIMITER ───────────────────────────────────────────────────── */
+const apiRateLimit={calls:[],maxPerMinute:10};
+function canCallAPI(){
+  const now=Date.now();
+  apiRateLimit.calls=apiRateLimit.calls.filter(t=>now-t<60000);
+  if(apiRateLimit.calls.length>=apiRateLimit.maxPerMinute) return false;
+  apiRateLimit.calls.push(now);
+  return true;
 }
 
 /* ─── FONTS & STYLES ─────────────────────────────────────────────────────── */
@@ -881,6 +906,7 @@ ${a.openStory ? `<div class="section"><div class="section-title">Hastanın Kendi
 
   const w = window.open("", "_blank");
   if(w) { w.document.write(html); w.document.close(); }
+  else { alert("PDF penceresi açılamadı. Tarayıcınızın popup engelleyicisini bu site için kapatın."); }
 }
 
 /* ─── PATIENT CARD ───────────────────────────────────────────────────────── */
@@ -1006,6 +1032,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
 
   function handlePDF(e){
     e.stopPropagation();
+    try{
     const name=a.name?.split(" ")[0]||"Hasta";
     const proc=a.procedure||"işlem";
     const risks=[];
@@ -1040,6 +1067,10 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
 
     const pred=predictOutcomes(score,a);
     generateConsultPDF(patient, cls, pred, risks, comms, signals, modelInfo);
+    }catch(err){
+      alert("PDF oluşturulamadı. Lütfen popup engelleyicinizi kontrol edin ve tekrar deneyin.");
+      console.error("PDF hatası:",err);
+    }
   }
 
   const formProc=a.procedure||"";
@@ -1134,7 +1165,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
             </div>
           </div>
           {/* Signal boxes */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",borderBottom:"1px solid #d4e1ef"}}>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",borderBottom:"1px solid #d4e1ef"}}>
             {signals.map((s,i)=>(
               <div key={i} style={{padding:"10px 16px",borderRight:i<2?"1px solid #d4e1ef":"none"}}>
                 <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:"#7b9ab5",marginBottom:3}}>{s.label}</div>
@@ -1629,7 +1660,7 @@ function ConsultationMode({patient, onClose, mode}){
   if(a.support?.includes("Kimseye")||a.support?.includes("karşılar")) checklist.push("İyileşme sürecinde destek durumunu sormak değerli olabilir");
   if(a.prevSurgery?.includes("memnun kalmadım")) checklist.push("Önceki deneyimini dinlemek faydalı olabilir — ne bekledi, ne aldı?");
   checklist.push("İyileşme sürecini somut bir takvimle paylaşabilirsiniz");
-  checklist.push("Sorularını sormaya teşvik edebilirsiniz — sessiz kalırsa \"başka merak ettiğiniz?\" de");
+  checklist.push("Sorularını sormaya teşvik edebilirsiniz — sessiz kalırsa \"başka merak ettiğiniz bir şey var mı?\" diye sorabilirsiniz");
   // Konuşulacaklar — risk sinyallerinden otomatik üret
   const talkingPoints=[];
   if(a.rhinoVision==="Aklımda belirli bir referans var — bir ünlü veya fotoğraf")
@@ -1697,7 +1728,7 @@ function ConsultationMode({patient, onClose, mode}){
       <div style={{flex:1,overflowY:"auto",padding:"14px 14px",maxWidth:720,margin:"0 auto",width:"100%"}}>
 
         {/* Süre önerisi + metrikler */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
           <div style={{background:"#1e3a5f",borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
             <div style={{fontSize:20,fontWeight:600,color:"#f8fafd",lineHeight:1.1}}>{consultDuration.label}</div>
             <div style={{fontSize:8,color:"rgba(248,250,253,0.6)",textTransform:"uppercase",letterSpacing:"0.06em",marginTop:3}}>Önerilen Süre</div>
@@ -1796,7 +1827,7 @@ function ValueScreen({patients,doctor}){
         <div style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:300,color:"#1e3a5f",letterSpacing:"-0.01em",marginBottom:4}}>SculptAI'ın <em>Katkısı</em></div>
         <div style={{fontSize:13,color:C.muted}}>{total} hasta · Gerçek veriye dayalı</div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:20}}>
         {[
           {accent:"#059669",icon:"↗",title:"Cross-Sell",sub:"Ek prosedür planlanan",val:crossSells,unit:" hasta",note:total?`Hastaların %${Math.round(crossSells/total*100)}'inde`:"Veri yok",color:"#059669"},
           {accent:"#1d4ed8",icon:"🛡",title:"Risk Filtresi",sub:"Randevu alınmadı",val:noAppt,unit:" hasta",note:noAppt>0?"Konsültasyon boşa gitmedi":"Henüz işaretlenmedi",color:"#1d4ed8"},
@@ -1827,7 +1858,7 @@ function ValueScreen({patients,doctor}){
       )}
       <div style={cardS}>
         <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:10,fontWeight:500}}>Marka Elçisi Programı</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8}}>
           {[["Aktif Elçi",ambassadors],["Kod Gönderildi",patients.filter(p=>p.ambassador_sent).length],["Referansla Gelen",patients.filter(p=>p.answers?.referralCode).length]].map(([lbl,val])=>(
             <div key={lbl} style={{background:"#f8fafd",borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
               <div style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:300,fontVariantNumeric:"lining-nums",color:"#7c3aed",lineHeight:1,marginBottom:3}}>{val}</div>
@@ -1852,7 +1883,7 @@ function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP
       <div style={cardS}>
         <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:4,fontWeight:500}}>Risk Hassasiyeti</div>
         <div style={{fontSize:12,color:C.muted,marginBottom:14}}>Sistmin kaç hastayı kırmızı işaretleyeceğini belirler.</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8,marginBottom:12}}>
           {Object.values(THRESHOLD_MODES).map(m=>(
             <button key={m.key} onClick={()=>{setThresholdMode(m.key);localStorage.setItem('threshold_mode',m.key);}}
               style={{padding:"12px 8px",borderRadius:10,border:`2px solid ${thresholdMode===m.key?m.color:C.border}`,
@@ -2230,7 +2261,7 @@ function Analytics({patients}){
     <div style={{padding:"20px 28px 24px",overflowY:"auto",flex:1}}>
 
       {/* KPI ROW */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:18}}>
         {[
           {val:total,lbl:"Toplam Hasta",color:"#1e3a5f",grad:"linear-gradient(90deg,#1e3a5f,#2d5a8e)",note:`Ort. risk: ${avgRisk}`},
           {val:fitRate+"%",lbl:"Uygun Profil Oranı",color:"#10b981",grad:"linear-gradient(90deg,#10b981,#2d5a8e)",note:`${green+amb} hasta`},
@@ -2353,7 +2384,7 @@ function Analytics({patients}){
             const totalLoss=estNoShow+amberLoss;
             return(
               <div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:12}}>
                   <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"12px",textAlign:"center"}}>
                     <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,color:"#dc2626",lineHeight:1}}>{totalLoss}</div>
                     <div style={{fontSize:11,color:"#991b1b",marginTop:4}}>Randevu almayacak hasta</div>
@@ -2438,8 +2469,8 @@ function Analytics({patients}){
             </div>
 
             {/* Segment bazlı tablo */}
-            <div style={{border:"1px solid #d4e1ef",borderRadius:8,overflow:"hidden",marginBottom:10}}>
-              <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",background:"#eef3f9",padding:"8px 12px",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",color:C.muted,fontWeight:600}}>
+            <div style={{border:"1px solid #d4e1ef",borderRadius:8,overflow:"hidden",marginBottom:10,overflowX:"auto"}}>
+              <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",background:"#eef3f9",minWidth:400,padding:"8px 12px",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",color:C.muted,fontWeight:600}}>
                 <div>Segment</div><div style={{textAlign:"center"}}>Toplam</div><div style={{textAlign:"center"}}>Geldi</div><div style={{textAlign:"center"}}>Gelmedi</div><div style={{textAlign:"center"}}>İsabet</div>
               </div>
               {["red","amber","green","ambassador"].map(seg=>{
@@ -2447,7 +2478,7 @@ function Analytics({patients}){
                 if(d.total===0) return null;
                 const acc=seg==="red"?(d.total>0?Math.round(d.noShow/d.total*100):0):(d.total>0?Math.round(d.came/d.total*100):0);
                 return(
-                  <div key={seg} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",padding:"9px 12px",borderTop:"1px solid #eef3f9",fontSize:13}}>
+                  <div key={seg} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",padding:"9px 12px",minWidth:400,borderTop:"1px solid #eef3f9",fontSize:13}}>
                     <div style={{color:segColors[seg],fontWeight:500}}>{segLabels[seg]}</div>
                     <div style={{textAlign:"center",color:C.navy}}>{d.total}</div>
                     <div style={{textAlign:"center",color:"#059669"}}>{d.came}</div>
@@ -2496,6 +2527,27 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
   const [confirmClear,setConfirmClear]=useState(false);
   const [clinicName,setClinicName]=useState(doctor.clinic_name||"");
   const [clinicSaved,setClinicSaved]=useState(false);
+  const [sessionWarning,setSessionWarning]=useState(false);
+
+  // Session timeout uyarısı — son 15 dakikada banner göster
+  useEffect(()=>{
+    if(isDemo) return;
+    const checkSession=()=>{
+      const loginTime=sessionStorage.getItem("sculpt_login_time");
+      if(!loginTime) return;
+      const elapsed=Date.now()-parseInt(loginTime);
+      const maxMs=8*60*60*1000; // 8 saat
+      const remaining=maxMs-elapsed;
+      if(remaining<=0){
+        onLogout(); // süre doldu
+      } else if(remaining<=15*60*1000){
+        setSessionWarning(true); // son 15 dk
+      }
+    };
+    checkSession();
+    const timer=setInterval(checkSession,60000); // her dk kontrol
+    return()=>clearInterval(timer);
+  },[]);
 
   useEffect(()=>{if(!isDemo) loadPatients();},[]);
 
@@ -2583,6 +2635,22 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
 
       {/* KONSÜLTASYOn MODU — overlay */}
       {consultPatient&&<ConsultationMode patient={consultPatient} onClose={()=>setConsultPatient(null)} mode={thresholdMode}/>}
+
+      {/* SESSION TIMEOUT UYARISI */}
+      {sessionWarning&&(
+        <div style={{position:"fixed",top:0,left:0,right:0,zIndex:9998,background:"#dc2626",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",animation:"fadeUp 0.3s ease"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,color:"white"}}>
+            <span style={{fontSize:18}}>⏰</span>
+            <span style={{fontSize:13,fontFamily:"'Nunito',sans-serif"}}>Oturumunuz 15 dakika içinde sona erecek. Kaydetmediğiniz değişiklikler kaybolabilir.</span>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{sessionStorage.setItem("sculpt_login_time",String(Date.now()));setSessionWarning(false);}}
+              style={{padding:"5px 14px",borderRadius:6,border:"1px solid rgba(255,255,255,0.5)",background:"transparent",color:"white",fontSize:12,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Süreyi Uzat</button>
+            <button onClick={()=>setSessionWarning(false)}
+              style={{padding:"5px 14px",borderRadius:6,border:"none",background:"rgba(255,255,255,0.2)",color:"white",fontSize:12,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Kapat</button>
+          </div>
+        </div>
+      )}
 
       {/* DESKTOP: Sol sidebar / MOBİL: Alt nav */}
       {!isMobile&&<Sidebar tab={tab} setTab={setTab} doctor={doctor} onLogout={onLogout}/>}
@@ -2991,6 +3059,7 @@ function PatientForm({doctorId}){
   const [answers,setAnswers]=useState({});
   const [submitted,setSubmitted]=useState(false);
   const [kvkkConsent,setKvkkConsent]=useState(false);
+  const [submitting,setSubmitting]=useState(false);
   const [doctorInfo,setDoctorInfo]=useState(null);
   const [ambassadorCode,setAmbassadorCode]=useState(null);
   const [patientSegment,setPatientSegment]=useState(null);
@@ -3015,7 +3084,30 @@ function PatientForm({doctorId}){
       .then(({data})=>{ if(data) setDoctorInfo(data); });
   },[doctorId]);
 
+  // Geri tuşu + sekme kapatma koruması
+  useEffect(()=>{
+    if(submitted||currentQ===0) return; // ilk soru veya gönderilmiş ise koruma yok
+    const handleBeforeUnload=(e)=>{e.preventDefault();e.returnValue="";};
+    const handlePopState=(e)=>{
+      e.preventDefault();
+      if(currentQ>0) setCurrentQ(c=>Math.max(0,c-1));
+      else window.history.pushState(null,"",window.location.href);
+    };
+    window.addEventListener("beforeunload",handleBeforeUnload);
+    window.history.pushState(null,"",window.location.href);
+    window.addEventListener("popstate",handlePopState);
+    return()=>{
+      window.removeEventListener("beforeunload",handleBeforeUnload);
+      window.removeEventListener("popstate",handlePopState);
+    };
+  },[currentQ,submitted]);
+
+  const [submitError,setSubmitError]=useState("");
+
   async function handleSubmit(){
+    if(submitting) return; // çift gönderim engeli
+    setSubmitting(true);
+    setSubmitError("");
     // Klinik bazlı model varsa onu kullan, yoksa global model
     let score, mlSat, modelSource="global";
     try {
@@ -3067,11 +3159,13 @@ function PatientForm({doctorId}){
     const {error}=await sb.from("patients").insert(rec);
     if(error){
       console.error("Insert hatası:",error);
-      alert("Form kaydedilemedi: "+error.message);
+      setSubmitError("Form kaydedilemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.");
+      setSubmitting(false);
       return;
     }
 
     setSubmitted(true);
+    setSubmitting(false);
     setAmbassadorCode(ambCode);
     setPatientSegment(cls);
     fetchAI(answers,score,cls,rec.id,slowQuestions,changedQuestions);
@@ -3090,6 +3184,7 @@ function PatientForm({doctorId}){
     };
     try{
       setGuideLoading(true);
+      if(!canCallAPI()){setGuideLoading(false);return;}
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
         model:"claude-sonnet-4-20250514",
         max_tokens:800,
@@ -3144,6 +3239,7 @@ Türkçe yaz.`}]
 
   async function fetchAI(a,score,cls,recId,slowQ=[],changedQ=[]){
     try{
+      if(!canCallAPI()) return;
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:`Bir plastik cerrahın konsültasyon asistanısın. Aşağıdaki hasta hakkında doktora kısa, içten ve kullanışlı bir ön not yazacaksın.
 
 TON: Meslektaşına not bırakır gibi — yargılamayan, ego incitmeyen, "bence şuna dikkat edebilirsin" tarzında. Doktoru küçümsemeden, ama gerçeği söyle.
@@ -3710,11 +3806,14 @@ YAZIM KURALLARI:
             setQuestionTimes(p=>({...p,[QUESTIONS[currentQ].id]:elapsed}));
             qStartTime.current=Date.now();
             if(currentQ<VISIBLE_QUESTIONS.length-1)setCurrentQ(c=>c+1);else handleSubmit();
-          }} disabled={currentQ===VISIBLE_QUESTIONS.length-1?(!canNext||!kvkkConsent):!canNext}
-            style={{flex:2,padding:"13px",background:(currentQ===VISIBLE_QUESTIONS.length-1?canNext&&kvkkConsent:canNext)?"#1e3a5f":"#d4e1ef",border:"none",borderRadius:8,color:(currentQ===VISIBLE_QUESTIONS.length-1?canNext&&kvkkConsent:canNext)?"#f8fafd":"#7b9ab5",fontSize:13,fontWeight:500,letterSpacing:"0.08em",cursor:(currentQ===VISIBLE_QUESTIONS.length-1?canNext&&kvkkConsent:canNext)?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Nunito',sans-serif"}}>
-            {currentQ===VISIBLE_QUESTIONS.length-1?"Formu Gönder →":"Devam →"}
+          }} disabled={currentQ===VISIBLE_QUESTIONS.length-1?(!canNext||!kvkkConsent||submitting):!canNext}
+            style={{flex:2,padding:"13px",background:(currentQ===VISIBLE_QUESTIONS.length-1?(canNext&&kvkkConsent&&!submitting):canNext)?"#1e3a5f":"#d4e1ef",border:"none",borderRadius:8,color:(currentQ===VISIBLE_QUESTIONS.length-1?(canNext&&kvkkConsent&&!submitting):canNext)?"#f8fafd":"#7b9ab5",fontSize:13,fontWeight:500,letterSpacing:"0.08em",cursor:(currentQ===VISIBLE_QUESTIONS.length-1?(canNext&&kvkkConsent&&!submitting):canNext)?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Nunito',sans-serif"}}>
+            {submitting?"Gönderiliyor...":currentQ===VISIBLE_QUESTIONS.length-1?"Formu Gönder →":"Devam →"}
           </button>
         </div>
+        {submitError&&(
+          <div style={{marginTop:10,padding:"10px 14px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:13,color:"#dc2626",textAlign:"center"}}>{submitError}</div>
+        )}
       </main>
     </div>
   );
@@ -3879,7 +3978,7 @@ function AdminPanel(){
         {/* GENEL BAKIŞ */}
         {tab==="overview"&&!loading&&(
           <>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:24}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:24}}>
               {[
                 {lbl:"Toplam Hasta",val:total.patients,color:C.navy},
                 {lbl:"Dönüşüm",val:total.withOutcome>0?`%${totalDonusum}`:"—",color:totalDonusum>=60?"#059669":"#d97706"},
@@ -3957,7 +4056,7 @@ function AdminPanel(){
                     )}
                   </div>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8}}>
                   {[
                     {l:"Hasta",v:s.total,c:C.navy},
                     {l:"Dönüşüm",v:s.total>0?`%${s.donusum}`:"—",c:s.donusum>=60?"#059669":"#d97706"},
@@ -3984,7 +4083,7 @@ function AdminPanel(){
           <div style={{display:"grid",gap:12}}>
             <div style={{...cardS}}>
               <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:16,fontWeight:500}}>Model Performansı — Genel</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:16}}>
                 {[
                   {l:"Toplam Etiketli",v:patients.filter(p=>p.no_appointment||p.outcome_procedures?.length>0).length,c:C.navy},
                   {l:"Kırmızı Hasta",v:redAll.length,c:"#dc2626"},
@@ -4038,7 +4137,7 @@ function AdminPanel(){
                           {clinicModels[s.id].threshold_src==="auto_f1"?"Otomatik F1":"Manuel"}
                         </span>
                       </div>
-                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginTop:4}}>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))",gap:6,marginTop:4}}>
                         {[
                           {l:"Doğruluk", v:clinicModels[s.id].val_accuracy?`%${Math.round(clinicModels[s.id].val_accuracy*100)}`:(clinicModels[s.id].accuracy?`%${Math.round(clinicModels[s.id].accuracy*100)}`:"—")},
                           {l:"F1",       v:clinicModels[s.id].val_f1?clinicModels[s.id].val_f1.toFixed(2):"—"},
