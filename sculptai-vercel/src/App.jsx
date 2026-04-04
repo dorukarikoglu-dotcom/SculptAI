@@ -4607,7 +4607,7 @@ function Login({onLogin}){
   return(
     <div style={{minHeight:"100vh",background:"#f8fafd",fontFamily:"'Nunito',sans-serif",display:"flex",flexDirection:isMobile?"column":"row"}}>
 
-      {/* SOL — Görsel (sadece masaüstü) */}
+      {/* SOL — Görsel (masaüstü: büyük, mobil: banner) */}
       {!isMobile&&(
         <div style={{flex:"0 0 52%",position:"relative",overflow:"hidden",display:"flex",background:"linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 40%, #4a7fb5 70%, #a8c5de 100%)"}}>
           <img src="/login-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
@@ -4620,9 +4620,16 @@ function Login({onLogin}){
           </div>
         </div>
       )}
+      {isMobile&&(
+        <div style={{width:"100%",height:180,position:"relative",overflow:"hidden",background:"linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 40%, #4a7fb5 70%, #a8c5de 100%)"}}>
+          <img src="/login-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top"}}
+            onError={e=>{e.target.style.display="none"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 30%, #f8fafd 100%)"}}/>
+        </div>
+      )}
 
       {/* SAĞ — Form */}
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?"32px 24px":"40px 48px",minHeight:isMobile?"100vh":"auto"}}>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?"24px 24px":"40px 48px",minHeight:isMobile?"auto":"auto"}}>
         <div style={{width:"100%",maxWidth:360}}>
 
           {/* Logo */}
