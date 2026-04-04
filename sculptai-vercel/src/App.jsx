@@ -4020,18 +4020,12 @@ YAZIM KURALLARI:
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Nunito',sans-serif",color:C.navy}}>
-      {/* Hero — resim varsa göster, yoksa gradient */}
+      {/* Hero — tek resim */}
       {currentQ===0&&(
-        <div style={{width:"100%",height:240,position:"relative",overflow:"hidden",flexShrink:0,background:"linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 40%, #4a7fb5 70%, #a8c5de 100%)"}}>
-          <div style={{position:"absolute",inset:0,display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:2}}>
-            {["hero.png","hero2.png","hero3.png","hero4.png"].map((src,i)=>(
-              <div key={i} style={{position:"relative",overflow:"hidden"}}>
-                <img src={`/${src}`} alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 15%"}}
-                  onError={e=>{e.target.style.display="none"}}/>
-              </div>
-            ))}
-          </div>
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(245,240,232,0) 20%, #f8fafd 100%)"}}/>
+        <div style={{width:"100%",height:240,position:"relative",overflow:"hidden",flexShrink:0,background:"linear-gradient(135deg, #e8f0fa 0%, #d4e5f5 50%, #c0d8f0 100%)"}}>
+          <img src="/form-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
+            onError={e=>{e.target.style.display="none"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(248,250,253,0) 40%, #f8fafd 100%)"}}/>
           <div style={{position:"absolute",top:16,left:20,display:"flex",alignItems:"center",gap:7}}>
             <div style={{width:20,height:20,border:"1px solid rgba(255,255,255,0.7)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(245,240,232,0.25)"}}>
               <div style={{width:6,height:6,background:"white",borderRadius:"50%"}}/>
