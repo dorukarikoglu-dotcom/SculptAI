@@ -3251,100 +3251,96 @@ function PatientForm({doctorId}){
     q:{
       name:{label:"What is your name?"},
       age:{label:"How old are you?"},
-      gender:{label:"What is your gender?",options:{"Kadın":"Female","Erkek":"Male","Diğer / Belirtmek istemiyorum":"Other / Prefer not to say"}},
+      gender:{label:"What is your gender?",options:{"Kadın":"Female","Erkek":"Male","Belirtmek istemiyorum":"Prefer not to say"}},
       procedure:{label:"Which procedure are you interested in?"},
-      motivation:{label:"What is your primary motivation for this procedure?",options:{
-        "Kendi isteğimle karar verdim — uzun süredir düşünüyorum":"I decided on my own — I've been thinking about it for a long time",
-        "Yakınlarımın yorumları etkili oldu":"My family/friends' opinions influenced me",
-        "Başka insanların yorumları beni kötü etkiliyor":"Other people's comments affect me negatively",
-        "Sağlık sorunum var, doktor yönlendirdi":"I have a health issue, my doctor referred me"}},
-      expectation:{label:"What result do you expect from the procedure?",options:{
-        "Küçük, doğal bir iyileştirme — fark edilmeden güzelleşmek":"Small, natural improvement — enhancing without being noticed",
-        "Belirgin bir fark istiyorum ama abartısız olsun":"I want a noticeable difference but nothing extreme",
-        "Tamamen farklı görünmek istiyorum":"I want to look completely different"}},
-      support:{label:"Who knows about your decision?",options:{
-        "Ailem ve yakın çevrem destekliyor":"My family and close circle support me",
-        "Aileme söyledim ama kararsızlar / karşılar":"I told my family but they're unsure/against it",
-        "Kimseye söylemedim, bu benim kararım":"I haven't told anyone, this is my decision"}},
-      riskKnowledge:{label:"How informed are you about the risks of this procedure?",options:{
-        "Detaylı araştırma yaptım, riskleri biliyorum":"I've done detailed research, I know the risks",
-        "Genel bilgim var ama detayları bilmiyorum":"I have general knowledge but don't know the details",
-        "Hiçbir bilgim yok, doktorum bilgilendirecek":"I have no knowledge, my doctor will inform me"}},
-      revision:{label:"How do you feel about the possibility of revision?",options:{
-        "Normal karşılıyorum, her ameliyatın riski var":"I see it as normal, every surgery has risks",
-        "Endişelendiriyor ama yine de istiyorum":"It worries me but I still want to proceed",
-        "Kusursuz sonuç bekliyorum":"I expect a perfect result"}},
-      multiDoctor:{label:"How many doctors have you consulted?",options:{
-        "Bu ilk konsültasyonum":"This is my first consultation",
-        "1-2 doktora danıştım":"I've consulted 1-2 doctors",
-        "Birçok doktora danıştım":"I've consulted many doctors"}},
-      decisionDuration:{label:"When did you decide to have this procedure?",options:{
-        "Uzun süredir düşünüyorum ve kararım net":"I've been thinking for a long time and my decision is firm",
-        "Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum":"I've been thinking for a long time but still feel undecided",
-        "Yeni karar verdim — heyecanlı ve kararlı hissediyorum":"I just decided — I feel excited and determined"}},
-      prevSurgery:{label:"Have you had aesthetic surgery before?",options:{
-        "Hayır, bu ilk kez":"No, this is my first time",
-        "Evet, memnun kaldım":"Yes, I was satisfied",
-        "Evet, ama beklentimi karşılamadı":"Yes, but it didn't meet my expectations",
-        "Evet, ama hiç memnun değilim — revizyon düşünüyorum":"Yes, but I'm not satisfied at all — considering revision"}},
-      source:{label:"How did you find us?",options:{
-        "Google / İnternet araması":"Google / Internet search",
-        "Instagram / Sosyal medya":"Instagram / Social media",
-        "Bir tanıdığım önerdi":"A friend/acquaintance recommended",
-        "Bir hasta beni yönlendirdi (referans kodu var)":"A patient referred me (I have a referral code)",
-        "Diğer":"Other"}},
-      phone:{label:"Your phone number (for appointment)"},
-      openStory:{label:"Is there anything else you'd like to share with your doctor? (Optional)"},
-      // Eksik olan 10 soru
+      otherAreas:{label:"Are there other areas of your body you're concerned about?",options:{
+        "Hayır, sadece bu bölge":"No, only this area",
+        "Evet, 1-2 bölge daha var ama önceliğim bu":"Yes, 1-2 more areas but this is my priority",
+        "Evet, birkaç bölge var, hepsini konuşmak isterim":"Yes, several areas, I'd like to discuss all of them",
+        "Henüz bilmiyorum, doktorun önerilerine açığım":"I'm not sure yet, open to doctor's suggestions"}},
+      rhinoVision:{label:"When you imagine the result, what do you see?",options:{
+        "Doktorum benim yüz yapıma en uygun olanı belirlesin":"I want my doctor to determine what suits my face best",
+        "Burnumda beni rahatsız eden belirli bir şeyi düzeltmek istiyorum":"I want to fix a specific thing about my nose",
+        "Aklımda net bir görünüm var, buna ulaşmak istiyorum":"I have a clear vision, I want to achieve it",
+        "Aklımda belirli bir referans var — bir ünlü veya fotoğraf":"I have a specific reference — a celebrity or photo"}},
+      breastSymmetry:{label:"How would you describe the difference between your breasts?",options:{
+        "Fark var ama beni pek rahatsız etmiyor, ameliyatla düzelsin istiyorum":"There's a difference but it doesn't bother me much",
+        "Belirgin bir fark var ve bu beni çok rahatsız ediyor":"There's a noticeable difference and it bothers me a lot",
+        "Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor":"Even a very small difference bothers me",
+        "Fark olduğunu düşünmüyorum, sadece küçültmek/büyütmek istiyorum":"I don't see a difference, just want to resize"}},
+      otherConsidered:{label:"Have you considered any other aesthetic procedures?",options:{
+        "Hayır":"No",
+        "Evet, düşündüm ama erteledim":"Yes, I considered but postponed",
+        "Evet, bu işlemle aynı anda değerlendiriyorum":"Yes, considering alongside this procedure",
+        "Evet, gelecekte yapmayı planlıyorum":"Yes, planning for the future"}},
+      bodyFocus:{label:"How often do you think about this area in daily life?",options:{
+        "Nadiren aklıma gelir":"Rarely crosses my mind",
+        "Zaman zaman düşünürüm":"I think about it from time to time",
+        "Sık sık düşünürüm, ama kontrol altında":"Often, but it's under control",
+        "Neredeyse her gün, bazen işimi gücümü etkiliyor":"Almost every day, sometimes affects my work"}},
       avoidance:{label:"Do you avoid certain situations because of this concern?",options:{
         "Hayır, hayatımı etkilemiyor":"No, it doesn't affect my life",
         "Bazen dikkatimi dağıtıyor":"It sometimes distracts me",
         "Bazı sosyal ortamlardan kaçınıyorum":"I avoid some social situations",
         "Günlük hayatımı önemli ölçüde kısıtlıyor":"It significantly limits my daily life"}},
-      bodyFocus:{label:"How often do you think about this area in your daily life?",options:{
-        "Nadiren aklıma gelir":"Rarely crosses my mind",
-        "Zaman zaman düşünürüm":"I think about it from time to time",
-        "Sık sık düşünürüm, ama kontrol altında":"I think about it often, but it's under control",
-        "Neredeyse her gün, bazen işimi gücümü etkiliyor":"Almost every day, sometimes it affects my work"}},
-      breastSymmetry:{label:"How would you describe the difference between your breasts?",options:{
-        "Fark var ama beni pek rahatsız etmiyor, ameliyatla düzelsin istiyorum":"There's a difference but it doesn't bother me much, I want surgery to fix it",
-        "Belirgin bir fark var ve bu beni çok rahatsız ediyor":"There's a noticeable difference and it bothers me a lot",
-        "Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor":"There's a very small difference but even that bothers me",
-        "Fark olduğunu düşünmüyorum, sadece küçültmek/büyütmek istiyorum":"I don't think there's a difference, I just want to reduce/enlarge"}},
-      imagineAfter:{label:"When you imagine life after this procedure, what do you see?",options:{
-        "Kendimi daha özgüvenli ve hafif hayal ediyorum":"I imagine feeling more confident and lighter",
-        "Belirli bir fiziksel değişikliği hayal ediyorum":"I imagine a specific physical change",
-        "Hayatımın daha iyi gideceğini hayal ediyorum":"I imagine my life getting better overall",
-        "Çevremin tepkisini ve beğenisini hayal ediyorum":"I imagine the reactions and approval of those around me"}},
-      otherAreas:{label:"Are there other areas of your body you're concerned about?",options:{
-        "Hayır, sadece bu bölge":"No, only this area",
-        "Evet, 1-2 bölge daha var ama önceliğim bu":"Yes, 1-2 more areas but this is my priority",
-        "Evet, birkaç bölge var, hepsini konuşmak isterim":"Yes, several areas, I'd like to discuss all of them",
-        "Henüz bilmiyorum, doktorun önerilerine açığım":"I'm not sure yet, I'm open to the doctor's suggestions"}},
-      otherConsidered:{label:"Have you considered any other aesthetic procedures?",options:{
-        "Hayır":"No",
-        "Evet, düşündüm ama erteledim":"Yes, I considered but postponed",
-        "Evet, bu işlemle aynı anda değerlendiriyorum":"Yes, I'm considering it alongside this procedure",
-        "Evet, gelecekte yapmayı planlıyorum":"Yes, I plan to do it in the future"}},
-      rhinoVision:{label:"When you imagine the result, what do you see?",options:{
-        "Doktorum benim yüz yapıma en uygun olanı belirlesin":"I want my doctor to determine what suits my face best",
-        "Burnumda beni rahatsız eden belirli bir şeyi düzeltmek istiyorum":"I want to fix a specific thing that bothers me about my nose",
-        "Aklımda net bir görünüm var, buna ulaşmak istiyorum":"I have a clear vision in mind, I want to achieve it",
-        "Aklımda belirli bir referans var — bir ünlü veya fotoğraf":"I have a specific reference — a celebrity or photo"}},
+      motivation:{label:"What is your primary motivation for this procedure?",options:{
+        "Kendim için daha iyi hissetmek istiyorum":"I want to feel better about myself",
+        "Özgüvenimi artırmak istiyorum":"I want to boost my self-confidence",
+        "Yakınlarımın yorumları etkili oldu":"My family/friends' opinions influenced me",
+        "Hayatımın daha iyi gideceğini düşünüyorum":"I think my life will improve"}},
+      expectation:{label:"What result do you expect from the procedure?",options:{
+        "Küçük, doğal bir iyileştirme yeterli":"A small, natural improvement is enough",
+        "Dengeli ve orantılı bir sonuç bekliyorum":"I expect a balanced and proportional result",
+        "Belirgin bir fark olmasını istiyorum":"I want a noticeable difference",
+        "Tamamen farklı bir görünüm istiyorum":"I want a completely different look"}},
       selfEsteem:{label:"Are you generally satisfied with yourself?",options:{
-        "Evet, kendimden genel olarak memnunum":"Yes, I'm generally satisfied with myself",
+        "Evet, kendimden genel olarak memnunum":"Yes, I'm generally satisfied",
         "Çoğunlukla memnunum, bazı konularda değil":"Mostly satisfied, not in some areas",
         "Kendimden pek memnun değilim":"I'm not very satisfied with myself",
         "Hayır, kendimle barışık değilim":"No, I'm not at peace with myself"}},
+      imagineAfter:{label:"When you imagine life after this procedure, what do you see?",options:{
+        "Kendimi daha özgüvenli ve hafif hayal ediyorum":"I imagine feeling more confident and lighter",
+        "Belirli bir fiziksel değişikliği hayal ediyorum":"I imagine a specific physical change",
+        "Hayatımın daha iyi gideceğini hayal ediyorum":"I imagine my life getting better",
+        "Çevremin tepkisini ve beğenisini hayal ediyorum":"I imagine reactions and approval from others"}},
+      decisionDuration:{label:"How long have you been thinking about this procedure?",options:{
+        "Yeni karar verdim — heyecanlı ve kararlı hissediyorum":"I just decided — I feel excited and determined",
+        "Birkaç aydır düşünüyorum — hazır olduğumu hissediyorum":"Been thinking for a few months — I feel ready",
+        "1 yılı aşkın süredir düşünüyorum — artık harekete geçme zamanı":"Over a year — it's time to take action",
+        "Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum":"Been thinking for a long time but still feel undecided"}},
+      prevSurgery:{label:"Have you had aesthetic surgery before?",options:{
+        "Hayır":"No, this is my first time",
+        "Evet ve memnunum":"Yes, and I was satisfied",
+        "Evet ama beklentimi karşılamadı":"Yes, but it didn't meet my expectations",
+        "Evet ve hiç memnun değilim":"Yes, and I'm not satisfied at all"}},
+      multiDoctor:{label:"How many doctors have you consulted?",options:{
+        "Hayır":"This is my first consultation",
+        "1-2 doktorla görüştüm":"I've consulted 1-2 doctors",
+        "Birçok doktorla görüştüm":"I've consulted many doctors"}},
+      riskKnowledge:{label:"How informed are you about the risks?",options:{
+        "Hiçbir bilgim yok":"I have no knowledge",
+        "Genel olarak bilgi sahibiyim":"I have general knowledge",
+        "Detaylı araştırdım ve biliyorum":"I've researched in detail and I know the risks"}},
+      support:{label:"Who knows about your decision?",options:{
+        "Evet, destekliyorlar":"Yes, they support me",
+        "Biliyorlar ama kararsızlar":"They know but are unsure",
+        "Karşılar":"They're against it",
+        "Kimseye söylemedim":"I haven't told anyone"}},
+      revision:{label:"How do you feel about the possibility of revision?",options:{
+        "Evet, olası revizyonu normal karşılarım":"I accept it as normal — every surgery has risks",
+        "Revizyon beni endişelendiriyor":"It worries me but I still want to proceed",
+        "Kusursuz sonuç bekliyorum":"I expect a perfect result"}},
       sharing:{label:"Would you share a positive experience with others?",options:{
         "Evet, açıkça paylaşırım":"Yes, I'd share openly",
         "Sadece çok yakınlarımla":"Only with close friends/family",
         "Hayır, paylaşmam":"No, I wouldn't share"}},
-      socialInfluence:{label:"Do people around you consult you about aesthetic decisions?",options:{
-        "Evet, sık sık danışırlar":"Yes, they often ask for my advice",
+      socialInfluence:{label:"Do people consult you about aesthetic decisions?",options:{
+        "Evet, sık sık danışırlar":"Yes, they often ask my advice",
         "Bazen danışanlar olur":"Sometimes people ask",
         "Hayır, danışmazlar":"No, they don't ask"}},
-    },
+      phone:{label:"Your phone number (for appointment)"},
+      openStory:{label:"Is there anything else you'd like to share? (Optional)"},
+    },    },
     // Prosedür isimleri
     procs:{
       "Meme Küçültme":"Breast Reduction","Meme Büyütme (Silikon Protez ile)":"Breast Augmentation (Silicone Implant)","Meme Dikleştirme":"Breast Lift","Meme Asimetrisinin Giderilmesi":"Breast Asymmetry Correction","Meme Onarımı (Kanser sonrası)":"Breast Reconstruction (Post-cancer)","Doğumsal Meme Anomalisinin Düzeltilmesi":"Congenital Breast Anomaly Correction",
@@ -4011,18 +4007,13 @@ YAZIM KURALLARI:
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Nunito',sans-serif",color:C.navy}}>
-      {/* Hero grid — sadece ilk soru (karşılama) */}
+      {/* Hero — şık gradient */}
       {currentQ===0&&(
-        <div style={{width:"100%",height:280,display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:2,position:"relative",overflow:"hidden",flexShrink:0}}>
-          {["hero.png","hero2.png","hero3.png","hero4.png"].map((src,i)=>(
-            <div key={i} style={{position:"relative",overflow:"hidden"}}>
-              <img src={`/${src}`} alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 15%"}}
-                onError={e=>{e.target.parentElement.style.background="#eef3f9"}}/>
-            </div>
-          ))}
-          {/* Gradient overlay */}
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(245,240,232,0) 20%, rgba(245,240,232,1) 100%)"}}/>
-          {/* Logo üstte */}
+        <div style={{width:"100%",height:220,position:"relative",overflow:"hidden",flexShrink:0}}>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 40%, #4a7fb5 70%, #a8c5de 100%)"}}/>
+          <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)"}}/>
+          <div style={{position:"absolute",top:20,right:40,width:150,height:150,borderRadius:"50%",background:"radial-gradient(circle, rgba(197,171,128,0.12) 0%, transparent 70%)"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 50%, #f8fafd 100%)"}}/>
           <div style={{position:"absolute",top:16,left:20,display:"flex",alignItems:"center",gap:7}}>
             <div style={{width:20,height:20,border:"1px solid rgba(255,255,255,0.7)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(245,240,232,0.25)"}}>
               <div style={{width:6,height:6,background:"white",borderRadius:"50%"}}/>
@@ -4609,10 +4600,10 @@ function Login({onLogin}){
 
       {/* SOL — Görsel (sadece masaüstü) */}
       {!isMobile&&(
-        <div style={{flex:"0 0 52%",position:"relative",overflow:"hidden",display:"flex"}}>
-          <img src="/login-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
-            onError={e=>{e.target.parentElement.style.background="#eef3f9";e.target.style.display="none"}}/>
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(to right, rgba(245,240,232,0) 50%, rgba(245,240,232,1) 100%)"}}/>
+        <div style={{flex:"0 0 52%",position:"relative",overflow:"hidden",display:"flex",background:"linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 40%, #4a7fb5 70%, #a8c5de 100%)"}}>
+          <div style={{position:"absolute",top:"30%",left:"20%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)"}}/>
+          <div style={{position:"absolute",bottom:"10%",right:"10%",width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle, rgba(197,171,128,0.1) 0%, transparent 70%)"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to right, transparent 50%, rgba(245,240,232,1) 100%)"}}/>
           <div style={{position:"absolute",bottom:40,left:40,right:"30%"}}>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:"white",lineHeight:1.4,textShadow:"0 2px 20px rgba(0,0,0,0.3)",fontStyle:"italic"}}>
               "Her hasta bir ilişki.<br/>Her ilişki bir güven."
