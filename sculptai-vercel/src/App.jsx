@@ -2152,79 +2152,72 @@ function SecretaryView({patients,doctorId,isDemo,onRefresh}){
 
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {filtered.map(p=>(
-          <div key={p.id} style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,padding:"14px 18px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:C.navy,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.patientName}</div>
-                  <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:p.statusBg,color:p.statusColor,border:`1px solid ${p.statusColor}22`,flexShrink:0,fontWeight:500}}>{p.statusLabel}</span>
-                </div>
-                <div style={{fontSize:12,color:C.muted}}>{p.procedure} · {p.date}</div>
-              {/* WhatsApp butonu — form linkini gönder */}
-              {p.answers?.phone&&(
-                <button onClick={()=>{
-                  const phone=p.answers.phone.replace(/\D/g,"").replace(/^0/,"90");
-                  const msg=encodeURIComponent(`Merhaba ${p.patientName}, ${p.procedure} işleminiz hakkında bilgi vermek istiyoruz. Sorularınız için bize ulaşabilirsiniz.`);
-                  window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
-                }} style={{fontSize:11,color:"#25D366",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline",padding:0,marginTop:2}}>
-                  📱 WhatsApp Gönder
+          <div key={p.id} style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,padding:"12px 14px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:C.navy,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>{p.patientName}</div>
+              <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:p.statusBg,color:p.statusColor,border:`1px solid ${p.statusColor}22`,flexShrink:0,fontWeight:500}}>{p.statusLabel}</span>
+            </div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:4}}>{p.procedure} · {p.date}</div>
+            {p.answers?.phone&&(
+              <button onClick={()=>{
+                const phone=p.answers.phone.replace(/\D/g,"").replace(/^0/,"90");
+                const msg=encodeURIComponent(`Merhaba ${p.patientName}, ${p.procedure} işleminiz hakkında bilgi vermek istiyoruz. Sorularınız için bize ulaşabilirsiniz.`);
+                window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
+              }} style={{fontSize:11,color:"#25D366",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline",padding:0,marginBottom:6}}>
+                📱 WhatsApp Gönder
+              </button>
+            )}
+
+            {/* Adım 1: Randevu aldı mı? */}
+            {p.status==="pending"&&(
+              <div style={{display:"flex",gap:6,marginTop:6}}>
+                <button onClick={()=>markOutcome(p.id,"randevu_almadi")} disabled={saving===p.id}
+                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  ✕ Randevu Almadı
                 </button>
-              )}
+                <button onClick={()=>markOutcome(p.id,"randevu_aldi")} disabled={saving===p.id}
+                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  ✓ Randevu Aldı
+                </button>
               </div>
+            )}
 
-              {/* Adım 1: Randevu aldı mı? */}
-              {p.status==="pending"&&(
-                <div style={{display:"flex",gap:6,flexShrink:0}}>
-                  <button onClick={()=>markOutcome(p.id,"randevu_almadi")} disabled={saving===p.id}
-                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-                    ✕ Randevu Almadı
-                  </button>
-                  <button onClick={()=>markOutcome(p.id,"randevu_aldi")} disabled={saving===p.id}
-                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-                    ✓ Randevu Aldı
-                  </button>
-                </div>
-              )}
-
-              {/* Adım 2: İşlem yapıldı mı? */}
-              {p.status==="randevu_aldi"&&(
-                <div style={{display:"flex",gap:6,flexShrink:0}}>
-                  <button onClick={()=>markOutcome(p.id,"vazgecti")} disabled={saving===p.id}
-                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-                    ✕ Vazgeçti
-                  </button>
-                  <button onClick={()=>markOutcome(p.id,"islem_yapildi")} disabled={saving===p.id}
-                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid #a7f3d0",background:"#ecfdf5",color:"#059669",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-                    ✓ İşlem Yapıldı
-                  </button>
-                </div>
-              )}
-
-              {/* Adım 3: Memnuniyet girişi bekliyor */}
-              {p.status==="islem_yapildi"&&(
-                <button onClick={()=>setSatOpen(satOpen===p.id?null:p.id)}
-                  style={{padding:"8px 14px",borderRadius:8,border:"1px solid #c4b5fd",background:"#f5f3ff",color:"#7c3aed",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
-                  📋 Memnuniyet Gir
+            {/* Adım 2: İşlem yapıldı mı? */}
+            {p.status==="randevu_aldi"&&(
+              <div style={{display:"flex",gap:6,marginTop:6}}>
+                <button onClick={()=>markOutcome(p.id,"vazgecti")} disabled={saving===p.id}
+                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  ✕ Vazgeçti
                 </button>
-              )}
+                <button onClick={()=>markOutcome(p.id,"islem_yapildi")} disabled={saving===p.id}
+                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #a7f3d0",background:"#ecfdf5",color:"#059669",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  ✓ İşlem Yapıldı
+                </button>
+              </div>
+            )}
 
-              {/* Tamamlanmış — geri alma butonu ile */}
+            {/* Adım 3: Memnuniyet */}
+            {p.status==="islem_yapildi"&&(
+              <button onClick={()=>setSatOpen(satOpen===p.id?null:p.id)}
+                style={{width:"100%",padding:"9px 8px",borderRadius:8,border:"1px solid #c4b5fd",background:"#f5f3ff",color:"#7c3aed",fontSize:12,fontWeight:600,cursor:"pointer",marginTop:6}}>
+                📋 Memnuniyet Gir
+              </button>
+            )}
+
+              {/* Tamamlanmış — geri alma butonu */}
               {(p.status==="randevu_almadi"||p.status==="vazgecti"||p.status==="tamamlandi")&&(
-                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                  <span style={{fontSize:12,color:p.statusColor,fontWeight:500}}>{p.statusLabel}</span>
-                  {p.satisfaction_1m&&<span style={{fontSize:10,padding:"2px 6px",borderRadius:8,background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ede9fe"}}>{p.satisfaction_1m}</span>}
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
                   <button onClick={async()=>{
                     setSaving(p.id);
                     try{await sb.from("patients").update({no_appointment:false,had_procedure:null,outcome_procedures:[],satisfaction_1m:null,satisfaction_6m:null}).eq("id",p.id);}catch{}
                     setSaving(null);
                     if(onRefresh) onRefresh();
                   }} disabled={saving===p.id}
-                    style={{fontSize:10,color:"#7b9ab5",background:"transparent",border:"1px solid #d4e1ef",borderRadius:6,padding:"2px 8px",cursor:"pointer",marginLeft:4}}>
+                    style={{fontSize:11,color:"#7b9ab5",background:"transparent",border:"1px solid #d4e1ef",borderRadius:6,padding:"4px 10px",cursor:"pointer"}}>
                     ↩ Geri Al
                   </button>
                 </div>
               )}
-            </div>
 
             {/* Memnuniyet girişi paneli */}
             {satOpen===p.id&&(
