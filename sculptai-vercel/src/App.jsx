@@ -3224,11 +3224,30 @@ function PatientForm({doctorId}){
 
   // İngilizce çeviriler
   const EN={
-    ui:{next:"Continue →",submit:"Submit Form →",submitting:"Submitting...",back:"← Back",question:"QUESTION",of:"/",
-      kvkk:"I consent to the processing of my personal data for health services.",
+    ui:{next:"Continue →",submit:"Submit Form →",submitting:"Submitting...",back:"← Back",question:"Q",
+      welcome:"Welcome",welcomeDesc:"This short form helps us understand your expectations so we can plan the best and safest approach for you.",
+      kvkk:"I consent to the processing of my personal and health data solely for the purpose of planning my consultation. My data is stored encrypted and is not shared with third parties.",
       submitError:"Form could not be saved. Please check your internet connection and try again.",
-      thankYou:"Thank You!",thankDesc:"Your information has been shared with your doctor and a personalized consultation will be prepared for you.",
-      prepTitle:"How to Prepare",normalTitle:"What to Expect",timelineTitle:"Your Journey",processTitle:"About the Procedure"},
+      thankYou:"Thank you,",thankYouSub:"we're glad you're here.",
+      infoShared:"Your information has been shared with your doctor",
+      consultPrep:"A personalized consultation will be prepared for you.",
+      prepTitle:"How to Prepare",normalTitle:"What to Expect",timelineTitle:"Your Journey",processTitle:"About the Procedure",
+      followupTitle:"Follow-up",statsTitle:"Key Facts",
+      guideTitle:"Your Personal Guide",guideLoading:"Preparing your personal guide...",
+      referralTitle:"Referral Program",referralDesc:"Recommend us to a friend",referralCode:"Your referral code",
+      },
+    sections:{
+      "Kişisel Bilgiler":"Personal Info",
+      "İşlem Bilgisi":"Procedure Info",
+      "Motivasyon & Beklenti":"Motivation & Expectations",
+      "Kendinizi Tanıyın":"About Yourself",
+      "Karar Süreci":"Decision Process",
+      "Geçmiş Deneyimler":"Past Experiences",
+      "Süreç Farkındalığı":"Process Awareness",
+      "Hasta Profili":"Patient Profile",
+      "İletişim":"Contact",
+      "Size Bir Sorum Var":"One More Question",
+    },
     q:{
       name:{label:"What is your name?"},
       age:{label:"How old are you?"},
@@ -3274,13 +3293,73 @@ function PatientForm({doctorId}){
         "Bir tanıdığım önerdi":"A friend/acquaintance recommended",
         "Bir hasta beni yönlendirdi (referans kodu var)":"A patient referred me (I have a referral code)",
         "Diğer":"Other"}},
-      openStory:{label:"Is there anything else you'd like to share with your doctor? (Optional)"},
       phone:{label:"Your phone number (for appointment)"},
+      openStory:{label:"Is there anything else you'd like to share with your doctor? (Optional)"},
+      // Eksik olan 10 soru
+      avoidance:{label:"Do you avoid certain situations because of this concern?",options:{
+        "Hayır, hayatımı etkilemiyor":"No, it doesn't affect my life",
+        "Bazen dikkatimi dağıtıyor":"It sometimes distracts me",
+        "Bazı sosyal ortamlardan kaçınıyorum":"I avoid some social situations",
+        "Günlük hayatımı önemli ölçüde kısıtlıyor":"It significantly limits my daily life"}},
+      bodyFocus:{label:"How often do you think about this area in your daily life?",options:{
+        "Nadiren aklıma gelir":"Rarely crosses my mind",
+        "Zaman zaman düşünürüm":"I think about it from time to time",
+        "Sık sık düşünürüm, ama kontrol altında":"I think about it often, but it's under control",
+        "Neredeyse her gün, bazen işimi gücümü etkiliyor":"Almost every day, sometimes it affects my work"}},
+      breastSymmetry:{label:"How would you describe the difference between your breasts?",options:{
+        "Fark var ama beni pek rahatsız etmiyor, ameliyatla düzelsin istiyorum":"There's a difference but it doesn't bother me much, I want surgery to fix it",
+        "Belirgin bir fark var ve bu beni çok rahatsız ediyor":"There's a noticeable difference and it bothers me a lot",
+        "Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor":"There's a very small difference but even that bothers me",
+        "Fark olduğunu düşünmüyorum, sadece küçültmek/büyütmek istiyorum":"I don't think there's a difference, I just want to reduce/enlarge"}},
+      imagineAfter:{label:"When you imagine life after this procedure, what do you see?",options:{
+        "Kendimi daha özgüvenli ve hafif hayal ediyorum":"I imagine feeling more confident and lighter",
+        "Belirli bir fiziksel değişikliği hayal ediyorum":"I imagine a specific physical change",
+        "Hayatımın daha iyi gideceğini hayal ediyorum":"I imagine my life getting better overall",
+        "Çevremin tepkisini ve beğenisini hayal ediyorum":"I imagine the reactions and approval of those around me"}},
+      otherAreas:{label:"Are there other areas of your body you're concerned about?",options:{
+        "Hayır, sadece bu bölge":"No, only this area",
+        "Evet, 1-2 bölge daha var ama önceliğim bu":"Yes, 1-2 more areas but this is my priority",
+        "Evet, birkaç bölge var, hepsini konuşmak isterim":"Yes, several areas, I'd like to discuss all of them",
+        "Henüz bilmiyorum, doktorun önerilerine açığım":"I'm not sure yet, I'm open to the doctor's suggestions"}},
+      otherConsidered:{label:"Have you considered any other aesthetic procedures?",options:{
+        "Hayır":"No",
+        "Evet, düşündüm ama erteledim":"Yes, I considered but postponed",
+        "Evet, bu işlemle aynı anda değerlendiriyorum":"Yes, I'm considering it alongside this procedure",
+        "Evet, gelecekte yapmayı planlıyorum":"Yes, I plan to do it in the future"}},
+      rhinoVision:{label:"When you imagine the result, what do you see?",options:{
+        "Doktorum benim yüz yapıma en uygun olanı belirlesin":"I want my doctor to determine what suits my face best",
+        "Burnumda beni rahatsız eden belirli bir şeyi düzeltmek istiyorum":"I want to fix a specific thing that bothers me about my nose",
+        "Aklımda net bir görünüm var, buna ulaşmak istiyorum":"I have a clear vision in mind, I want to achieve it",
+        "Aklımda belirli bir referans var — bir ünlü veya fotoğraf":"I have a specific reference — a celebrity or photo"}},
+      selfEsteem:{label:"Are you generally satisfied with yourself?",options:{
+        "Evet, kendimden genel olarak memnunum":"Yes, I'm generally satisfied with myself",
+        "Çoğunlukla memnunum, bazı konularda değil":"Mostly satisfied, not in some areas",
+        "Kendimden pek memnun değilim":"I'm not very satisfied with myself",
+        "Hayır, kendimle barışık değilim":"No, I'm not at peace with myself"}},
+      sharing:{label:"Would you share a positive experience with others?",options:{
+        "Evet, açıkça paylaşırım":"Yes, I'd share openly",
+        "Sadece çok yakınlarımla":"Only with close friends/family",
+        "Hayır, paylaşmam":"No, I wouldn't share"}},
+      socialInfluence:{label:"Do people around you consult you about aesthetic decisions?",options:{
+        "Evet, sık sık danışırlar":"Yes, they often ask for my advice",
+        "Bazen danışanlar olur":"Sometimes people ask",
+        "Hayır, danışmazlar":"No, they don't ask"}},
+    },
+    // Prosedür isimleri
+    procs:{
+      "Meme Küçültme":"Breast Reduction","Meme Büyütme (Silikon Protez ile)":"Breast Augmentation (Silicone Implant)","Meme Dikleştirme":"Breast Lift","Meme Asimetrisinin Giderilmesi":"Breast Asymmetry Correction","Meme Onarımı (Kanser sonrası)":"Breast Reconstruction (Post-cancer)","Doğumsal Meme Anomalisinin Düzeltilmesi":"Congenital Breast Anomaly Correction",
+      "Jinekomasti":"Gynecomastia","Burun Estetiği":"Rhinoplasty","Yüz Germe":"Facelift","Kaş Kaldırma":"Brow Lift","Üst Göz Kapağı Estetiği":"Upper Eyelid Surgery","Alt Göz Kapağı Estetiği":"Lower Eyelid Surgery","Yanak Estetiği (Bişektomi)":"Buccal Fat Removal","Kepçe Kulak Tedavisi":"Otoplasty","Yüz Yağ Enjeksiyonu":"Facial Fat Transfer",
+      "Botoks Uygulaması":"Botox","Dolgu Uygulaması":"Dermal Filler","Göz Altı Işık Dolgusu":"Under-Eye Light Filler","Nano Yağ Enjeksiyonu":"Nano Fat Injection","Mezoterapi":"Mesotherapy",
+      "Karın Germe":"Tummy Tuck","Liposuction":"Liposuction","Uyluk veya Kol germe":"Thigh or Arm Lift","Popo estetiği":"Buttock Aesthetics",
+      "Genital Estetik":"Genital Aesthetics","Labioplasti":"Labiaplasty",
+      "Lazer Epilasyon":"Laser Hair Removal","Lazer Dövme Silme":"Laser Tattoo Removal","Cilt Yenileme (Rejuvenasyon)":"Skin Rejuvenation","Karbon Peeling":"Carbon Peeling","Lazer Leke Tedavisi":"Laser Spot Treatment","Lazer Saç Tedavisi":"Laser Hair Treatment",
     }
   };
 
   function t(key,fallback){if(lang==="tr") return fallback; const parts=key.split("."); let v=EN; for(const p of parts){v=v?.[p]; if(!v) return fallback;} return v;}
-  function tOpt(qId,opt){if(lang==="tr") return opt; return EN.q?.[qId]?.options?.[opt]||opt;}
+  function tOpt(qId,opt){if(lang==="tr") return opt; if(qId==="procedure") return EN.procs?.[opt]||opt; return EN.q?.[qId]?.options?.[opt]||opt;}
+  function tSec(sec){if(lang==="tr") return sec; return EN.sections?.[sec]||sec;}
+  function tProc(proc){if(lang==="tr") return proc; return EN.procs?.[proc]||proc;}
   const [doctorInfo,setDoctorInfo]=useState(null);
   const [ambassadorCode,setAmbassadorCode]=useState(null);
   const [patientSegment,setPatientSegment]=useState(null);
@@ -3766,10 +3845,10 @@ YAZIM KURALLARI:
           )}
 
           {/* KİŞİSEL REHBER */}
-          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>Size Özel Rehber</div>
+          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>{lang==="tr"?"Size Özel Rehber":"Your Personal Guide"}</div>
           {guideLoading&&(
             <div style={{background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:12,padding:"20px 16px",marginBottom:10,textAlign:"center"}}>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#7b9ab5",fontStyle:"italic",animation:"pulse 1.5s infinite"}}>Kişisel rehberiniz hazırlanıyor...</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#7b9ab5",fontStyle:"italic",animation:"pulse 1.5s infinite"}}>{lang==="tr"?"Kişisel rehberiniz hazırlanıyor...":"Preparing your personal guide..."}</div>
               <div style={{fontSize:12,color:"#d4e1ef",marginTop:6}}>Yapay zeka form cevaplarınızı analiz ediyor</div>
             </div>
           )}
@@ -3831,7 +3910,7 @@ YAZIM KURALLARI:
             <div style={{width:30,height:30,background:"#eef3f9",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>📋</div>
             <div>
               <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1e3a5f",marginBottom:1}}>{lang==="tr"?"Bilgileriniz doktorunuza iletildi":"Your information has been shared with your doctor"}</div>
-              <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.4}}>{doctorInfo?.name||"Doktorunuz"} konsültasyonunuza özel olarak hazırlanacak. Aşağıdaki bilgileri inceleyerek siz de hazırlanabilirsiniz.</div>
+              <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.4}}>{lang==="tr"?`${doctorInfo?.name||"Doktorunuz"} konsültasyonunuza özel olarak hazırlanacak. Aşağıdaki bilgileri inceleyerek siz de hazırlanabilirsiniz.`:`${doctorInfo?.name||"Your doctor"} will prepare specifically for your consultation. Review the information below to prepare as well.`}</div>
             </div>
           </div>
         </>)}
@@ -3839,12 +3918,12 @@ YAZIM KURALLARI:
         {infoPage===1&&(<>
           {/* Kişiselleştirilmiş giriş — EN ÜSTTE */}
           <div style={{background:"linear-gradient(135deg,#eef3f9,#e8e3d8)",border:"1px solid #d4e1ef",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
-            <div style={{fontSize:11,letterSpacing:"0.15em",textTransform:"uppercase",color:"#7b9ab5",marginBottom:6,fontWeight:500}}>Size özel not</div>
+            <div style={{fontSize:11,letterSpacing:"0.15em",textTransform:"uppercase",color:"#7b9ab5",marginBottom:6,fontWeight:500}}>${lang==="tr"?"Size özel not":"A note for you"}</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:300,color:"#1e3a5f",lineHeight:1.75,fontStyle:"italic"}}>{PC.recoveryIntro}</div>
           </div>
 
           {/* Recovery timeline */}
-          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"4px 0 10px 2px"}}>İyileşme takvimi</div>
+          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"4px 0 10px 2px"}}>{lang==="tr"?"İyileşme takvimi":"Recovery Timeline"}</div>
           <div style={{position:"relative",paddingLeft:16,marginBottom:14}}>
             <div style={{position:"absolute",left:4,top:8,bottom:8,width:1,background:"linear-gradient(180deg,"+BORD+",rgba(74,21,32,0.08))"}}/>
             {PI.timeline.map((t,i)=>(
@@ -3860,13 +3939,13 @@ YAZIM KURALLARI:
           </div>
 
           {/* Prep tips */}
-          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"0 0 8px 2px"}}>İşlem öncesi hazırlık</div>
+          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"0 0 8px 2px"}}>{lang==="tr"?"İşlem öncesi hazırlık":"Pre-procedure Preparation"}</div>
           <div style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
             <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10,background:"#f0fdf4"}}>
               <div style={{fontSize:20}}>🌿</div>
               <div>
-                <div style={{fontSize:13,fontWeight:600,color:"#065f46"}}>Bilmeniz gerekenler</div>
-                <div style={{fontSize:12,color:"#6ee7b7",marginTop:1}}>{doctorInfo?.clinic_name||"Plastik Cerrahi"} önerileri</div>
+                <div style={{fontSize:13,fontWeight:600,color:"#065f46"}}>{lang==="tr"?"Bilmeniz gerekenler":"What you need to know"}</div>
+                <div style={{fontSize:12,color:"#6ee7b7",marginTop:1}}>{doctorInfo?.clinic_name||"Plastik Cerrahi"} {lang==="tr"?"önerileri":"recommendations"}</div>
               </div>
             </div>
             <div style={{padding:"10px 14px 12px",display:"flex",flexDirection:"column",gap:7,borderTop:"1px solid #eef3f9"}}>
@@ -3882,7 +3961,7 @@ YAZIM KURALLARI:
           {/* Kişiselleştirilmiş İyileşme */}
           {recoveryText&&(
             <>
-              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"0 0 8px 2px"}}>İyileşme süreci</div>
+              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"0 0 8px 2px"}}>{lang==="tr"?"İyileşme süreci":"Recovery Process"}</div>
               <div style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
                 <div style={{fontSize:13,color:"#2d5a8e",lineHeight:1.8}}>{recoveryText}</div>
               </div>
@@ -3892,7 +3971,7 @@ YAZIM KURALLARI:
           {/* Kişiselleştirilmiş Riskler */}
           {riskText&&(
             <>
-              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>Bilinmesi Gerekenler</div>
+              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>{lang==="tr"?"Bilinmesi Gerekenler":"Important Information"}</div>
               <div style={{borderLeft:"1.5px solid "+BORD2,padding:"10px 12px",marginBottom:8}}>
                 <div style={{fontSize:13,fontWeight:500,color:"#1e3a5f",marginBottom:2}}>{PC.riskIntro}</div>
                 <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.65}}>{riskText}</div>
@@ -3903,7 +3982,7 @@ YAZIM KURALLARI:
           {/* Normal */}
           {PI.normal&&PI.normal.length>0&&(
             <>
-              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"8px 0 8px 0"}}>Bunlar Normaldir</div>
+              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"8px 0 8px 0"}}>{lang==="tr"?"Bunlar Normaldir":"These Are Normal"}</div>
               {PI.normal.map((n,i)=>(
                 <div key={i} style={{borderLeft:"1.5px solid #d4e1ef",padding:"8px 12px",marginBottom:6}}>
                   <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.6}}>{n}</div>
@@ -3914,7 +3993,7 @@ YAZIM KURALLARI:
 
           {/* Disclaimer */}
           <div style={{padding:"9px 11px",background:"#eef3f9",borderRadius:8,fontSize:11,color:"#7b9ab5",lineHeight:1.6,fontStyle:"italic",marginBottom:10}}>
-            Son karar her zaman hekiminize aittir. Bu bilgiler yalnızca ön bilgilendirme amaçlıdır.
+            {lang==="tr"?"Son karar her zaman hekiminize aittir. Bu bilgiler yalnızca ön bilgilendirme amaçlıdır.":"The final decision always belongs to your physician. This information is for preliminary guidance only."}
           </div>
         </>)}
 
@@ -3923,7 +4002,7 @@ YAZIM KURALLARI:
       {/* Bottom CTA */}
       <div style={{padding:"10px 22px 22px",flexShrink:0,background:"#f8fafd",borderTop:"1px solid #d4e1ef"}}>
         {infoPage===0
-          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>Hazırlık bilgilerini gör →</button>
+          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>{lang==="tr"?"Hazırlık bilgilerini gör →":"View preparation info →"}</button>
           :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>Anladım, teşekkürler</button>
         }
       </div>
@@ -3970,13 +4049,13 @@ YAZIM KURALLARI:
         {currentQ===0&&(
           <div style={{textAlign:"center",marginBottom:32,paddingTop:8}} className="f1">
             <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:12,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>Hoş Geldiniz</div>
-            <div style={{fontSize:15,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>{lang==="tr"?"Hoş Geldiniz":"Welcome"}</div>
+            <div style={{fontSize:15,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>{lang==="tr"?"Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.":"This short form helps us understand your expectations so we can plan the best and safest approach for you."}</div>
           </div>
         )}
         <div style={{display:"flex",gap:5,marginBottom:20,flexWrap:"wrap"}} className="f2">
           {SECTIONS.map((sec,i)=>(
-            <div key={sec} style={{padding:"3px 11px",borderRadius:20,fontSize:11,letterSpacing:"0.13em",textTransform:"uppercase",background:i===secIdx?"#eef3f9":"transparent",border:`1.5px solid ${i===secIdx?C.accent:C.border}`,color:i===secIdx?C.accent:C.muted,transition:"all 0.3s"}}>{sec}</div>
+            <div key={sec} style={{padding:"3px 11px",borderRadius:20,fontSize:11,letterSpacing:"0.13em",textTransform:"uppercase",background:i===secIdx?"#eef3f9":"transparent",border:`1.5px solid ${i===secIdx?C.accent:C.border}`,color:i===secIdx?C.accent:C.muted,transition:"all 0.3s"}}>{tSec(sec)}</div>
           ))}
         </div>
         <div style={{marginBottom:22}} className="f2">
@@ -3994,7 +4073,7 @@ YAZIM KURALLARI:
           </div>
         </div>
         <div style={{background:"#f8fafd",border:`1.5px solid ${C.border}`,borderRadius:14,padding:"24px 22px",marginBottom:14}} className="f3">
-          <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:9,fontWeight:400}}>{q.section}</div>
+          <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:9,fontWeight:400}}>{tSec(q.section)}</div>
           <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:C.navy,marginBottom:20,lineHeight:1.35,letterSpacing:"-0.01em"}}>{t(`q.${q.id}.label`,q.label)}</div>
           {q.type==="text"&&<input type="text" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#eef3f9",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:15,outline:"none"}}/>}
           {q.type==="number"&&<input type="number" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#eef3f9",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:15,outline:"none"}}/>}
