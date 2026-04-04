@@ -4613,6 +4613,12 @@ function Login({onLogin}){
           <img src="/login-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
             onError={e=>{e.target.style.display="none"}}/>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(to right, transparent 50%, rgba(245,240,232,1) 100%)"}}/>
+          <div style={{position:"absolute",top:28,left:28,display:"flex",alignItems:"center",gap:9}}>
+            <div style={{width:28,height:28,border:"1.5px solid rgba(255,255,255,0.7)",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,0.15)",backdropFilter:"blur(8px)"}}>
+              <div style={{width:8,height:8,background:"white",borderRadius:"50%"}}/>
+            </div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"white",letterSpacing:"0.02em",textShadow:"0 2px 12px rgba(0,0,0,0.3)"}}>Sculpt<em style={{color:"rgba(255,255,255,0.7)"}}>AI</em></div>
+          </div>
           <div style={{position:"absolute",bottom:40,left:40,right:"30%"}}>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:"white",lineHeight:1.4,textShadow:"0 2px 20px rgba(0,0,0,0.3)",fontStyle:"italic"}}>
               "Her hasta bir ilişki.<br/>Her ilişki bir güven."
@@ -4625,6 +4631,12 @@ function Login({onLogin}){
           <img src="/login-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top"}}
             onError={e=>{e.target.style.display="none"}}/>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 30%, #f8fafd 100%)"}}/>
+          <div style={{position:"absolute",top:16,left:16,display:"flex",alignItems:"center",gap:7}}>
+            <div style={{width:22,height:22,border:"1.5px solid rgba(255,255,255,0.7)",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,0.15)"}}>
+              <div style={{width:6,height:6,background:"white",borderRadius:"50%"}}/>
+            </div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:"white",textShadow:"0 1px 8px rgba(0,0,0,0.3)"}}>Sculpt<em style={{color:"rgba(255,255,255,0.7)"}}>AI</em></div>
+          </div>
         </div>
       )}
 
