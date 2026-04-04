@@ -3340,7 +3340,7 @@ function PatientForm({doctorId}){
         "Hayır, danışmazlar":"No, they don't ask"}},
       phone:{label:"Your phone number (for appointment)"},
       openStory:{label:"Is there anything else you'd like to share? (Optional)"},
-    },    },
+    },
     // Prosedür isimleri
     procs:{
       "Meme Küçültme":"Breast Reduction","Meme Büyütme (Silikon Protez ile)":"Breast Augmentation (Silicone Implant)","Meme Dikleştirme":"Breast Lift","Meme Asimetrisinin Giderilmesi":"Breast Asymmetry Correction","Meme Onarımı (Kanser sonrası)":"Breast Reconstruction (Post-cancer)","Doğumsal Meme Anomalisinin Düzeltilmesi":"Congenital Breast Anomaly Correction",
