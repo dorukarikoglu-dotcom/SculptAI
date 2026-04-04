@@ -2069,7 +2069,9 @@ function SecretaryView({patients,doctorId,isDemo,onRefresh}){
     setSaving(patientId);
     try{
     if(type==="randevu_aldi"){
-      await sb.from("patients").update({no_appointment:false}).eq("id",patientId);
+      const p=patients.find(x=>x.id===patientId);
+      const proc=p?.answers?.procedure||"";
+      await sb.from("patients").update({no_appointment:false,outcome_procedures:proc?[proc]:["randevu"]}).eq("id",patientId);
     } else if(type==="randevu_almadi"){
       await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patientId);
     } else if(type==="islem_yapildi"){
