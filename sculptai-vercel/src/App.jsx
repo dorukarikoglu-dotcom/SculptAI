@@ -2847,28 +2847,30 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
           </div>
 
           {/* LIST HEADER */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,gap:10}} className="f3">
-            <div style={{fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#2d5a8e",flexShrink:0}}>Hasta Listesi</div>
-            <div style={{position:"relative",flex:isMobile?"1":"0 0 200px"}}>
-              <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Hasta veya işlem ara..."
-                style={{width:"100%",padding:"6px 12px 6px 30px",borderRadius:20,border:"1.5px solid #d4e1ef",background:"#f8fafd",fontSize:12,color:"#1e3a5f",outline:"none",fontFamily:"'Nunito',sans-serif"}}/>
-              <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#7b9ab5",pointerEvents:"none"}}>⌕</span>
-              {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:13,color:"#7b9ab5",cursor:"pointer",padding:0,lineHeight:1}}>✕</button>}
+          <div style={{marginBottom:12}} className="f3">
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+              <div style={{fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#2d5a8e",flexShrink:0}}>Hasta Listesi</div>
+              <div style={{position:"relative",flex:1,maxWidth:220}}>
+                <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Hasta veya işlem ara..."
+                  style={{width:"100%",padding:"6px 12px 6px 30px",borderRadius:20,border:"1.5px solid #d4e1ef",background:"#f8fafd",fontSize:12,color:"#1e3a5f",outline:"none",fontFamily:"'Nunito',sans-serif"}}/>
+                <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#7b9ab5",pointerEvents:"none"}}>⌕</span>
+                {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:13,color:"#7b9ab5",cursor:"pointer",padding:0,lineHeight:1}}>✕</button>}
+              </div>
+              <button onClick={loadPatients} style={{padding:"4px 10px",borderRadius:20,fontSize:11,border:"1px solid #d4e1ef",background:"#f8fafd",color:"#7b9ab5",flexShrink:0,cursor:"pointer"}}>↻</button>
+              {!isMobile&&<button onClick={()=>exportCSV(patients)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,border:"1px solid #d4e1ef",background:"#eef3f9",color:"#2563eb",flexShrink:0,cursor:"pointer"}}>📊 CSV</button>}
             </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+            <div style={{display:"flex",gap:5,alignItems:"center",overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:2}}>
               {[["all","Tümü"],["red","🔴 Dikkat"],["amber","🟡 Değerlendirme"],["green","🟢 Uygun"],["ambassador","🌟 Elçi"]].map(([v,l])=>(
-                <button key={v} onClick={()=>setFilter(v)} style={{padding:"5px 13px",borderRadius:20,fontSize:13,fontWeight:500,border:`1.5px solid ${filter===v?"#1e3a5f":"#d4e1ef"}`,background:filter===v?"#1e3a5f":"#f8fafd",color:filter===v?"#f8fafd":"#7b9ab5",transition:"all 0.15s"}}>{l}</button>
+                <button key={v} onClick={()=>setFilter(v)} style={{padding:"4px 11px",borderRadius:20,fontSize:12,fontWeight:500,border:`1.5px solid ${filter===v?"#1e3a5f":"#d4e1ef"}`,background:filter===v?"#1e3a5f":"#f8fafd",color:filter===v?"#f8fafd":"#7b9ab5",transition:"all 0.15s",whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
               ))}
-              <button onClick={()=>exportCSV(patients)} style={{padding:"5px 13px",borderRadius:20,fontSize:13,fontWeight:500,border:"1px solid #d4e1ef",background:"#eef3f9",color:"#2563eb"}}>📊 CSV</button>
-              <button onClick={loadPatients} style={{padding:"5px 13px",borderRadius:20,fontSize:13,fontWeight:500,border:"1px solid #d4e1ef",background:"#f8fafd",color:"#7b9ab5"}}>↻ Yenile</button>
-              {/* Aktif mod göstergesi */}
+              {isMobile&&<button onClick={()=>exportCSV(patients)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,border:"1px solid #d4e1ef",background:"#eef3f9",color:"#2563eb",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>CSV</button>}
               <div onClick={()=>setTab("settings")} title="Ayarlardan değiştir" style={{
-                display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:20,cursor:"pointer",
+                display:"flex",alignItems:"center",gap:3,padding:"3px 8px",borderRadius:20,cursor:"pointer",flexShrink:0,
                 background:THRESHOLD_MODES[thresholdMode||"balanced"].bg,
                 border:`1px solid ${THRESHOLD_MODES[thresholdMode||"balanced"].border}`,
               }}>
-                <span style={{fontSize:12}}>{THRESHOLD_MODES[thresholdMode||"balanced"].icon}</span>
-                <span style={{fontSize:11,fontWeight:500,color:THRESHOLD_MODES[thresholdMode||"balanced"].color}}>
+                <span style={{fontSize:10}}>{THRESHOLD_MODES[thresholdMode||"balanced"].icon}</span>
+                <span style={{fontSize:10,fontWeight:500,color:THRESHOLD_MODES[thresholdMode||"balanced"].color}}>
                   {THRESHOLD_MODES[thresholdMode||"balanced"].label}
                 </span>
               </div>
