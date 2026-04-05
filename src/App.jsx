@@ -9,6 +9,13 @@ const sb = createClient(
 
 /* ─── ŞİFRELEME — AES-GCM ────────────────────────────────────────────────── */
 async function getKey(doctorId){
+  // PBKDF2 ile güçlü key derivation — doctorId + sabit salt
+  const salt=new TextEncoder().encode("sculptai_enc_2026_"+doctorId);
+  const baseKey=await crypto.subtle.importKey("raw",new TextEncoder().encode(doctorId),{name:"PBKDF2"},false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:100000,hash:"SHA-256"},baseKey,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+// Legacy fallback — eski şifreli verileri okumak için
+async function getLegacyKey(doctorId){
   const raw=new TextEncoder().encode(doctorId.padEnd(16,"0").slice(0,16));
   return crypto.subtle.importKey("raw",raw,{name:"AES-GCM"},false,["encrypt","decrypt"]);
 }
@@ -35,10 +42,28 @@ async function decryptName(cipher,doctorId){
     const buf=Uint8Array.from(atob(cipher),c=>c.charCodeAt(0));
     const iv=buf.slice(0,12);
     const data=buf.slice(12);
-    const key=await getKey(doctorId);
-    const dec=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,data);
-    return new TextDecoder().decode(dec);
-  }catch{return cipher;} // şifre çözülemezse olduğu gibi göster
+    // Yeni PBKDF2 key ile dene
+    try{
+      const key=await getKey(doctorId);
+      const dec=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,data);
+      return new TextDecoder().decode(dec);
+    }catch{
+      // Yeni key başarısız — legacy key ile dene (eski veriler)
+      const legKey=await getLegacyKey(doctorId);
+      const dec=await crypto.subtle.decrypt({name:"AES-GCM",iv},legKey,data);
+      return new TextDecoder().decode(dec);
+    }
+  }catch{return cipher;}
+}
+
+/* ─── API RATE LIMITER ───────────────────────────────────────────────────── */
+const apiRateLimit={calls:[],maxPerMinute:10};
+function canCallAPI(){
+  const now=Date.now();
+  apiRateLimit.calls=apiRateLimit.calls.filter(t=>now-t<60000);
+  if(apiRateLimit.calls.length>=apiRateLimit.maxPerMinute) return false;
+  apiRateLimit.calls.push(now);
+  return true;
 }
 
 /* ─── FONTS & STYLES ─────────────────────────────────────────────────────── */
@@ -134,7 +159,34 @@ const PROC_RISK_MAP = {
   "Dolgu Uygulaması":0.02,
   "Botoks":0.02,
   "Uyluk veya Kol germe":0.05,
+  // Lazer tedaviler — cerrahi olmayan, düşük risk
+  "Lazer Epilasyon":0.02,
+  "Lazer Dövme Silme":0.05,
+  "Cilt Yenileme (Rejuvenasyon)":0.03,
+  "Karbon Peeling":0.01,
+  "Lazer Leke Tedavisi":0.03,
+  "Lazer Saç Tedavisi":0.02,
+  "Kaş Kaldırma":0.15,
+  "Yanak Estetiği (Bişektomi)":0.12,
+  "Kepçe Kulak Tedavisi":0.08,
+  "Yüz Yağ Enjeksiyonu":0.10,
+  "Genital Estetik":0.20,
+  "Labioplasti":0.18,
+  "Göz Altı Işık Dolgusu":0.03,
+  "Nano Yağ Enjeksiyonu":0.05,
+  "Mezoterapi":0.02,
 };
+
+const ALL_PROCEDURES = {
+  "Meme Estetiği":["Meme Küçültme","Meme Büyütme (Silikon Protez ile)","Meme Dikleştirme","Meme Asimetrisinin Giderilmesi","Meme Onarımı (Kanser sonrası)","Doğumsal Meme Anomalisinin Düzeltilmesi"],
+  "Yüz Estetiği":["Burun Estetiği","Yüz Germe","Kaş Kaldırma","Üst Göz Kapağı Estetiği","Alt Göz Kapağı Estetiği","Yanak Estetiği (Bişektomi)","Kepçe Kulak Tedavisi","Yüz Yağ Enjeksiyonu"],
+  "Vücut Şekillendirme":["Karın Germe","Liposuction","Uyluk veya Kol germe","Popo estetiği"],
+  "Erkek Estetiği":["Jinekomasti"],
+  "Genital Estetik":["Genital Estetik","Labioplasti"],
+  "Medikal Estetik":["Botoks Uygulaması","Dolgu Uygulaması","Göz Altı Işık Dolgusu","Nano Yağ Enjeksiyonu","Mezoterapi"],
+  "Lazer Tedavi":["Lazer Epilasyon","Lazer Dövme Silme","Cilt Yenileme (Rejuvenasyon)","Karbon Peeling","Lazer Leke Tedavisi","Lazer Saç Tedavisi"],
+};
+const ALL_PROCEDURE_LIST = Object.values(ALL_PROCEDURES).flat();
 
 function extractRawFeatures(a) {
   const m_motiv = {
@@ -572,7 +624,7 @@ const QUESTIONS=[
   {id:"name",section:"Kişisel Bilgiler",label:"İsminiz ve Soyisminiz",type:"text",placeholder:"Ad Soyad"},
   {id:"age",section:"Kişisel Bilgiler",label:"Kaç yaşındasınız?",type:"number",placeholder:"örn. 34"},
   {id:"gender",section:"Kişisel Bilgiler",label:"Cinsiyetiniz nedir?",type:"radio",options:["Kadın","Erkek","Belirtmek istemiyorum"]},
-  {id:"procedure",section:"İşlem Bilgisi",label:"Hangi işlemi yaptırmak istiyorsunuz?",type:"radio",options:["Meme Küçültme","Meme Büyütme (Silikon Protez ile)","Meme Dikleştirme","Meme Asimetrisinin Giderilmesi","Meme Onarımı (Kanser sonrası)","Doğumsal Meme Anomalisinin Düzeltilmesi","Jinekomasti","Burun Estetiği","Yüz Germe","Üst Göz Kapağı Estetiği","Alt Göz Kapağı Estetiği","Botoks Uygulaması","Dolgu Uygulaması","Karın Germe","Liposuction","Uyluk veya Kol germe","Popo estetiği"]},
+  {id:"procedure",section:"İşlem Bilgisi",label:"Hangi işlemi yaptırmak istiyorsunuz?",type:"radio",options:["Meme Küçültme","Meme Büyütme (Silikon Protez ile)","Meme Dikleştirme","Meme Asimetrisinin Giderilmesi","Meme Onarımı (Kanser sonrası)","Doğumsal Meme Anomalisinin Düzeltilmesi","Jinekomasti","Burun Estetiği","Yüz Germe","Kaş Kaldırma","Üst Göz Kapağı Estetiği","Alt Göz Kapağı Estetiği","Yanak Estetiği (Bişektomi)","Kepçe Kulak Tedavisi","Yüz Yağ Enjeksiyonu","Botoks Uygulaması","Dolgu Uygulaması","Göz Altı Işık Dolgusu","Nano Yağ Enjeksiyonu","Mezoterapi","Karın Germe","Liposuction","Uyluk veya Kol germe","Popo estetiği","Genital Estetik","Labioplasti","Lazer Epilasyon","Lazer Dövme Silme","Cilt Yenileme (Rejuvenasyon)","Karbon Peeling","Lazer Leke Tedavisi","Lazer Saç Tedavisi"]},
 
   /* ── Cross-sell sinyalleri ── */
   {id:"otherAreas",section:"İşlem Bilgisi",label:"Bunun dışında vücudunuzda rahatsız olduğunuz başka bir bölge var mı?",type:"radio",options:["Hayır, sadece bu bölge","Evet, 1-2 bölge daha var ama önceliğim bu","Evet, birkaç bölge var, hepsini konuşmak isterim","Henüz bilmiyorum, doktorun önerilerine açığım"]},
@@ -614,6 +666,7 @@ const QUESTIONS=[
   {id:"sharing",section:"Hasta Profili",label:"Memnun kaldığınız bir deneyimi çevrenizle paylaşır mısınız?",type:"radio",options:["Evet, açıkça paylaşırım","Sadece çok yakınlarımla","Hayır, paylaşmam"]},
   {id:"socialInfluence",section:"Hasta Profili",label:"Çevreniz estetik kararlarında size danışır mı?",type:"radio",options:["Evet, sık sık danışırlar","Bazen danışanlar olur","Hayır, danışmazlar"]},
 
+  {id:"phone",section:"İletişim",label:"Telefon numaranız (randevu için)",type:"text",placeholder:"05XX XXX XX XX",optional:true},
   {id:"openStory",section:"Size Bir Sorum Var",label:"Bu işlemden sonra hayatınızda ne değişmesini istiyorsunuz? Kendi cümlelerinizle anlatır mısınız.",type:"text",placeholder:"İstediğiniz kadar az veya çok yazabilirsiniz...",optional:true},
 ];
 const SECTIONS=[...new Set(QUESTIONS.map(q=>q.section))];
@@ -638,25 +691,29 @@ function getFlags(a,cat){
 }
 
 function getSignals(a,cat){
-  // Kısa etiketler
-  const motShort={"Kendim için daha iyi hissetmek istiyorum":"İçsel motivasyon","Özgüvenimi artırmak istiyorum":"Özgüven odaklı","Yakınlarımın yorumları etkili oldu":"Dışsal baskı","Hayatımın daha iyi gideceğini düşünüyorum":"Yaşam kalitesi","Başka insanların yorumları beni kötü etkiliyor":"Dışsal baskı"};
-  const expShort={"Küçük, doğal bir iyileştirme yeterli":"Doğal iyileştirme","Dengeli ve orantılı bir sonuç bekliyorum":"Dengeli sonuç","Belirgin bir fark olmasını istiyorum":"Belirgin fark","Tamamen farklı bir görünüm istiyorum":"Tam değişim"};
+  // Açıklayıcı etiketler
+  const motShort={"Kendim için daha iyi hissetmek istiyorum":"Kendi kararı, içsel motivasyon ✓","Özgüvenimi artırmak istiyorum":"Özgüven artırmak istiyor","Yakınlarımın yorumları etkili oldu":"Çevre baskısı etkili ⚠","Hayatımın daha iyi gideceğini düşünüyorum":"Yaşam değişikliği bekliyor ⚠","Başka insanların yorumları beni kötü etkiliyor":"Dışsal baskı var ⚠"};
+  const expShort={"Küçük, doğal bir iyileştirme yeterli":"Doğal iyileştirme, gerçekçi ✓","Dengeli ve orantılı bir sonuç bekliyorum":"Dengeli sonuç bekliyor ✓","Belirgin bir fark olmasını istiyorum":"Belirgin fark istiyor","Tamamen farklı bir görünüm istiyorum":"Tam değişim bekliyor ⚠"};
+  const supShort={"Evet, destekliyorlar":"Ailesi destekliyor ✓","Biliyorlar ama kararsızlar":"Ailesi kararsız ⚠","Karşılar":"Ailesi karşı ⚠","Kimseye söylemedim":"Kimseye söylememiş ⚠"};
+  const docShort={"Hayır":"İlk konsültasyonu ✓","1-2 doktorla görüştüm":"1-2 doktor gördü","Birçok doktorla görüştüm":"Çok doktor gördü ⚠"};
   const mot=motShort[a.motivation]||a.motivation||"—";
   const exp=expShort[a.expectation]||a.expectation||"—";
+  const sup=supShort[a.support]||a.support||"—";
+  const doc=docShort[a.multiDoctor]||a.multiDoctor||"—";
   if(cat==="red"||cat==="amber") return [
     {label:"Motivasyon",val:mot},
     {label:"Beklenti",val:exp},
-    {label:"Önceki Danışma",val:a.multiDoctor||"—"},
+    {label:"Danıştığı Doktor",val:doc},
   ];
   if(cat==="ambassador") return [
-    {label:"Paylaşım",val:a.sharing||"—"},
-    {label:"Sosyal Etki",val:a.socialInfluence||"—"},
-    {label:"Ek Prosedür",val:a.otherConsidered||"—"},
+    {label:"Paylaşım Eğilimi",val:a.sharing||"—"},
+    {label:"Çevresel Etki",val:a.socialInfluence||"—"},
+    {label:"Ek İşlem İlgisi",val:a.otherConsidered||"—"},
   ];
   return [
     {label:"Motivasyon",val:mot},
     {label:"Beklenti",val:exp},
-    {label:"Sosyal Destek",val:a.support||"—"},
+    {label:"Sosyal Destek",val:sup},
   ];
 }
 
@@ -881,6 +938,7 @@ ${a.openStory ? `<div class="section"><div class="section-title">Hastanın Kendi
 
   const w = window.open("", "_blank");
   if(w) { w.document.write(html); w.document.close(); }
+  else { alert("PDF penceresi açılamadı. Tarayıcınızın popup engelleyicisini bu site için kapatın."); }
 }
 
 /* ─── PATIENT CARD ───────────────────────────────────────────────────────── */
@@ -924,10 +982,12 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
   const ALL_PROCS=["Burun Estetiği","Meme Küçültme","Meme Büyütme","Meme Dikleştirme","Karın Germe","Liposuction","Üst Göz Kapağı","Alt Göz Kapağı","Botoks","Dolgu","Kol Germe","Yüz Germe","Uyluk Germe","Popo Estetiği","Jinekomasti"];
 
   async function saveOutcome(){
-    await sb.from("patients").update({outcome_procedures:outcomeProcedures,no_appointment:false}).eq("id",patient.id);
-    setNoAppointment(false);
-    setShowOutcome(false);
-    triggerRetrain(patient.doctor_id);
+    try{
+      await sb.from("patients").update({outcome_procedures:outcomeProcedures,no_appointment:false}).eq("id",patient.id);
+      setNoAppointment(false);
+      setShowOutcome(false);
+      triggerRetrain(patient.doctor_id);
+    }catch{alert("Kayıt güncellenemedi. İnternet bağlantınızı kontrol edin.");}
   }
 
   async function triggerRetrain(doctorId){
@@ -972,40 +1032,48 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
   }
 
   async function saveSatisfaction(month){
-    const data = month===1
-      ? {satisfaction_1m:sat1m, would_recommend:wouldRecommend, had_revision:hadRevision, revision_reason:hadRevision?revisionReason:""}
-      : {satisfaction_6m:sat6m, would_recommend:wouldRecommend, had_revision:hadRevision, revision_reason:hadRevision?revisionReason:""};
-    await sb.from("patients").update(data).eq("id",patient.id);
-    month===1 ? setShowSat1m(false) : setShowSat6m(false);
-    // 6 ay verisi en değerli — retrain tetikle
-    if(month===6) triggerRetrain(patient.doctor_id);
+    try{
+      const data = month===1
+        ? {satisfaction_1m:sat1m, would_recommend:wouldRecommend, had_revision:hadRevision, revision_reason:hadRevision?revisionReason:""}
+        : {satisfaction_6m:sat6m, would_recommend:wouldRecommend, had_revision:hadRevision, revision_reason:hadRevision?revisionReason:""};
+      await sb.from("patients").update(data).eq("id",patient.id);
+      month===1 ? setShowSat1m(false) : setShowSat6m(false);
+      if(month===6) triggerRetrain(patient.doctor_id);
+    }catch{alert("Kayıt güncellenemedi.");}
   }
 
   async function saveProcedure(){
-    await sb.from("patients").update({
-      had_procedure: hadProcedure,
-      procedure_date: procedureDate||null,
-    }).eq("id",patient.id);
-    setShowProcedure(false);
+    try{
+      await sb.from("patients").update({
+        had_procedure: hadProcedure,
+        procedure_date: procedureDate||null,
+      }).eq("id",patient.id);
+      setShowProcedure(false);
+    }catch{alert("Kayıt güncellenemedi.");}
   }
 
   async function markNoAppointment(){
-    await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patient.id);
-    setNoAppointment(true);
-    setOutcomeProcedures([]);
-    triggerRetrain(patient.doctor_id);
+    try{
+      await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patient.id);
+      setNoAppointment(true);
+      setOutcomeProcedures([]);
+      triggerRetrain(patient.doctor_id);
+    }catch{alert("Kayıt güncellenemedi.");}
   }
 
   async function sendAmbassador(){
-    const code="REF-"+Math.random().toString(36).substr(2,4).toUpperCase();
-    await sb.from("patients").update({ambassador_sent:true,ambassador_code:code}).eq("id",patient.id);
-    setAmbassadorSent(true);
-    setShowAmbassador(false);
-    alert(`Referans kodu: ${code}\nBu kodu hastaya paylaşın.`);
+    try{
+      const code="REF-"+Math.random().toString(36).substr(2,4).toUpperCase();
+      await sb.from("patients").update({ambassador_sent:true,ambassador_code:code}).eq("id",patient.id);
+      setAmbassadorSent(true);
+      setShowAmbassador(false);
+      alert(`Referans kodu: ${code}\nBu kodu hastaya paylaşın.`);
+    }catch{alert("İşlem gerçekleştirilemedi.");}
   }
 
   function handlePDF(e){
     e.stopPropagation();
+    try{
     const name=a.name?.split(" ")[0]||"Hasta";
     const proc=a.procedure||"işlem";
     const risks=[];
@@ -1040,6 +1108,10 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
 
     const pred=predictOutcomes(score,a);
     generateConsultPDF(patient, cls, pred, risks, comms, signals, modelInfo);
+    }catch(err){
+      alert("PDF oluşturulamadı. Lütfen popup engelleyicinizi kontrol edin ve tekrar deneyin.");
+      console.error("PDF hatası:",err);
+    }
   }
 
   const formProc=a.procedure||"";
@@ -1116,7 +1188,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
         {noAppointment&&(
           <div onClick={e=>e.stopPropagation()} style={{padding:"5px 18px",background:"#fef2f2",borderTop:"1px solid #fecaca",display:"flex",alignItems:"center",gap:8}}>
             <div style={{fontSize:12,color:"#dc2626",fontWeight:500}}>✕ Randevu Alınmadı</div>
-            <button onClick={async e=>{e.stopPropagation();await sb.from("patients").update({no_appointment:false}).eq("id",patient.id);setNoAppointment(false);}} style={{fontSize:11,color:"#7b9ab5",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline"}}>Geri Al</button>
+            <button onClick={async e=>{e.stopPropagation();try{await sb.from("patients").update({no_appointment:false}).eq("id",patient.id);setNoAppointment(false);}catch{}}} style={{fontSize:11,color:"#7b9ab5",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline"}}>Geri Al</button>
           </div>
         )}
       {cardError&&<div style={{padding:12,fontSize:12,color:"#dc2626"}}>Detay yüklenemedi</div>}
@@ -1134,7 +1206,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
             </div>
           </div>
           {/* Signal boxes */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",borderBottom:"1px solid #d4e1ef"}}>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"repeat(3,1fr)",borderBottom:"1px solid #d4e1ef"}}>
             {signals.map((s,i)=>(
               <div key={i} style={{padding:"10px 16px",borderRight:i<2?"1px solid #d4e1ef":"none"}}>
                 <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:"#7b9ab5",marginBottom:3}}>{s.label}</div>
@@ -1249,7 +1321,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                   const multiDoctor=a.doctorCount?.includes("3")||a.doctorCount?.includes("4")||a.doctorCount?.includes("5");
                   comms.push(`${name} araştırmacı bir profil${multiDoctor?`, ${a.doctorCount} doktora gitmiş`:""} — teknik detayları paylaşmaktan çekinmeyebilirsiniz, genel konuşmadan pek hoşlanmaz`);
                   const proc=a.procedure||"işlem";
-                  comms.push(`${proc} için tercih ettiğiniz tekniği ve neden seçtiğinizi aktarabilirsiniz — "neden siz" sorusunu sormadan yanıtlamış olursunuz`);
+                  comms.push(`${proc} için tercih ettiğiniz tekniği ve neden seçtiğinizi aktarabilirsiniziz — "neden siz" sorusunu sormadan yanıtlamış olursunuz`);
                 } else if(isPragmatic){
                   const recoveryHint=a.procedure?.includes("Botoks")||a.procedure?.includes("Dolgu")?"aynı gün işe dönebileceğini":"2 haftada normale döneceğini";
                   comms.push(`${name} hızlı karar veren biri — uzun açıklamalar yerine net bir takvim ve birkaç kritik nokta yeterli olabilir`);
@@ -1267,11 +1339,11 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                   }
 
                   if(hasAnxiety){
-                    comms.push(`En kötü senaryoyu düşünmekten kaçınıyor — riskleri "bu çok nadir karşılaşılan bir durum" diye başlayarak aktarabilirsiniz, liste halinde sıralamak yerine`);
+                    comms.push(`En kötü senaryoyu düşünmekten kaçınıyor — riskleri "bu çok nadir karşılaşılan bir durum" diye başlayarak aktarabilirsiniziz, liste halinde sıralamak yerine`);
                   } else if(longDecision){
                     comms.push(`${a.decisionAge} süredir düşünüyor — "bu kadar süre düşünmüşseniz zaten doğru adaylardan birisiniz" gibi onaylayıcı bir cümleyle başlayabilirsiniz`);
                   } else if(firstTime){
-                    comms.push(`İlk kez konsültasyona geliyor — sürecin nasıl ilerleyeceğini adım adım aktarabilirsiniz, belirsizlik bırakmamak rahatlatıcı olur`);
+                    comms.push(`İlk kez konsültasyona geliyor — sürecin nasıl ilerleyeceğini adım adım aktarabilirsiniziz, belirsizlik bırakmamak rahatlatıcı olur`);
                   } else {
                     comms.push(`Güven arayan bir profil — "Sizin durumunuzda ben de bunu düşünürdüm" gibi kişisel bir yaklaşım etkili olabilir`);
                   }
@@ -1612,13 +1684,13 @@ function ConsultationMode({patient, onClose, mode}){
 
   // Dikkat Edilmesi Gerekenler
   const donts=[];
-  if(a.revision==="Kusursuz sonuç bekliyorum") donts.push("\"Mükemmel sonuç garantisi\" ifadesinden kaçınmak faydalı olabilir — beklentiyi yukarı çekebilir");
-  if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x)) donts.push("\"Çevreniz de farkı görecek\" gibi ifadeler yerine kişisel memnuniyete odaklanmak daha sağlıklı olabilir");
-  if(a.decisionDuration==="Yeni karar verdim — heyecanlı ve kararlı hissediyorum") donts.push("Hemen operasyon tarihi vermek yerine biraz düşünme süresi tanımak yararlı olabilir");
-  if(a.multiDoctor==="Birçok doktora danıştım") donts.push("Diğer doktorlar hakkında yorum yapmaktan kaçınmak güven açısından daha destekleyici olabilir");
-  if(a.expectation?.includes("Tamamen farklı")) donts.push("\"Tamamen değişeceksiniz\" yerine doğal sınırları nazikçe çerçevelemek daha iyi sonuç verebilir");
-  if(a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor") donts.push("\"Fark yok\" demek yerine hastanın algısını anlamaya çalışmak daha yapıcı olabilir");
-  if(pred.rev>=40) donts.push("Operasyon sonrası fotoğraf sözü konusunda temkinli olmak beklenti yönetimi açısından faydalı olabilir");
+  if(a.revision==="Kusursuz sonuç bekliyorum") donts.push("\"Mükemmel sonuç garantisi\" ifadesinden kaçınmak faydalı olabilir — beklentiyi artırabilir");
+  if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x)) donts.push("\"Çevreniz de farkı görecek\" ifadesinden kaçınılabilir — dışsal motivasyonu pekiştirebilir");
+  if(a.decisionDuration==="Yeni karar verdim — heyecanlı ve kararlı hissediyorum") donts.push("Hemen operasyon tarihi vermek yerine düşünme süresi tanımak faydalı olabilir");
+  if(a.multiDoctor==="Birçok doktora danıştım") donts.push("Diğer doktorları eleştirmekten kaçınmak önerilir — güvensizliği artırabilir");
+  if(a.expectation?.includes("Tamamen farklı")) donts.push("\"Tamamen değişeceksiniz\" yerine doğal sınırları erken netleştirmek faydalı olabilir");
+  if(a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor") donts.push("\"Fark yok\" ifadesinden kaçınılabilir — hastanın algısını küçümseyebilir");
+  if(pred.rev>=40) donts.push("Operasyon sonrası fotoğraf sözü vermekten kaçınılabilir — beklenti tuzağı oluşturabilir");
 
   // Konsültasyon checklist
   const checklist=[];
@@ -1629,39 +1701,39 @@ function ConsultationMode({patient, onClose, mode}){
   if(a.support?.includes("Kimseye")||a.support?.includes("karşılar")) checklist.push("İyileşme sürecinde destek durumunu sormak değerli olabilir");
   if(a.prevSurgery?.includes("memnun kalmadım")) checklist.push("Önceki deneyimini dinlemek faydalı olabilir — ne bekledi, ne aldı?");
   checklist.push("İyileşme sürecini somut bir takvimle paylaşabilirsiniz");
-  checklist.push("Sorularını sormaya teşvik edebilirsiniz — \"başka merak ettiğiniz bir şey var mı?\" diye sorabilirsiniz");
+  checklist.push("Sorularını sormaya teşvik edebilirsiniz — sessiz kalırsa \"başka merak ettiğiniz bir şey var mı?\" diye sorabilirsiniz");
   // Konuşulacaklar — risk sinyallerinden otomatik üret
   const talkingPoints=[];
   if(a.rhinoVision==="Aklımda belirli bir referans var — bir ünlü veya fotoğraf")
-    talkingPoints.push({text:"Referans beklentisini birlikte değerlendirebilirsiniz",sub:"Aklında belirli bir referans olduğunu belirtti — kendi yüz yapısına uygun sonucu birlikte konuşmanız faydalı olabilir"});
+    talkingPoints.push({text:"Referans beklentisini netleştirmek",sub:"Aklında belirli bir referans olduğunu belirtti — kendi yüz yapısına uygun sonucu açıklamak faydalı olabilir"});
   if(a.revision==="Kusursuz sonuç bekliyorum")
-    talkingPoints.push({text:"Revizyon ihtimalini nazikçe paylaşabilirsiniz",sub:"Kusursuz sonuç beklentisi var — revizyonun nadir ama olası bir süreç olduğunu nazikçe çerçevelemeniz düşünülebilir"});
+    talkingPoints.push({text:"Revizyon ihtimali konuşması",sub:"Kusursuz sonuç beklentisi var — revizyonun nadir ama olası bir süreç olduğunu çerçeveleyerek aktarabilirsiniz"});
   if(a.breastSymmetry==="Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor")
-    talkingPoints.push({text:"Simetri beklentisini birlikte konuşabilirsiniz",sub:"Mevcut asimetri küçük ama rahatsız ediyor — doğal simetri farklılıklarını anlayışla paylaşmanız yararlı olabilir"});
+    talkingPoints.push({text:"Simetri beklentisini çerçevelemek",sub:"Mevcut asimetri küçük ama çok rahatsız ediyor — memeler kardeştir, ikiz değildir"});
   if(a.expectation?.includes("Tamamen farklı"))
-    talkingPoints.push({text:"Beklentiyi birlikte şekillendirebilirsiniz",sub:"Tamamen farklı görünmek istiyor — mümkün olan değişimi fotoğraflarla birlikte değerlendirmeniz iyi olabilir"});
+    talkingPoints.push({text:"Beklenti yönetimi",sub:"Tamamen farklı görünmek istiyor — mümkün olan değişimi fotoğraflarla somutlaştırabilirsiniz"});
   if(["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x))
-    talkingPoints.push({text:"Motivasyonu anlamaya çalışabilirsiniz",sub:"Dışsal baskı bileşeni olabilir — kendi isteği mi çevre etkisi mi olduğunu nazikçe keşfetmeniz değerli olabilir"});
+    talkingPoints.push({text:"Motivasyonu netleştirmek",sub:"Dışsal baskı bileşeni var — kendi isteği mi çevre baskısı mı olduğunu anlamak değerli"});
   if(a.decisionDuration==="Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum")
-    talkingPoints.push({text:"Karar sürecini destekleyebilirsiniz",sub:"Uzun süredir düşünüyor ama hâlâ kararsız — ne engelliyor olabileceğini birlikte anlamanız faydalı olabilir"});
+    talkingPoints.push({text:"Karar netliği düşük görünüyor",sub:"Uzun süredir düşünüyor ama hâlâ kararsız — ne engelliyor? Bilgi mi, destek mi, korku mu?"});
   if(a.decisionDuration==="Yeni karar verdim — heyecanlı ve kararlı hissediyorum")
-    talkingPoints.push({text:"Karar sürecini destekleyebilirsiniz",sub:"Çok yeni bir karar — heyecanın yanına gerçekçi beklentiler ekleyip süreci birlikte konuşmanız yararlı olabilir"});
+    talkingPoints.push({text:"Acele karar sinyali",sub:"Çok yeni karar — heyecanın yerini gerçekçi beklentiye bırakması için süreci paylaşabilirsiniz"});
   if((a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge")||(a.otherConsidered&&a.otherConsidered!=="Hayır")){
     const crossSuggs = getCrossSellSuggestion(a);
     if(crossSuggs.length>0){
-      talkingPoints.push({text:"Ek işlem ilgisini değerlendirebilirsiniz",sub:`${crossSuggs[0].proc} — %${crossSuggs[0].prob} ihtimal (${crossSuggs[0].reason})`});
+      talkingPoints.push({text:"Ek işlem fırsatı",sub:`${crossSuggs[0].proc} — %${crossSuggs[0].prob} ihtimal (${crossSuggs[0].reason})`});
     } else {
-      talkingPoints.push({text:"Ek işlem ilgisini sorabilirsiniz",sub:`Başka bölge ilgisi var — ${a.otherAreas||a.otherConsidered}`});
+      talkingPoints.push({text:"Ek işlem sinyali",sub:`Başka bölge ilgisi var — ${a.otherAreas||a.otherConsidered}`});
     }
   } else {
     // Prosedüre göre otomatik cross-sell önerisi
     const crossSuggs = getCrossSellSuggestion(a);
     if(crossSuggs.length>0){
-      talkingPoints.push({text:"Ek işlem önerisini düşünebilirsiniz",sub:`${crossSuggs[0].proc} sorulabilir — %${crossSuggs[0].prob} ihtimal`});
+      talkingPoints.push({text:"Cross-sell fırsatı",sub:`${crossSuggs[0].proc} sorulabilir — %${crossSuggs[0].prob} ihtimal`});
     }
   }
   if(talkingPoints.length===0)
-    talkingPoints.push({text:"Standart konsültasyon",sub:"Belirgin risk sinyali yok — beklentiyi birlikte teyit edip süreci paylaşmanız yeterli olabilir"});
+    talkingPoints.push({text:"Standart konsültasyon",sub:"Belirgin risk sinyali yok — beklentiyi teyit etmek ve süreci paylaşmak yeterli olacaktır"});
 
   // Risk sinyalleri
   const flags=[];
@@ -1697,7 +1769,7 @@ function ConsultationMode({patient, onClose, mode}){
       <div style={{flex:1,overflowY:"auto",padding:"14px 14px",maxWidth:720,margin:"0 auto",width:"100%"}}>
 
         {/* Süre önerisi + metrikler */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
           <div style={{background:"#1e3a5f",borderRadius:10,padding:"10px 6px",textAlign:"center"}}>
             <div style={{fontSize:20,fontWeight:600,color:"#f8fafd",lineHeight:1.1}}>{consultDuration.label}</div>
             <div style={{fontSize:8,color:"rgba(248,250,253,0.6)",textTransform:"uppercase",letterSpacing:"0.06em",marginTop:3}}>Önerilen Süre</div>
@@ -1796,7 +1868,7 @@ function ValueScreen({patients,doctor}){
         <div style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:300,color:"#1e3a5f",letterSpacing:"-0.01em",marginBottom:4}}>SculptAI'ın <em>Katkısı</em></div>
         <div style={{fontSize:13,color:C.muted}}>{total} hasta · Gerçek veriye dayalı</div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:20}}>
         {[
           {accent:"#059669",icon:"↗",title:"Cross-Sell",sub:"Ek prosedür planlanan",val:crossSells,unit:" hasta",note:total?`Hastaların %${Math.round(crossSells/total*100)}'inde`:"Veri yok",color:"#059669"},
           {accent:"#1d4ed8",icon:"🛡",title:"Risk Filtresi",sub:"Randevu alınmadı",val:noAppt,unit:" hasta",note:noAppt>0?"Konsültasyon boşa gitmedi":"Henüz işaretlenmedi",color:"#1d4ed8"},
@@ -1827,7 +1899,7 @@ function ValueScreen({patients,doctor}){
       )}
       <div style={cardS}>
         <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:10,fontWeight:500}}>Marka Elçisi Programı</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8}}>
           {[["Aktif Elçi",ambassadors],["Kod Gönderildi",patients.filter(p=>p.ambassador_sent).length],["Referansla Gelen",patients.filter(p=>p.answers?.referralCode).length]].map(([lbl,val])=>(
             <div key={lbl} style={{background:"#f8fafd",borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
               <div style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:300,fontVariantNumeric:"lining-nums",color:"#7c3aed",lineHeight:1,marginBottom:3}}>{val}</div>
@@ -1844,6 +1916,25 @@ function ValueScreen({patients,doctor}){
 function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP2,pwErr,setPwErr,saveNewCreds,confirmClear,setConfirmClear,clearAll,clinicName,setClinicName,clinicSaved,saveClinicName,thresholdMode,setThresholdMode}){
   const C={border:"#d4e1ef",muted:"#7b9ab5"};
   const cardS={background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:10,padding:"18px 20px",marginBottom:12};
+  const [enabledProcs,setEnabledProcs]=useState(doctor.enabled_procedures||ALL_PROCEDURE_LIST);
+  const [procsSaved,setProcsSaved]=useState(false);
+
+  async function saveProcs(){
+    try{
+      await sb.from("doctors").update({enabled_procedures:enabledProcs}).eq("id",doctor.id);
+      doctor.enabled_procedures=enabledProcs;
+      setProcsSaved(true);setTimeout(()=>setProcsSaved(false),2500);
+    }catch{alert("Prosedür listesi kaydedilemedi.");}
+  }
+  function toggleProc(proc){
+    setEnabledProcs(prev=>prev.includes(proc)?prev.filter(p=>p!==proc):[...prev,proc]);
+  }
+  function toggleCategory(cat){
+    const procs=ALL_PROCEDURES[cat];
+    const allEnabled=procs.every(p=>enabledProcs.includes(p));
+    if(allEnabled) setEnabledProcs(prev=>prev.filter(p=>!procs.includes(p)));
+    else setEnabledProcs(prev=>[...new Set([...prev,...procs])]);
+  }
   return(
     <div style={{flex:1,overflowY:"auto",padding:"24px 32px",maxWidth:520}}>
       <div style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:300,color:"#1e3a5f",marginBottom:24,letterSpacing:"-0.01em"}}>Ayarlar</div>
@@ -1852,7 +1943,7 @@ function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP
       <div style={cardS}>
         <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:4,fontWeight:500}}>Risk Hassasiyeti</div>
         <div style={{fontSize:12,color:C.muted,marginBottom:14}}>Sistmin kaç hastayı kırmızı işaretleyeceğini belirler.</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8,marginBottom:12}}>
           {Object.values(THRESHOLD_MODES).map(m=>(
             <button key={m.key} onClick={()=>{setThresholdMode(m.key);localStorage.setItem('threshold_mode',m.key);}}
               style={{padding:"12px 8px",borderRadius:10,border:`2px solid ${thresholdMode===m.key?m.color:C.border}`,
@@ -1870,6 +1961,42 @@ function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP
             {THRESHOLD_MODES[thresholdMode||"balanced"].label}:
           </strong> {THRESHOLD_MODES[thresholdMode||"balanced"].hint}
         </div>
+      </div>
+
+      {/* PROSEDÜR SEÇİMİ */}
+      <div style={cardS}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div>
+            <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,fontWeight:500}}>Sunulan Prosedürler</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:2}}>Hasta formunda sadece seçili prosedürler gösterilir</div>
+          </div>
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            {procsSaved&&<span style={{fontSize:11,color:"#059669"}}>✓ Kaydedildi</span>}
+            <button onClick={saveProcs} style={{padding:"6px 14px",borderRadius:7,border:"none",background:"#1e3a5f",color:"#f8fafd",fontSize:12,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Kaydet</button>
+          </div>
+        </div>
+        {Object.entries(ALL_PROCEDURES).map(([cat,procs])=>{
+          const allOn=procs.every(p=>enabledProcs.includes(p));
+          const someOn=procs.some(p=>enabledProcs.includes(p));
+          return(
+            <div key={cat} style={{marginBottom:10}}>
+              <div onClick={()=>toggleCategory(cat)} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 0",borderBottom:"1px solid #d4e1ef"}}>
+                <div style={{width:16,height:16,borderRadius:3,border:`1.5px solid ${allOn?"#059669":someOn?"#d97706":"#d4e1ef"}`,background:allOn?"#059669":someOn?"#d97706":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"white"}}>{allOn?"✓":someOn?"–":""}</div>
+                <div style={{fontSize:12,fontWeight:600,color:"#1e3a5f"}}>{cat}</div>
+                <div style={{fontSize:11,color:C.muted}}>({procs.filter(p=>enabledProcs.includes(p)).length}/{procs.length})</div>
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,padding:"8px 0 4px 24px"}}>
+                {procs.map(proc=>(
+                  <button key={proc} onClick={()=>toggleProc(proc)}
+                    style={{padding:"4px 10px",borderRadius:16,fontSize:11,border:`1px solid ${enabledProcs.includes(proc)?"#059669":"#d4e1ef"}`,background:enabledProcs.includes(proc)?"#ecfdf5":"white",color:enabledProcs.includes(proc)?"#059669":"#7b9ab5",cursor:"pointer"}}>
+                    {proc}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        <div style={{fontSize:11,color:C.muted,marginTop:6}}>{enabledProcs.length} prosedür seçili — hasta formunda bu prosedürler gösterilecek</div>
       </div>
 
       <div style={{fontFamily:"'Playfair Display',serif",fontSize:34,fontWeight:300,color:"#1e3a5f",marginBottom:24,letterSpacing:"-0.01em"}}></div>
@@ -1944,8 +2071,11 @@ function SecretaryView({patients,doctorId,isDemo,onRefresh}){
   async function markOutcome(patientId,type,extra={}){
     if(isDemo){alert("Demo modunda kayıt yapılamaz.");return;}
     setSaving(patientId);
+    try{
     if(type==="randevu_aldi"){
-      await sb.from("patients").update({no_appointment:false}).eq("id",patientId);
+      const p=patients.find(x=>x.id===patientId);
+      const proc=p?.answers?.procedure||"";
+      await sb.from("patients").update({no_appointment:false,outcome_procedures:proc?[proc]:["randevu"]}).eq("id",patientId);
     } else if(type==="randevu_almadi"){
       await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patientId);
     } else if(type==="islem_yapildi"){
@@ -1958,6 +2088,7 @@ function SecretaryView({patients,doctorId,isDemo,onRefresh}){
       await sb.from("patients").update(extra).eq("id",patientId);
       setSatOpen(null);
     }
+    }catch(e){alert("Kayıt güncellenemedi. İnternet bağlantınızı kontrol edin.");}
     setSaving(null);
     if(onRefresh) onRefresh();
   }
@@ -2025,60 +2156,72 @@ function SecretaryView({patients,doctorId,isDemo,onRefresh}){
 
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {filtered.map(p=>(
-          <div key={p.id} style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,padding:"14px 18px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:C.navy,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.patientName}</div>
-                  <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:p.statusBg,color:p.statusColor,border:`1px solid ${p.statusColor}22`,flexShrink:0,fontWeight:500}}>{p.statusLabel}</span>
-                </div>
-                <div style={{fontSize:12,color:C.muted}}>{p.procedure} · {p.date}</div>
-              </div>
-
-              {/* Adım 1: Randevu aldı mı? */}
-              {p.status==="pending"&&(
-                <div style={{display:"flex",gap:6,flexShrink:0}}>
-                  <button onClick={()=>markOutcome(p.id,"randevu_almadi")} disabled={saving===p.id}
-                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-                    ✕ Randevu Almadı
-                  </button>
-                  <button onClick={()=>markOutcome(p.id,"randevu_aldi")} disabled={saving===p.id}
-                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-                    ✓ Randevu Aldı
-                  </button>
-                </div>
-              )}
-
-              {/* Adım 2: İşlem yapıldı mı? */}
-              {p.status==="randevu_aldi"&&(
-                <div style={{display:"flex",gap:6,flexShrink:0}}>
-                  <button onClick={()=>markOutcome(p.id,"vazgecti")} disabled={saving===p.id}
-                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-                    ✕ Vazgeçti
-                  </button>
-                  <button onClick={()=>markOutcome(p.id,"islem_yapildi")} disabled={saving===p.id}
-                    style={{padding:"8px 14px",borderRadius:8,border:"1px solid #a7f3d0",background:"#ecfdf5",color:"#059669",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>
-                    ✓ İşlem Yapıldı
-                  </button>
-                </div>
-              )}
-
-              {/* Adım 3: Memnuniyet girişi bekliyor */}
-              {p.status==="islem_yapildi"&&(
-                <button onClick={()=>setSatOpen(satOpen===p.id?null:p.id)}
-                  style={{padding:"8px 14px",borderRadius:8,border:"1px solid #c4b5fd",background:"#f5f3ff",color:"#7c3aed",fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
-                  📋 Memnuniyet Gir
-                </button>
-              )}
-
-              {/* Tamamlanmış */}
-              {(p.status==="randevu_almadi"||p.status==="vazgecti"||p.status==="tamamlandi")&&(
-                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                  <span style={{fontSize:12,color:p.statusColor,fontWeight:500}}>{p.statusLabel}</span>
-                  {p.satisfaction_1m&&<span style={{fontSize:10,padding:"2px 6px",borderRadius:8,background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ede9fe"}}>{p.satisfaction_1m}</span>}
-                </div>
-              )}
+          <div key={p.id} style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,padding:"12px 14px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:C.navy,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>{p.patientName}</div>
+              <span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:p.statusBg,color:p.statusColor,border:`1px solid ${p.statusColor}22`,flexShrink:0,fontWeight:500}}>{p.statusLabel}</span>
             </div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:4}}>{p.procedure} · {p.date}</div>
+            {p.answers?.phone&&(
+              <button onClick={()=>{
+                const phone=p.answers.phone.replace(/\D/g,"").replace(/^0/,"90");
+                const msg=encodeURIComponent(`Merhaba ${p.patientName}, ${p.procedure} işleminiz hakkında bilgi vermek istiyoruz. Sorularınız için bize ulaşabilirsiniz.`);
+                window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
+              }} style={{fontSize:11,color:"#25D366",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline",padding:0,marginBottom:6}}>
+                📱 WhatsApp Gönder
+              </button>
+            )}
+
+            {/* Adım 1: Randevu aldı mı? */}
+            {p.status==="pending"&&(
+              <div style={{display:"flex",gap:6,marginTop:6}}>
+                <button onClick={()=>markOutcome(p.id,"randevu_almadi")} disabled={saving===p.id}
+                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  ✕ Randevu Almadı
+                </button>
+                <button onClick={()=>markOutcome(p.id,"randevu_aldi")} disabled={saving===p.id}
+                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  ✓ Randevu Aldı
+                </button>
+              </div>
+            )}
+
+            {/* Adım 2: İşlem yapıldı mı? */}
+            {p.status==="randevu_aldi"&&(
+              <div style={{display:"flex",gap:6,marginTop:6}}>
+                <button onClick={()=>markOutcome(p.id,"vazgecti")} disabled={saving===p.id}
+                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  ✕ Vazgeçti
+                </button>
+                <button onClick={()=>markOutcome(p.id,"islem_yapildi")} disabled={saving===p.id}
+                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #a7f3d0",background:"#ecfdf5",color:"#059669",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  ✓ İşlem Yapıldı
+                </button>
+              </div>
+            )}
+
+            {/* Adım 3: Memnuniyet */}
+            {p.status==="islem_yapildi"&&(
+              <button onClick={()=>setSatOpen(satOpen===p.id?null:p.id)}
+                style={{width:"100%",padding:"9px 8px",borderRadius:8,border:"1px solid #c4b5fd",background:"#f5f3ff",color:"#7c3aed",fontSize:12,fontWeight:600,cursor:"pointer",marginTop:6}}>
+                📋 Memnuniyet Gir
+              </button>
+            )}
+
+              {/* Tamamlanmış — geri alma butonu */}
+              {(p.status==="randevu_almadi"||p.status==="vazgecti"||p.status==="tamamlandi")&&(
+                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
+                  <button onClick={async()=>{
+                    setSaving(p.id);
+                    try{await sb.from("patients").update({no_appointment:false,had_procedure:null,outcome_procedures:[],satisfaction_1m:null,satisfaction_6m:null}).eq("id",p.id);}catch{}
+                    setSaving(null);
+                    if(onRefresh) onRefresh();
+                  }} disabled={saving===p.id}
+                    style={{fontSize:11,color:"#7b9ab5",background:"transparent",border:"1px solid #d4e1ef",borderRadius:6,padding:"4px 10px",cursor:"pointer"}}>
+                    ↩ Geri Al
+                  </button>
+                </div>
+              )}
 
             {/* Memnuniyet girişi paneli */}
             {satOpen===p.id&&(
@@ -2230,7 +2373,7 @@ function Analytics({patients}){
     <div style={{padding:"20px 28px 24px",overflowY:"auto",flex:1}}>
 
       {/* KPI ROW */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:18}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:18}}>
         {[
           {val:total,lbl:"Toplam Hasta",color:"#1e3a5f",grad:"linear-gradient(90deg,#1e3a5f,#2d5a8e)",note:`Ort. risk: ${avgRisk}`},
           {val:fitRate+"%",lbl:"Uygun Profil Oranı",color:"#10b981",grad:"linear-gradient(90deg,#10b981,#2d5a8e)",note:`${green+amb} hasta`},
@@ -2353,7 +2496,7 @@ function Analytics({patients}){
             const totalLoss=estNoShow+amberLoss;
             return(
               <div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:12}}>
                   <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"12px",textAlign:"center"}}>
                     <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,color:"#dc2626",lineHeight:1}}>{totalLoss}</div>
                     <div style={{fontSize:11,color:"#991b1b",marginTop:4}}>Randevu almayacak hasta</div>
@@ -2438,8 +2581,8 @@ function Analytics({patients}){
             </div>
 
             {/* Segment bazlı tablo */}
-            <div style={{border:"1px solid #d4e1ef",borderRadius:8,overflow:"hidden",marginBottom:10}}>
-              <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",background:"#eef3f9",padding:"8px 12px",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",color:C.muted,fontWeight:600}}>
+            <div style={{border:"1px solid #d4e1ef",borderRadius:8,overflow:"hidden",marginBottom:10,overflowX:"auto"}}>
+              <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",background:"#eef3f9",minWidth:400,padding:"8px 12px",fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",color:C.muted,fontWeight:600}}>
                 <div>Segment</div><div style={{textAlign:"center"}}>Toplam</div><div style={{textAlign:"center"}}>Geldi</div><div style={{textAlign:"center"}}>Gelmedi</div><div style={{textAlign:"center"}}>İsabet</div>
               </div>
               {["red","amber","green","ambassador"].map(seg=>{
@@ -2447,7 +2590,7 @@ function Analytics({patients}){
                 if(d.total===0) return null;
                 const acc=seg==="red"?(d.total>0?Math.round(d.noShow/d.total*100):0):(d.total>0?Math.round(d.came/d.total*100):0);
                 return(
-                  <div key={seg} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",padding:"9px 12px",borderTop:"1px solid #eef3f9",fontSize:13}}>
+                  <div key={seg} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr",padding:"9px 12px",minWidth:400,borderTop:"1px solid #eef3f9",fontSize:13}}>
                     <div style={{color:segColors[seg],fontWeight:500}}>{segLabels[seg]}</div>
                     <div style={{textAlign:"center",color:C.navy}}>{d.total}</div>
                     <div style={{textAlign:"center",color:"#059669"}}>{d.came}</div>
@@ -2496,37 +2639,62 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
   const [confirmClear,setConfirmClear]=useState(false);
   const [clinicName,setClinicName]=useState(doctor.clinic_name||"");
   const [clinicSaved,setClinicSaved]=useState(false);
+  const [sessionWarning,setSessionWarning]=useState(false);
+
+  // Session timeout uyarısı — son 15 dakikada banner göster
+  useEffect(()=>{
+    if(isDemo) return;
+    const checkSession=()=>{
+      const loginTime=sessionStorage.getItem("sculpt_login_time");
+      if(!loginTime) return;
+      const elapsed=Date.now()-parseInt(loginTime);
+      const maxMs=8*60*60*1000; // 8 saat
+      const remaining=maxMs-elapsed;
+      if(remaining<=0){
+        onLogout(); // süre doldu
+      } else if(remaining<=15*60*1000){
+        setSessionWarning(true); // son 15 dk
+      }
+    };
+    checkSession();
+    const timer=setInterval(checkSession,60000); // her dk kontrol
+    return()=>clearInterval(timer);
+  },[]);
 
   useEffect(()=>{if(!isDemo) loadPatients();},[]);
 
   async function loadPatients(){
     if(isDemo){setLoading(false);return;}
     setLoading(true);
-    const {data}=await sb.from("patients").select("*").eq("doctor_id",doctor.id).order("created_at",{ascending:false});
-    if(data){
-      const decrypted=await Promise.all(data.map(async p=>{
-        if(p.answers?.name){
-          const realName=await decryptName(p.answers.name,doctor.id);
-          const realGender=p.answers.gender?await decryptName(p.answers.gender,doctor.id):p.answers.gender;
-          const realStory=p.answers.openStory?await decryptName(p.answers.openStory,doctor.id):p.answers.openStory;
-          return{...p,answers:{...p.answers,name:realName,gender:realGender,openStory:realStory}};
-        }
-        return p;
-      }));
-      setPatients(decrypted);
-    }else{setPatients([]);}
+    try{
+      const {data}=await sb.from("patients").select("*").eq("doctor_id",doctor.id).order("created_at",{ascending:false});
+      if(data){
+        const decrypted=await Promise.all(data.map(async p=>{
+          try{
+            if(p.answers?.name){
+              const realName=await decryptName(p.answers.name,doctor.id);
+              const realGender=p.answers.gender?await decryptName(p.answers.gender,doctor.id):(p.answers.gender||"");
+              const realStory=p.answers.openStory?await decryptName(p.answers.openStory,doctor.id):(p.answers.openStory||"");
+              return{...p,answers:{...p.answers,name:realName,gender:realGender,openStory:realStory}};
+            }
+            return p;
+          }catch{return p;}
+        }));
+        setPatients(decrypted);
+      }else{setPatients([]);}
+    }catch{setPatients([]);}
     setLoading(false);
   }
 
   async function deletePatient(id){
     if(isDemo){setPatients(p=>p.filter(x=>x.id!==id));return;}
-    await sb.from("patients").delete().eq("id",id);
+    try{await sb.from("patients").delete().eq("id",id);}catch{alert("Hasta silinemedi.");}
     setPatients(p=>p.filter(x=>x.id!==id));
   }
 
   async function clearAll(){
     if(isDemo){setPatients([]);setConfirmClear(false);return;}
-    await sb.from("patients").delete().eq("doctor_id",doctor.id);
+    try{await sb.from("patients").delete().eq("doctor_id",doctor.id);}catch{alert("Veriler silinemedi.");}
     setPatients([]);setConfirmClear(false);
   }
 
@@ -2583,6 +2751,22 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
 
       {/* KONSÜLTASYOn MODU — overlay */}
       {consultPatient&&<ConsultationMode patient={consultPatient} onClose={()=>setConsultPatient(null)} mode={thresholdMode}/>}
+
+      {/* SESSION TIMEOUT UYARISI */}
+      {sessionWarning&&(
+        <div style={{position:"fixed",top:0,left:0,right:0,zIndex:9998,background:"#dc2626",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",animation:"fadeUp 0.3s ease"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,color:"white"}}>
+            <span style={{fontSize:18}}>⏰</span>
+            <span style={{fontSize:13,fontFamily:"'Nunito',sans-serif"}}>Oturumunuz 15 dakika içinde sona erecek. Kaydetmediğiniz değişiklikler kaybolabilir.</span>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{sessionStorage.setItem("sculpt_login_time",String(Date.now()));setSessionWarning(false);}}
+              style={{padding:"5px 14px",borderRadius:6,border:"1px solid rgba(255,255,255,0.5)",background:"transparent",color:"white",fontSize:12,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Süreyi Uzat</button>
+            <button onClick={()=>setSessionWarning(false)}
+              style={{padding:"5px 14px",borderRadius:6,border:"none",background:"rgba(255,255,255,0.2)",color:"white",fontSize:12,cursor:"pointer",fontFamily:"'Nunito',sans-serif"}}>Kapat</button>
+          </div>
+        </div>
+      )}
 
       {/* DESKTOP: Sol sidebar / MOBİL: Alt nav */}
       {!isMobile&&<Sidebar tab={tab} setTab={setTab} doctor={doctor} onLogout={onLogout}/>}
@@ -2660,28 +2844,30 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
           </div>
 
           {/* LIST HEADER */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,gap:10}} className="f3">
-            <div style={{fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#2d5a8e",flexShrink:0}}>Hasta Listesi</div>
-            <div style={{position:"relative",flex:isMobile?"1":"0 0 200px"}}>
-              <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Hasta veya işlem ara..."
-                style={{width:"100%",padding:"6px 12px 6px 30px",borderRadius:20,border:"1.5px solid #d4e1ef",background:"#f8fafd",fontSize:12,color:"#1e3a5f",outline:"none",fontFamily:"'Nunito',sans-serif"}}/>
-              <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#7b9ab5",pointerEvents:"none"}}>⌕</span>
-              {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:13,color:"#7b9ab5",cursor:"pointer",padding:0,lineHeight:1}}>✕</button>}
+          <div style={{marginBottom:12}} className="f3">
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+              <div style={{fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#2d5a8e",flexShrink:0}}>Hasta Listesi</div>
+              <div style={{position:"relative",flex:1,maxWidth:220}}>
+                <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Hasta veya işlem ara..."
+                  style={{width:"100%",padding:"6px 12px 6px 30px",borderRadius:20,border:"1.5px solid #d4e1ef",background:"#f8fafd",fontSize:12,color:"#1e3a5f",outline:"none",fontFamily:"'Nunito',sans-serif"}}/>
+                <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#7b9ab5",pointerEvents:"none"}}>⌕</span>
+                {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:13,color:"#7b9ab5",cursor:"pointer",padding:0,lineHeight:1}}>✕</button>}
+              </div>
+              <button onClick={loadPatients} style={{padding:"4px 10px",borderRadius:20,fontSize:11,border:"1px solid #d4e1ef",background:"#f8fafd",color:"#7b9ab5",flexShrink:0,cursor:"pointer"}}>↻</button>
+              {!isMobile&&<button onClick={()=>exportCSV(patients)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,border:"1px solid #d4e1ef",background:"#eef3f9",color:"#2563eb",flexShrink:0,cursor:"pointer"}}>📊 CSV</button>}
             </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+            <div style={{display:"flex",gap:5,alignItems:"center",overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:2}}>
               {[["all","Tümü"],["red","🔴 Dikkat"],["amber","🟡 Değerlendirme"],["green","🟢 Uygun"],["ambassador","🌟 Elçi"]].map(([v,l])=>(
-                <button key={v} onClick={()=>setFilter(v)} style={{padding:"5px 13px",borderRadius:20,fontSize:13,fontWeight:500,border:`1.5px solid ${filter===v?"#1e3a5f":"#d4e1ef"}`,background:filter===v?"#1e3a5f":"#f8fafd",color:filter===v?"#f8fafd":"#7b9ab5",transition:"all 0.15s"}}>{l}</button>
+                <button key={v} onClick={()=>setFilter(v)} style={{padding:"4px 11px",borderRadius:20,fontSize:12,fontWeight:500,border:`1.5px solid ${filter===v?"#1e3a5f":"#d4e1ef"}`,background:filter===v?"#1e3a5f":"#f8fafd",color:filter===v?"#f8fafd":"#7b9ab5",transition:"all 0.15s",whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
               ))}
-              <button onClick={()=>exportCSV(patients)} style={{padding:"5px 13px",borderRadius:20,fontSize:13,fontWeight:500,border:"1px solid #d4e1ef",background:"#eef3f9",color:"#2563eb"}}>📊 CSV</button>
-              <button onClick={loadPatients} style={{padding:"5px 13px",borderRadius:20,fontSize:13,fontWeight:500,border:"1px solid #d4e1ef",background:"#f8fafd",color:"#7b9ab5"}}>↻ Yenile</button>
-              {/* Aktif mod göstergesi */}
+              {isMobile&&<button onClick={()=>exportCSV(patients)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,border:"1px solid #d4e1ef",background:"#eef3f9",color:"#2563eb",flexShrink:0,whiteSpace:"nowrap",cursor:"pointer"}}>CSV</button>}
               <div onClick={()=>setTab("settings")} title="Ayarlardan değiştir" style={{
-                display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:20,cursor:"pointer",
+                display:"flex",alignItems:"center",gap:3,padding:"3px 8px",borderRadius:20,cursor:"pointer",flexShrink:0,
                 background:THRESHOLD_MODES[thresholdMode||"balanced"].bg,
                 border:`1px solid ${THRESHOLD_MODES[thresholdMode||"balanced"].border}`,
               }}>
-                <span style={{fontSize:12}}>{THRESHOLD_MODES[thresholdMode||"balanced"].icon}</span>
-                <span style={{fontSize:11,fontWeight:500,color:THRESHOLD_MODES[thresholdMode||"balanced"].color}}>
+                <span style={{fontSize:10}}>{THRESHOLD_MODES[thresholdMode||"balanced"].icon}</span>
+                <span style={{fontSize:10,fontWeight:500,color:THRESHOLD_MODES[thresholdMode||"balanced"].color}}>
                   {THRESHOLD_MODES[thresholdMode||"balanced"].label}
                 </span>
               </div>
@@ -2797,6 +2983,28 @@ function getCrossSellSuggestion(a){
     ],
     "Jinekomasti": [
       {proc:"Liposuction (karın veya bel)", prob:55, reason:"Vücut orantısı için sık tercih"},
+    ],
+    // Lazer tedavi cross-sell
+    "Lazer Epilasyon": [
+      {proc:"Cilt yenileme (rejuvenasyon)", prob:50, reason:"Lazer sonrası cilt bakımı bütünlüğü"},
+      {proc:"Karbon peeling", prob:45, reason:"Gözenek temizliği ve cilt tonu"},
+    ],
+    "Lazer Dövme Silme": [
+      {proc:"Lazer leke tedavisi", prob:40, reason:"Dövme sonrası iz ve leke düzeltme"},
+      {proc:"Cilt yenileme (rejuvenasyon)", prob:35, reason:"Dövme bölgesinde cilt kalitesi"},
+    ],
+    "Cilt Yenileme (Rejuvenasyon)": [
+      {proc:"Karbon peeling", prob:60, reason:"Bakım rutini olarak birlikte etkili"},
+      {proc:"Lazer leke tedavisi", prob:50, reason:"Ton eşitliği için tamamlayıcı"},
+      {proc:"Botoks", prob:40, reason:"Kırışıklık azaltma bütünlüğü"},
+    ],
+    "Karbon Peeling": [
+      {proc:"Cilt yenileme (rejuvenasyon)", prob:55, reason:"Derin cilt bakımı için tamamlayıcı"},
+      {proc:"Lazer leke tedavisi", prob:40, reason:"Ton eşitsizliği varsa"},
+    ],
+    "Lazer Leke Tedavisi": [
+      {proc:"Cilt yenileme (rejuvenasyon)", prob:55, reason:"Genel cilt kalitesi iyileştirme"},
+      {proc:"Karbon peeling", prob:45, reason:"Bakım rutinine ekleme"},
     ],
   };
 
@@ -2984,6 +3192,36 @@ const PROCEDURE_INFO = {
   "Meme Onarımı (Kanser sonrası)":{category:"Rekonstrüktif Cerrahi",desc:"Meme kanseri ameliyatı sonrası kaybedilen meme dokusunun cerrahi olarak yeniden oluşturulması. Protez veya kendi dokularınız kullanılabilir.",stats:[{val:"2–6 saat",lbl:"Süre"},{val:"2–5 gece",lbl:"Hastane"},{val:"6–12 ay",lbl:"Sonuç"}],process:"Rekonstrüksiyon yöntemi onkolojik tedavi sürecinize göre planlanır. Ekspander, silikon protez veya flep (kendi doku transferi) seçenekleri değerlendirilir. Süreç birden fazla aşama gerektirebilir.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Yönteme göre 2–6 saat sürebilir."},{time:"1–5. gün",emoji:"💊",color:"#6d28d9",title:"Hastane Takibi",desc:"Drenler takılabilir. Ağrı yönetimi ve erken mobilizasyon."},{time:"2–6. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Drenler alınır. Günlük aktivitelere kademeli dönüş."},{time:"3–6. ay",emoji:"🩹",color:"#059669",title:"Şekillendirme",desc:"Gerekirse ikinci aşama (meme başı rekonstrüksiyonu, simetri düzeltmesi)."},{time:"6–12. ay",emoji:"✨",color:"#10b981",title:"Nihai Görünüm",desc:"Tüm aşamalar tamamlandığında son sonuç ortaya çıkar."}],prep:["Onkolojik tedavi ekibinizle koordinasyon sağlanacak","Destek sütyeni sürekli takın","Radyoterapi planınız varsa cerrahınıza bildirin","6 hafta ağır kol egzersizlerinden kaçının"],normal:["Rekonstrüksiyon bölgesinde uzun süreli uyuşukluk olabilir","Protez kullanıldıysa yerleşme süreci 3–6 ay sürer","Flep kullanıldıysa verici bölgede de iyileşme süreci olur","Süreç birden fazla ameliyat gerektirebilir — bu normaldir"],followup:"Onkoloji ve plastik cerrahi ekibi ile koordineli takip"},
 
   "Doğumsal Meme Anomalisinin Düzeltilmesi":{category:"Rekonstrüktif Cerrahi",desc:"Doğumsal meme gelişim bozukluklarının (tübüler meme, Poland sendromu, asimetri vb.) cerrahi olarak düzeltilmesi.",stats:[{val:"2–4 saat",lbl:"Süre"},{val:"1–2 gece",lbl:"Hastane"},{val:"6–12 ay",lbl:"Sonuç"}],process:"Ameliyat planı anomalinin tipine göre kişiselleştirilir. Protez, yağ enjeksiyonu, doku genişletici veya bunların kombinasyonu kullanılabilir. Birden fazla aşama gerekebilir.",timeline:[{time:"Ameliyat günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Genel anestezi. Anomali tipine göre kişiselleştirilmiş plan."},{time:"1–3. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Destek sütyeni uygulanır. Kol hareketleri kısıtlı."},{time:"2–6. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Şişlik azalır. Günlük aktivitelere kademeli dönüş."},{time:"6–12. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Tüm aşamalar tamamlandığında son görünüm ortaya çıkar."}],prep:["Destek sütyeni sürekli takın","4 hafta havuzdan kaçının","6 hafta ağır kol egzersizlerinden kaçının"],normal:["Şişlik ve hassasiyet ilk haftalarda belirgin olabilir","Meme başı duyusunda geçici değişiklik olabilir","Birden fazla ameliyat aşaması gerekebilir","Kesi izleri ilk aylarda belirgin, zamanla solar"],followup:"1., 3., 6. ve 12. aylarda kontrol"},
+
+  "Lazer Epilasyon":{category:"Lazer Tedavi",desc:"Lazer ışını kıl kökündeki melanin tarafından emilir ve ısıya dönüşerek kökü etkisiz hale getirir. Aktif büyüme evresindeki kıllar hedeflendiği için birden fazla seans gerekir. Sonuçlar cilt tipi, kıl yapısı ve hormon durumuna göre kişiden kişiye değişir.",stats:[{val:"15–60 dk",lbl:"Seans Süresi"},{val:"Ort. 6 seans",lbl:"Önerilen Seans"},{val:"4–8 hafta",lbl:"Seans Aralığı"}],process:"Lazer ışını melanin pigmentini hedefler — kıl ne kadar koyu ve ten ne kadar açıksa etki o kadar güçlüdür. Soğutma sistemli cihazlar ağrıyı azaltır. Her seans sonrası kıl yoğunluğu kademeli olarak azalır. Seans aralıkları ve enerji ayarı bölgeye göre uzman hekim tarafından belirlenir.",timeline:[{time:"1. seans",emoji:"✨",color:"#7c3aed",title:"Başlangıç",desc:"İlk uygulama. Hafif batma hissi olabilir. Kızarıklık birkaç saat sürer."},{time:"1–3. hafta",emoji:"🌱",color:"#0891b2",title:"İlk Dökülme",desc:"İşlem gören tüyler dökülmeye başlar. Çekme veya koparma yapmayın."},{time:"2–4. seans",emoji:"📉",color:"#059669",title:"Azalma Görünür",desc:"Tüy yoğunluğu belirgin şekilde azalır. Bazı bölgelerde seyrelme net."},{time:"6–10. seans",emoji:"🎯",color:"#10b981",title:"Hedef Sonuç",desc:"Kalıcı tüy azaltımı sağlanır. Yılda 1–2 idame seansı yeterli olabilir."}],prep:["4–6 hafta önce ağda, cımbız veya epilatör gibi kıl kökünü çeken uygulamalardan kaçının","Bronzlaşmaktan kaçının — ten rengi ne kadar açıksa lazer o kadar etkili","Seanstan 3 gün önce tıraş önerilir — kıl boyu 1mm kadar olmalı","Kimyasal peeling veya tüy sarartıcı uygulamalardan kaçının","Seans günü bölgeye krem, deodorant veya parfüm sürmeyin"],normal:["Hafif kızarıklık, şişlik ve geçici hassasiyet saatler–günler içinde düzelir","İlk 24–48 saat güneşten kaçının, sıcak su ve saunadan uzak durun","En az 4 hafta boyunca ağda, cımbız veya epilatör kullanmayın — tıraş güvenlidir","Parfümsüz, hipoalerjenik nemlendiriciler ve aloe vera ile cildi yatıştırın","Hormonal değişiklikler (hamilelik, ilaç) yeni kıllanma oluşturabilir — idame seansları gerekebilir","Şiddetli ağrı, kabarma veya 7 günden uzun süren reaksiyon varsa hekiminize başvurun"],followup:"Her seans öncesi kontrol"},
+
+  "Lazer Dövme Silme":{category:"Lazer Tedavi",desc:"FDA onaylı lazer teknolojisi ile deri altındaki renk pigmentlerine nüfuz edilerek parçalanması ve bağışıklık sistemi tarafından emilmesinin sağlanması. Dövmenin rengi, büyüklüğü ve derinliği sonucu etkiler.",stats:[{val:"15–45 dk",lbl:"Seans Süresi"},{val:"6–12 seans",lbl:"Önerilen Seans"},{val:"6–8 hafta",lbl:"Seans Aralığı"}],process:"Lazer ışınları derinin üst tabakasına zarar vermeden deri altındaki pigmentlere nüfuz eder ve parçalar. Siyah ve lacivert en kolay silinen renklerdir. Beyaz, sarı, kırmızı, yeşil ve pembe zor silinir. Çizgisel dövmeler, içi dolu figürlere göre daha hızlı yanıt verir. İşlem öncesi bronzlaşmaktan kaçınmak lazerin etkinliğini artırır.",timeline:[{time:"1. seans",emoji:"✨",color:"#7c3aed",title:"Başlangıç",desc:"İlk uygulama. Batma hissi olabilir. Bölgede beyazlaşma ve hafif şişlik normal."},{time:"2–4. hafta",emoji:"🩹",color:"#0891b2",title:"İyileşme",desc:"Kabuklanma olabilir — koparmayın. Bölge kendi kendine iyileşir."},{time:"3–6. seans",emoji:"📉",color:"#059669",title:"Solma Başlar",desc:"Dövme belirgin şekilde solmaya başlar. Her seans daha fazla pigment parçalar."},{time:"6–12. seans",emoji:"🎯",color:"#10b981",title:"Hedef Sonuç",desc:"Dövmenin büyük bölümü silinir. Tam silme renk ve derinliğe bağlıdır."}],prep:["Seanstan 2–4 hafta önce bronzlaşma ve solaryumdan kaçının — ten ne kadar açıksa etki o kadar güçlü","İşlem bölgesine seanstan önce krem veya losyon sürmeyin","Kan sulandırıcı kullanıyorsanız mutlaka bildirin","Beklentilerinizi doktorunuzla netleştirin — özellikle açık renkli dövmelerde tam silme mümkün olmayabilir"],normal:["Seans sonrası beyazlaşma (frosting) görülür — bu normaldir ve 15–30 dakikada geçer","Hafif kabuklanma ve kaşıntı 1–2 hafta sürebilir — kabukları koparmayın","Siyah ve lacivert renkler en kolay, beyaz/sarı/kırmızı/yeşil en zor silinen renklerdir","Çizgisel dövmeler içi dolu figürlerden daha hızlı yanıt verir","Profesyonel dövmeler amatörlere göre daha fazla seans gerektirebilir","Alerjik reaksiyon çok nadir görülür ama oluşursa hekiminize başvurun"],followup:"Her seans öncesi kontrol — ilerleme değerlendirmesi"},
+
+  "Cilt Yenileme (Rejuvenasyon)":{category:"Lazer Tedavi",desc:"Fraksiyonel CO2 lazer ile ciltte mikroskobik kanallar oluşturularak doğal iyileşme mekanizması ve kolajen üretimi tetiklenir. Cilt gençleştirme (anti-aging), akne izi, çatlak ve leke tedavisinde etkilidir.",stats:[{val:"30–60 dk",lbl:"Seans Süresi"},{val:"3–6 seans",lbl:"Önerilen Seans"},{val:"4–6 hafta",lbl:"Seans Aralığı"}],process:"Fraksiyonel CO2 lazer ciltte mikroskobik kanallar şeklinde kontrollü hasar oluşturarak cildin doğal iyileşme mekanizmasını tetikler. Bu süreç yeni kolajen üretimini uyarır ve cilt yenilenmesini sağlar. Kısa iyileşme süresi, yüksek hasta memnuniyeti ve uzun vadeli sonuçları ile öne çıkar. Kişiye özel protokollerle uygulanır.",timeline:[{time:"Seans günü",emoji:"✨",color:"#7c3aed",title:"Uygulama",desc:"Topikal anestezi ile ağrısız. Seans sonrası kızarıklık ve hafif yanma hissi normal."},{time:"3–7. gün",emoji:"🩹",color:"#0891b2",title:"İyileşme",desc:"Cilt soyulabilir, kızarıklık azalır. Nemlendirici ve güneş koruma kritik."},{time:"2–4. hafta",emoji:"🌱",color:"#059669",title:"Yenilenme Başlar",desc:"Yeni kolajen üretimi başlar. Cilt dokusu belirgin iyileşir."},{time:"3–6. ay",emoji:"🎯",color:"#10b981",title:"Nihai Sonuç",desc:"Kolajen yenilenmesi tamamlanır. Cilt tonu ve dokusu belirgin iyileşir."}],prep:["Seanstan 1 hafta önce retinol ve AHA/BHA kullanımını durdurun","Güneşten korunun — işlem öncesi ve sonrası SPF 50 kullanın","Seans günü makyajsız gelin","Aktif herpes veya cilt enfeksiyonunda seans ertelenir"],normal:["Seans sonrası 1–3 gün kızarıklık ve hafif şişlik","Cilt soyulması (peeling) 3–7 gün sürebilir","Güneşe karşı hassasiyet artabilir — koruma şart","Sonuç kademeli gelir, sabır gerektirir"],followup:"Her seans öncesi cilt değerlendirmesi"},
+
+  "Karbon Peeling":{category:"Lazer Tedavi",desc:"Yüze karbon losyonu sürülüp lazer ile aktive edilerek gözeneklerin temizlenmesi, cilt tonunun eşitlenmesi ve yağlanmanın kontrol altına alınması.",stats:[{val:"20–30 dk",lbl:"Seans Süresi"},{val:"4–6 seans",lbl:"Önerilen Seans"},{val:"2–4 hafta",lbl:"Seans Aralığı"}],process:"Yüze karbon losyonu sürülür, lazer ışığı karbon parçacıklarını patlatarak gözeneklerdeki kiri ve ölü deriyi temizler. İşlem sonrası cilt hemen daha parlak görünür.",timeline:[{time:"Seans günü",emoji:"✨",color:"#7c3aed",title:"Uygulama",desc:"20–30 dk. Ağrısız. Hafif gıdıklanma hissi. Anestezi gerektirmez."},{time:"Hemen sonra",emoji:"🌟",color:"#0891b2",title:"Anlık Parlama",desc:"Cilt hemen daha parlak ve pürüzsüz görünür. Hafif kızarıklık olabilir."},{time:"1–2. hafta",emoji:"🌱",color:"#059669",title:"İyileşme",desc:"Gözenekler küçülmeye başlar. Yağlanma azalır."},{time:"4–6. seans",emoji:"🎯",color:"#10b981",title:"Kümülatif Etki",desc:"Her seansta cilt kalitesi artar. Düzenli bakım ile kalıcı sonuç."}],prep:["Seans günü makyajsız gelin","Aktif akne veya cilt enfeksiyonunda seans ertelenir","İşlem sonrası 24 saat makyaj yapmayın","Güneş koruma kullanın"],normal:["İşlem sırasında hafif ısı hissi ve gıdıklanma","Seans sonrası hafif kızarıklık (birkaç saat)","Sonuç kümülatiftir — tek seansta dramatik değişim beklenmemeli","Yağlı ciltlerde sonuçlar daha belirgindir"],followup:"Her seans öncesi cilt kontrolü"},
+
+  "Lazer Leke Tedavisi":{category:"Lazer Tedavi",desc:"Cildin rengini veren melanin pigmentlerinin belirli bölgelerde aşırı yoğunlaşmasıyla oluşan lekelerin lazer ile hedeflenerek açılması. Güneş lekeleri, hormonal lekeler, yaşlanma belirtileri ve akne izleri tedavi edilebilir.",stats:[{val:"15–30 dk",lbl:"Seans Süresi"},{val:"1–4 seans",lbl:"Önerilen Seans"},{val:"4–6 hafta",lbl:"Seans Aralığı"}],process:"Lazer ışınları cildin üst tabakasına kontrollü şekilde uygulanarak lekeli bölgelerdeki melanin yoğunluğunu azaltır. Tedavi önce uzman hekim tarafından yapılan cilt analizi ile başlar — lekelerin türü ve derinliği belirlendikten sonra kişiye özel plan hazırlanır. Lazer, kimyasal peeling veya medikal cilt bakımı tek başına ya da kombine kullanılabilir.",timeline:[{time:"Seans günü",emoji:"✨",color:"#7c3aed",title:"Uygulama",desc:"15–30 dk. Hafif batma hissi. İşlem sonrası leke bölgesinde koyulaşma normal."},{time:"3–7. gün",emoji:"🩹",color:"#0891b2",title:"Kabuklanma",desc:"Leke bölgesinde kabuklanma olur — koparmayın, kendi kendine dökülür."},{time:"2–4. hafta",emoji:"🌱",color:"#059669",title:"Açılma Başlar",desc:"Kabuk döküldükten sonra altından daha açık cilt çıkar."},{time:"1–3. ay",emoji:"🎯",color:"#10b981",title:"Nihai Sonuç",desc:"Leke belirgin şekilde açılır veya tamamen kaybolur. Güneş koruması kalıcı sonuç için şart."}],prep:["Güneş kremini kış aylarında bile yıl boyunca kullanın — SPF 30+ şart","Bronzlaşma ve solaryumdan kaçının","Seanstan 1 hafta önce retinol ve beyazlatıcı kremler bırakılmalı","Hamilelik döneminde veya hormon ilaçları kullanırken ekstra önlem alın","Cilt tipinizi, leke geçmişinizi ve hormon durumunuzu doktorunuzla paylaşın"],normal:["İşlem sonrası leke bölgesi geçici olarak koyulaşabilir — bu beklenen bir reaksiyon","Hafif kızarıklık kısa sürede geçer","Östrojen hormonu lekelenmelerde önemli rol oynar — kadınlarda erkeklere göre daha sık görülür","Hamilelik, doğum kontrol hapları ve hormon ilaçları leke oluşumunu tetikleyebilir","Güneş koruması olmadan lekeler tekrar oluşabilir — tedavi sonrası SPF kullanımı kalıcı olmalı","Düzenli seanslar ve doğru bakım ile kalıcı sonuçlar mümkündür"],followup:"Her seans öncesi leke değerlendirmesi — SPF kullanımı kontrolü"},
+
+  "Kaş Kaldırma":{category:"Yüz Estetiği",desc:"Düşük kaş pozisyonunun cerrahi veya endoskopik yöntemlerle kaldırılarak daha genç ve dinamik bir üst yüz görünümü sağlanması.",stats:[{val:"1–2 saat",lbl:"Süre"},{val:"Günübirlik",lbl:"Hastane"},{val:"2–4 hafta",lbl:"İyileşme"}],process:"Endoskopik veya açık teknikle kaş pozisyonu yukarı taşınır. Saç çizgisi içinden yapılan kesilerle iz minimumda tutulur.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Sedasyon veya genel anestezi. 1–2 saat."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Şişlik ve morluk normal. Soğuk kompres yardımcı."},{time:"2–4. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Şişlik büyük ölçüde geçer. Sosyal hayata dönüş."},{time:"3–6. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Kaş pozisyonu oturur, sonuç netleşir."}],prep:["Kan sulandırıcılar 1 hafta önce kesilmeli","Sigara 2 hafta önce bırakılmalı"],normal:["İlk hafta şişlik ve morluk beklenir","Geçici uyuşukluk alın bölgesinde olabilir","Kesi izleri saç çizgisi içinde gizlenir"],followup:"1., 3. ve 6. aylarda kontrol"},
+
+  "Yanak Estetiği (Bişektomi)":{category:"Yüz Estetiği",desc:"Yanak iç kısmındaki yağ dokusunun (buccal fat pad) alınarak yüze daha belirgin bir kontür kazandırılması.",stats:[{val:"30–60 dk",lbl:"Süre"},{val:"Günübirlik",lbl:"Hastane"},{val:"2–3 hafta",lbl:"İyileşme"}],process:"Ağız içinden yapılan küçük bir kesiyle yanak yağ yastıkçığı çıkarılır. Dışarıdan görünür iz kalmaz.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Lokal anestezi yeterli. 30–60 dk."},{time:"1–3. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Şişlik ve hassasiyet normal. Yumuşak gıdalar tercih edin."},{time:"2–3. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Şişlik azalır, yüz kontürü belirginleşmeye başlar."},{time:"3–6. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Yüz incelmesi ve kontür netleşir."}],prep:["İşlem öncesi ağız hijyeni önemli","Kan sulandırıcılar 1 hafta önce kesilmeli"],normal:["İlk hafta yanak içinde şişlik ve hassasiyet","Yumuşak gıdalarla beslenme önerilir","Sonuç kademeli gelir — 3 ay sabır gerekir"],followup:"1. ve 3. aylarda kontrol"},
+
+  "Kepçe Kulak Tedavisi":{category:"Yüz Estetiği",desc:"Kepçe kulak deformitesinin cerrahi olarak düzeltilerek kulakların başa daha yakın pozisyona getirilmesi.",stats:[{val:"1–1.5 saat",lbl:"Süre"},{val:"Günübirlik",lbl:"Hastane"},{val:"2–3 hafta",lbl:"İyileşme"}],process:"Kulak arkasından yapılan kesiyle kıkırdak şekillendirilir ve kulak başa yaklaştırılır. Cilt altı dikişler kullanılır.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Lokal veya genel anestezi. 1–1.5 saat."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Bandaj takılır. Ağrı hafif, ağrı kesici yeterli."},{time:"2–3. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Bandaj çıkar. Gece bandı 4–6 hafta önerilir."},{time:"2–3. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Kulak pozisyonu oturur, iz solar."}],prep:["Saçları yıkayarak gelin","İşlem sonrası gece bandı hazır olsun"],normal:["İlk hafta hafif ağrı ve şişlik","Kulak arkası iz zamanla solar","6 hafta gece bandı takılması önerilir"],followup:"1. hafta, 1. ve 3. aylarda kontrol"},
+
+  "Yüz Yağ Enjeksiyonu":{category:"Yüz Estetiği",desc:"Vücudun başka bir bölgesinden alınan yağ dokusunun işlenerek yüze enjekte edilmesi. Hacim kaybı, çöküntü ve kırışıklıklarda doğal dolgunluk sağlar.",stats:[{val:"1–2 saat",lbl:"Süre"},{val:"Günübirlik",lbl:"Hastane"},{val:"2–4 hafta",lbl:"İyileşme"}],process:"Karın veya bel bölgesinden liposuction ile yağ alınır, santrifüjle işlenir ve yüze ince kanüllerle enjekte edilir. Kendi dokununuz olduğu için alerjik reaksiyon riski yoktur.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Sedasyon veya genel anestezi. 1–2 saat."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Yüzde şişlik ve morluk normal. Soğuk kompres yardımcı."},{time:"2–4. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Şişlik azalır. Yağın bir kısmı emilir — bu beklenir."},{time:"3–6. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Kalan yağ kalıcıdır. Doğal dolgunluk oturur."}],prep:["Kan sulandırıcılar 1 hafta önce kesilmeli","Sigara 2 hafta önce bırakılmalı"],normal:["İlk hafta belirgin şişlik ve morluk","Enjekte edilen yağın %30–50'si emilir — bu normal","Sonuç 3 ayda netleşir"],followup:"1., 3. ve 6. aylarda kontrol"},
+
+  "Genital Estetik":{category:"Genital Estetik",desc:"Genital bölgedeki estetik ve fonksiyonel sorunların cerrahi olarak düzeltilmesi. Doğum sonrası veya yaşlanmaya bağlı değişiklikleri kapsar.",stats:[{val:"1–2 saat",lbl:"Süre"},{val:"Günübirlik",lbl:"Hastane"},{val:"3–4 hafta",lbl:"İyileşme"}],process:"İşlem türüne göre lokal veya genel anestezi uygulanır. Eriyen dikişler kullanılır.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Lokal veya genel anestezi."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Hassasiyet ve hafif şişlik normal."},{time:"3–4. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Dikişler erir. Günlük aktivitelere dönüş."},{time:"2–3. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Tam iyileşme ve sonuç."}],prep:["Bölge hijyeni önemli","İşlem öncesi tıraş önerilir"],normal:["İlk hafta hassasiyet ve şişlik","Eriyen dikişler 2–3 haftada absorbe olur","4–6 hafta cinsel ilişkiden kaçınılmalı"],followup:"1. hafta ve 1. ayda kontrol"},
+
+  "Labioplasti":{category:"Genital Estetik",desc:"Labium minörlerin (iç dudakların) estetik veya fonksiyonel nedenlerle küçültülmesi veya şekillendirilmesi.",stats:[{val:"45–90 dk",lbl:"Süre"},{val:"Günübirlik",lbl:"Hastane"},{val:"3–4 hafta",lbl:"İyileşme"}],process:"Lokal veya genel anestezi ile fazla doku çıkarılır, eriyen dikişlerle kapatılır. Dışarıdan görünür iz kalmaz.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Lokal veya genel anestezi. 45–90 dk."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Şişlik ve hassasiyet normal. Rahat iç çamaşırı tercih edin."},{time:"3–4. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Dikişler erir. Günlük aktivitelere dönüş."},{time:"2–3. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Tam iyileşme. Estetik ve fonksiyonel sonuç oturur."}],prep:["Bölge hijyeni önemli","Kan sulandırıcılar 1 hafta önce kesilmeli"],normal:["İlk hafta şişlik, hassasiyet ve hafif kanama olabilir","Eriyen dikişler 2–3 haftada absorbe olur","4–6 hafta cinsel ilişki ve ağır egzersizden kaçınılmalı"],followup:"1. hafta ve 1. ayda kontrol"},
+
+  "Göz Altı Işık Dolgusu":{category:"Medikal Estetik",desc:"Hyalüronik asit bazlı dolgu ile göz altı çöküklüğü, morluk görünümü ve hacim kaybının giderilmesi.",stats:[{val:"15–30 dk",lbl:"Süre"},{val:"Anında",lbl:"Sonuç"},{val:"12–18 ay",lbl:"Etki Süresi"}],process:"İnce kanülle göz altı bölgesine dolgu enjekte edilir. Anında sonuç görülür. Lokal anestezik krem yeterlidir.",timeline:[{time:"İşlem günü",emoji:"✨",color:"#7c3aed",title:"Uygulama",desc:"15–30 dk. Hafif batma hissi. Hemen sonuç görülür."},{time:"1–3. gün",emoji:"💊",color:"#0891b2",title:"Hafif Şişlik",desc:"Göz altında hafif şişlik olabilir. Soğuk kompres yardımcı."},{time:"1–2. hafta",emoji:"🌤",color:"#059669",title:"Oturma",desc:"Dolgu yerleşir, doğal görünüm oturur."},{time:"12–18. ay",emoji:"🔄",color:"#d97706",title:"İdame",desc:"Etki azalmaya başlar. Tekrar seans planlanabilir."}],prep:["Kan sulandırıcılar ve aspirin 1 hafta önce kesilmeli","İşlem günü makyajsız gelin"],normal:["İşlem sonrası hafif şişlik ve morluk olabilir (1–3 gün)","Dolgu 1–2 haftada tamamen oturur","Sonuç 12–18 ay sürer, kişiye göre değişir"],followup:"2 hafta sonra kontrol"},
+
+  "Nano Yağ Enjeksiyonu":{category:"Medikal Estetik",desc:"Vücuttan alınan yağın nano boyutta işlenerek yüz, göz altı ve ince cilt bölgelerine enjeksiyonu. Klasik yağ enjeksiyonundan daha ince ve hassas uygulama.",stats:[{val:"1–1.5 saat",lbl:"Süre"},{val:"Günübirlik",lbl:"Hastane"},{val:"2–3 hafta",lbl:"İyileşme"}],process:"Micro-liposuction ile alınan yağ özel filtrelerle nano boyuta küçültülür. Çok ince kanüllerle hassas bölgelere enjekte edilir. Kendi dokununuz olduğu için alerjik reaksiyon riski yoktur.",timeline:[{time:"İşlem günü",emoji:"🏥",color:"#7c3aed",title:"İşlem",desc:"Lokal veya sedasyon anestezi."},{time:"1–7. gün",emoji:"💊",color:"#6d28d9",title:"Dinlenme",desc:"Hafif şişlik ve morluk. Soğuk kompres."},{time:"2–3. hafta",emoji:"🌤",color:"#0891b2",title:"İyileşme",desc:"Şişlik geçer, sonuç belirginleşir."},{time:"3–6. ay",emoji:"✨",color:"#10b981",title:"Nihai Sonuç",desc:"Kalan yağ kalıcıdır."}],prep:["Kan sulandırıcılar 1 hafta önce kesilmeli","Sigara iyileşmeyi yavaşlatır"],normal:["Yağ alınan ve enjekte edilen bölgede şişlik normal","Enjekte edilen yağın bir kısmı emilir","Sonuç 3 ayda netleşir"],followup:"1. ve 3. aylarda kontrol"},
+
+  "Mezoterapi":{category:"Medikal Estetik",desc:"Vitamin, mineral, aminoasit ve hyalüronik asit karışımının cilt altına mikro enjeksiyonlarla verilmesi. Cilt yenileme, nemlendirme ve saç dökülmesi tedavisinde kullanılır.",stats:[{val:"15–30 dk",lbl:"Seans Süresi"},{val:"4–6 seans",lbl:"Önerilen Seans"},{val:"2–4 hafta",lbl:"Seans Aralığı"}],process:"Özel mezoterapi iğneleri veya mezogun ile aktif madde karışımı cilt altına verilir. İşlem hızlı ve pratiktir.",timeline:[{time:"Seans günü",emoji:"✨",color:"#7c3aed",title:"Uygulama",desc:"15–30 dk. Hafif batma hissi. Anestezi genellikle gerekmez."},{time:"1–2. gün",emoji:"💊",color:"#0891b2",title:"Hafif Kızarıklık",desc:"İğne izleri ve hafif kızarıklık normal. Birkaç saatte geçer."},{time:"3–4. seans",emoji:"🌱",color:"#059669",title:"Etki Başlar",desc:"Cilt kalitesi ve nemi belirgin artar."},{time:"6+. seans",emoji:"🎯",color:"#10b981",title:"Kümülatif Sonuç",desc:"Düzenli seanslarla kalıcı cilt kalitesi iyileşmesi."}],prep:["Seans günü makyajsız gelin","Aktif cilt enfeksiyonunda seans ertelenir"],normal:["İğne izlerinde kısa süreli kızarıklık","Nadir morluk olabilir","Sonuç kümülatiftir — düzenli seanslar gerekir"],followup:"Her seans öncesi cilt değerlendirmesi"},
+
+  "Lazer Saç Tedavisi":{category:"Lazer Tedavi",desc:"Lazer destekli saç tedavisi, saç dökülmesini azaltarak saç köklerini uyarır ve daha sağlıklı saç büyümesini destekler. PRP ve mezoterapi ile kombine edilebilir.",stats:[{val:"20–40 dk",lbl:"Seans Süresi"},{val:"6–12 seans",lbl:"Önerilen Seans"},{val:"2–4 hafta",lbl:"Seans Aralığı"}],process:"Düşük yoğunluklu lazer ışığı saç köklerine uygulanarak hücresel aktivite ve kan dolaşımı artırılır. Tek başına veya PRP/mezoterapi ile kombine uygulanabilir.",timeline:[{time:"1. seans",emoji:"✨",color:"#7c3aed",title:"Başlangıç",desc:"Ağrısız uygulama. Herhangi bir iyileşme süresi yok."},{time:"2–4. seans",emoji:"🌱",color:"#0891b2",title:"Dökülme Azalır",desc:"Saç dökülmesinde yavaşlama başlar."},{time:"6–8. seans",emoji:"📈",color:"#059669",title:"Yeni Büyüme",desc:"İnce yeni saçlar görülmeye başlar."},{time:"12+. seans",emoji:"🎯",color:"#10b981",title:"Güçlenme",desc:"Saç kalınlığı ve yoğunluğu artar. İdame seansları önerilir."}],prep:["Saç derisinin temiz olması önemli","Aktif saç derisi enfeksiyonunda seans ertelenir","Kullandığınız ilaçları doktorunuza bildirin"],normal:["İşlem ağrısız — herhangi bir yan etki beklenmez","Sonuçlar kademeli gelir, sabır gerektirir","Genetik saç dökülmesinde sonuçlar kişiye göre değişir","PRP/mezoterapi kombine edildiğinde daha iyi sonuç alınabilir"],followup:"Her 3 seansta bir değerlendirme"},
 };
 
 function PatientForm({doctorId}){
@@ -2991,6 +3229,147 @@ function PatientForm({doctorId}){
   const [answers,setAnswers]=useState({});
   const [submitted,setSubmitted]=useState(false);
   const [kvkkConsent,setKvkkConsent]=useState(false);
+  const [submitting,setSubmitting]=useState(false);
+  const [lang,setLang]=useState("tr"); // tr | en
+
+  // İngilizce çeviriler
+
+  // Stat label çevirileri
+  const STAT_EN={"Süre":"Duration","İyileşme":"Recovery","Sonuç":"Result","Hastane":"Hospital","Anestezi":"Anesthesia","Bantlar Alınır":"Bandages Removed","Etki Başlar":"Effect Begins","Etki Süresi":"Effect Duration","Seans Süresi":"Session Duration","Önerilen Seans":"Recommended Sessions","Seans Aralığı":"Session Interval","Ort. 6 seans":"Avg. 6 sessions"};
+  const CAT_EN={"Estetik Cerrahi":"Aesthetic Surgery","Yüz Estetiği":"Facial Aesthetics","Vücut Şekillendirme":"Body Contouring","Meme Estetiği":"Breast Aesthetics","Erkek Estetiği":"Male Aesthetics","Medikal Estetik":"Medical Aesthetics","Lazer Tedavi":"Laser Treatment","Rekonstrüktif Cerrahi":"Reconstructive Surgery","Genital Estetik":"Genital Aesthetics"};
+  const EN={
+    ui:{next:"Continue →",submit:"Submit Form →",submitting:"Submitting...",back:"← Back",question:"Q",
+      welcome:"Welcome",welcomeDesc:"This short form helps us understand your expectations so we can plan the best and safest approach for you.",
+      kvkk:"I consent to the processing of my personal and health data solely for the purpose of planning my consultation. My data is stored encrypted and is not shared with third parties.",
+      submitError:"Form could not be saved. Please check your internet connection and try again.",
+      thankYou:"Thank you,",thankYouSub:"we're glad you're here.",
+      infoShared:"Your information has been shared with your doctor",
+      consultPrep:"A personalized consultation will be prepared for you.",
+      prepTitle:"How to Prepare",normalTitle:"What to Expect",timelineTitle:"Your Journey",processTitle:"About the Procedure",
+      followupTitle:"Follow-up",statsTitle:"Key Facts",
+      guideTitle:"Your Personal Guide",guideLoading:"Preparing your personal guide...",
+      referralTitle:"Referral Program",referralDesc:"Recommend us to a friend",referralCode:"Your referral code",
+      },
+    sections:{
+      "Kişisel Bilgiler":"Personal Info",
+      "İşlem Bilgisi":"Procedure Info",
+      "Motivasyon & Beklenti":"Motivation & Expectations",
+      "Kendinizi Tanıyın":"About Yourself",
+      "Karar Süreci":"Decision Process",
+      "Geçmiş Deneyimler":"Past Experiences",
+      "Süreç Farkındalığı":"Process Awareness",
+      "Hasta Profili":"Patient Profile",
+      "İletişim":"Contact",
+      "Size Bir Sorum Var":"One More Question",
+    },
+    q:{
+      name:{label:"What is your name?"},
+      age:{label:"How old are you?"},
+      gender:{label:"What is your gender?",options:{"Kadın":"Female","Erkek":"Male","Belirtmek istemiyorum":"Prefer not to say"}},
+      procedure:{label:"Which procedure are you interested in?"},
+      otherAreas:{label:"Are there other areas of your body you're concerned about?",options:{
+        "Hayır, sadece bu bölge":"No, only this area",
+        "Evet, 1-2 bölge daha var ama önceliğim bu":"Yes, 1-2 more areas but this is my priority",
+        "Evet, birkaç bölge var, hepsini konuşmak isterim":"Yes, several areas, I'd like to discuss all of them",
+        "Henüz bilmiyorum, doktorun önerilerine açığım":"I'm not sure yet, open to doctor's suggestions"}},
+      rhinoVision:{label:"When you imagine the result, what do you see?",options:{
+        "Doktorum benim yüz yapıma en uygun olanı belirlesin":"I want my doctor to determine what suits my face best",
+        "Burnumda beni rahatsız eden belirli bir şeyi düzeltmek istiyorum":"I want to fix a specific thing about my nose",
+        "Aklımda net bir görünüm var, buna ulaşmak istiyorum":"I have a clear vision, I want to achieve it",
+        "Aklımda belirli bir referans var — bir ünlü veya fotoğraf":"I have a specific reference — a celebrity or photo"}},
+      breastSymmetry:{label:"How would you describe the difference between your breasts?",options:{
+        "Fark var ama beni pek rahatsız etmiyor, ameliyatla düzelsin istiyorum":"There's a difference but it doesn't bother me much",
+        "Belirgin bir fark var ve bu beni çok rahatsız ediyor":"There's a noticeable difference and it bothers me a lot",
+        "Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor":"Even a very small difference bothers me",
+        "Fark olduğunu düşünmüyorum, sadece küçültmek/büyütmek istiyorum":"I don't see a difference, just want to resize"}},
+      otherConsidered:{label:"Have you considered any other aesthetic procedures?",options:{
+        "Hayır":"No",
+        "Evet, düşündüm ama erteledim":"Yes, I considered but postponed",
+        "Evet, bu işlemle aynı anda değerlendiriyorum":"Yes, considering alongside this procedure",
+        "Evet, gelecekte yapmayı planlıyorum":"Yes, planning for the future"}},
+      bodyFocus:{label:"How often do you think about this area in daily life?",options:{
+        "Nadiren aklıma gelir":"Rarely crosses my mind",
+        "Zaman zaman düşünürüm":"I think about it from time to time",
+        "Sık sık düşünürüm, ama kontrol altında":"Often, but it's under control",
+        "Neredeyse her gün, bazen işimi gücümü etkiliyor":"Almost every day, sometimes affects my work"}},
+      avoidance:{label:"Do you avoid certain situations because of this concern?",options:{
+        "Hayır, hayatımı etkilemiyor":"No, it doesn't affect my life",
+        "Bazen dikkatimi dağıtıyor":"It sometimes distracts me",
+        "Bazı sosyal ortamlardan kaçınıyorum":"I avoid some social situations",
+        "Günlük hayatımı önemli ölçüde kısıtlıyor":"It significantly limits my daily life"}},
+      motivation:{label:"What is your primary motivation for this procedure?",options:{
+        "Kendim için daha iyi hissetmek istiyorum":"I want to feel better about myself",
+        "Özgüvenimi artırmak istiyorum":"I want to boost my self-confidence",
+        "Yakınlarımın yorumları etkili oldu":"My family/friends' opinions influenced me",
+        "Hayatımın daha iyi gideceğini düşünüyorum":"I think my life will improve"}},
+      expectation:{label:"What result do you expect from the procedure?",options:{
+        "Küçük, doğal bir iyileştirme yeterli":"A small, natural improvement is enough",
+        "Dengeli ve orantılı bir sonuç bekliyorum":"I expect a balanced and proportional result",
+        "Belirgin bir fark olmasını istiyorum":"I want a noticeable difference",
+        "Tamamen farklı bir görünüm istiyorum":"I want a completely different look"}},
+      selfEsteem:{label:"Are you generally satisfied with yourself?",options:{
+        "Evet, kendimden genel olarak memnunum":"Yes, I'm generally satisfied",
+        "Çoğunlukla memnunum, bazı konularda değil":"Mostly satisfied, not in some areas",
+        "Kendimden pek memnun değilim":"I'm not very satisfied with myself",
+        "Hayır, kendimle barışık değilim":"No, I'm not at peace with myself"}},
+      imagineAfter:{label:"When you imagine life after this procedure, what do you see?",options:{
+        "Kendimi daha özgüvenli ve hafif hayal ediyorum":"I imagine feeling more confident and lighter",
+        "Belirli bir fiziksel değişikliği hayal ediyorum":"I imagine a specific physical change",
+        "Hayatımın daha iyi gideceğini hayal ediyorum":"I imagine my life getting better",
+        "Çevremin tepkisini ve beğenisini hayal ediyorum":"I imagine reactions and approval from others"}},
+      decisionDuration:{label:"How long have you been thinking about this procedure?",options:{
+        "Yeni karar verdim — heyecanlı ve kararlı hissediyorum":"I just decided — I feel excited and determined",
+        "Birkaç aydır düşünüyorum — hazır olduğumu hissediyorum":"Been thinking for a few months — I feel ready",
+        "1 yılı aşkın süredir düşünüyorum — artık harekete geçme zamanı":"Over a year — it's time to take action",
+        "Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum":"Been thinking for a long time but still feel undecided"}},
+      prevSurgery:{label:"Have you had aesthetic surgery before?",options:{
+        "Hayır":"No, this is my first time",
+        "Evet ve memnunum":"Yes, and I was satisfied",
+        "Evet ama beklentimi karşılamadı":"Yes, but it didn't meet my expectations",
+        "Evet ve hiç memnun değilim":"Yes, and I'm not satisfied at all"}},
+      multiDoctor:{label:"How many doctors have you consulted?",options:{
+        "Hayır":"This is my first consultation",
+        "1-2 doktorla görüştüm":"I've consulted 1-2 doctors",
+        "Birçok doktorla görüştüm":"I've consulted many doctors"}},
+      riskKnowledge:{label:"How informed are you about the risks?",options:{
+        "Hiçbir bilgim yok":"I have no knowledge",
+        "Genel olarak bilgi sahibiyim":"I have general knowledge",
+        "Detaylı araştırdım ve biliyorum":"I've researched in detail and I know the risks"}},
+      support:{label:"Who knows about your decision?",options:{
+        "Evet, destekliyorlar":"Yes, they support me",
+        "Biliyorlar ama kararsızlar":"They know but are unsure",
+        "Karşılar":"They're against it",
+        "Kimseye söylemedim":"I haven't told anyone"}},
+      revision:{label:"How do you feel about the possibility of revision?",options:{
+        "Evet, olası revizyonu normal karşılarım":"I accept it as normal — every surgery has risks",
+        "Revizyon beni endişelendiriyor":"It worries me but I still want to proceed",
+        "Kusursuz sonuç bekliyorum":"I expect a perfect result"}},
+      sharing:{label:"Would you share a positive experience with others?",options:{
+        "Evet, açıkça paylaşırım":"Yes, I'd share openly",
+        "Sadece çok yakınlarımla":"Only with close friends/family",
+        "Hayır, paylaşmam":"No, I wouldn't share"}},
+      socialInfluence:{label:"Do people consult you about aesthetic decisions?",options:{
+        "Evet, sık sık danışırlar":"Yes, they often ask my advice",
+        "Bazen danışanlar olur":"Sometimes people ask",
+        "Hayır, danışmazlar":"No, they don't ask"}},
+      phone:{label:"Your phone number (for appointment)"},
+      openStory:{label:"Is there anything else you'd like to share? (Optional)"},
+    },
+    // Prosedür isimleri
+    procs:{
+      "Meme Küçültme":"Breast Reduction","Meme Büyütme (Silikon Protez ile)":"Breast Augmentation (Silicone Implant)","Meme Dikleştirme":"Breast Lift","Meme Asimetrisinin Giderilmesi":"Breast Asymmetry Correction","Meme Onarımı (Kanser sonrası)":"Breast Reconstruction (Post-cancer)","Doğumsal Meme Anomalisinin Düzeltilmesi":"Congenital Breast Anomaly Correction",
+      "Jinekomasti":"Gynecomastia","Burun Estetiği":"Rhinoplasty","Yüz Germe":"Facelift","Kaş Kaldırma":"Brow Lift","Üst Göz Kapağı Estetiği":"Upper Eyelid Surgery","Alt Göz Kapağı Estetiği":"Lower Eyelid Surgery","Yanak Estetiği (Bişektomi)":"Buccal Fat Removal","Kepçe Kulak Tedavisi":"Otoplasty","Yüz Yağ Enjeksiyonu":"Facial Fat Transfer",
+      "Botoks Uygulaması":"Botox","Dolgu Uygulaması":"Dermal Filler","Göz Altı Işık Dolgusu":"Under-Eye Light Filler","Nano Yağ Enjeksiyonu":"Nano Fat Injection","Mezoterapi":"Mesotherapy",
+      "Karın Germe":"Tummy Tuck","Liposuction":"Liposuction","Uyluk veya Kol germe":"Thigh or Arm Lift","Popo estetiği":"Buttock Aesthetics",
+      "Genital Estetik":"Genital Aesthetics","Labioplasti":"Labiaplasty",
+      "Lazer Epilasyon":"Laser Hair Removal","Lazer Dövme Silme":"Laser Tattoo Removal","Cilt Yenileme (Rejuvenasyon)":"Skin Rejuvenation","Karbon Peeling":"Carbon Peeling","Lazer Leke Tedavisi":"Laser Spot Treatment","Lazer Saç Tedavisi":"Laser Hair Treatment",
+    }
+  };
+
+  function t(key,fallback){if(lang==="tr") return fallback; const parts=key.split("."); let v=EN; for(const p of parts){v=v?.[p]; if(!v) return fallback;} return v;}
+  function tOpt(qId,opt){if(lang==="tr") return opt; if(qId==="procedure") return EN.procs?.[opt]||opt; return EN.q?.[qId]?.options?.[opt]||opt;}
+  function tSec(sec){if(lang==="tr") return sec; return EN.sections?.[sec]||sec;}
+  function tProc(proc){if(lang==="tr") return proc; return EN.procs?.[proc]||proc;}
   const [doctorInfo,setDoctorInfo]=useState(null);
   const [ambassadorCode,setAmbassadorCode]=useState(null);
   const [patientSegment,setPatientSegment]=useState(null);
@@ -2999,7 +3378,14 @@ function PatientForm({doctorId}){
   const [questionTimes,setQuestionTimes]=useState({});
   const [questionChanges,setQuestionChanges]=useState({});
   const qStartTime=useRef(Date.now());
-  const VISIBLE_QUESTIONS=QUESTIONS.filter(q=>!q.showIf||q.showIf(answers));
+  // Doktora özel prosedür listesi — enabled_procedures tanımlıysa sadece onlar gösterilir
+  const doctorProcs=doctorInfo?.enabled_procedures;
+  const DYNAMIC_QUESTIONS=QUESTIONS.map(q=>
+    q.id==="procedure"&&doctorProcs&&doctorProcs.length>0
+      ?{...q,options:q.options.filter(o=>doctorProcs.includes(o))}
+      :q
+  );
+  const VISIBLE_QUESTIONS=DYNAMIC_QUESTIONS.filter(q=>!q.showIf||q.showIf(answers));
   const q=VISIBLE_QUESTIONS[currentQ];
   const canNext=(q?.optional||answers[q?.id]!==undefined&&answers[q?.id]!=="")&&
     !(q?.id==="referralCode"&&answers["source"]!=="Bir hasta beni yönlendirdi (referans kodu var)"&&!answers[q?.id])
@@ -3011,11 +3397,34 @@ function PatientForm({doctorId}){
 
   useEffect(()=>{
     if(!doctorId) return;
-    sb.from("doctors").select("id,name,clinic_name,photo_url,primary_color").eq("id",doctorId).single()
+    sb.from("doctors").select("id,name,clinic_name,photo_url,primary_color,enabled_procedures").eq("id",doctorId).maybeSingle()
       .then(({data})=>{ if(data) setDoctorInfo(data); });
   },[doctorId]);
 
+  // Geri tuşu + sekme kapatma koruması
+  useEffect(()=>{
+    if(submitted||currentQ===0) return; // ilk soru veya gönderilmiş ise koruma yok
+    const handleBeforeUnload=(e)=>{e.preventDefault();e.returnValue="";};
+    const handlePopState=(e)=>{
+      e.preventDefault();
+      if(currentQ>0) setCurrentQ(c=>Math.max(0,c-1));
+      else window.history.pushState(null,"",window.location.href);
+    };
+    window.addEventListener("beforeunload",handleBeforeUnload);
+    window.history.pushState(null,"",window.location.href);
+    window.addEventListener("popstate",handlePopState);
+    return()=>{
+      window.removeEventListener("beforeunload",handleBeforeUnload);
+      window.removeEventListener("popstate",handlePopState);
+    };
+  },[currentQ,submitted]);
+
+  const [submitError,setSubmitError]=useState("");
+
   async function handleSubmit(){
+    if(submitting) return; // çift gönderim engeli
+    setSubmitting(true);
+    setSubmitError("");
     // Klinik bazlı model varsa onu kullan, yoksa global model
     let score, mlSat, modelSource="global";
     try {
@@ -3067,11 +3476,13 @@ function PatientForm({doctorId}){
     const {error}=await sb.from("patients").insert(rec);
     if(error){
       console.error("Insert hatası:",error);
-      alert("Form kaydedilemedi: "+error.message);
+      setSubmitError("Form kaydedilemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.");
+      setSubmitting(false);
       return;
     }
 
     setSubmitted(true);
+    setSubmitting(false);
     setAmbassadorCode(ambCode);
     setPatientSegment(cls);
     fetchAI(answers,score,cls,rec.id,slowQuestions,changedQuestions);
@@ -3090,6 +3501,7 @@ function PatientForm({doctorId}){
     };
     try{
       setGuideLoading(true);
+      if(!canCallAPI()){setGuideLoading(false);return;}
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
         model:"claude-sonnet-4-20250514",
         max_tokens:800,
@@ -3144,6 +3556,7 @@ Türkçe yaz.`}]
 
   async function fetchAI(a,score,cls,recId,slowQ=[],changedQ=[]){
     try{
+      if(!canCallAPI()) return;
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:`Bir plastik cerrahın konsültasyon asistanısın. Aşağıdaki hasta hakkında doktora kısa, içten ve kullanışlı bir ön not yazacaksın.
 
 TON: Meslektaşına not bırakır gibi — yargılamayan, ego incitmeyen, "bence şuna dikkat edebilirsin" tarzında. Doktoru küçümsemeden, ama gerçeği söyle.
@@ -3403,9 +3816,9 @@ YAZIM KURALLARI:
           <div style={{background:BORD,borderRadius:16,padding:"22px 20px",marginBottom:16,marginTop:14,position:"relative",overflow:"hidden"}}>
             <div style={{position:"absolute",bottom:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(245,240,232,0.03)"}}/>
             <div style={{width:34,height:34,borderRadius:"50%",border:"1px solid rgba(245,240,232,0.15)",display:"flex",alignItems:"center",justifyContent:"center",color:"rgba(245,240,232,0.5)",fontSize:14,marginBottom:14}}>✓</div>
-            <div style={{fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(245,240,232,0.28)",marginBottom:8}}>Değerlendirme tamamlandı</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:300,color:"#f8fafd",lineHeight:1.15,marginBottom:8,letterSpacing:"-0.01em"}}>Teşekkürler,<br/><em>iyi ki geldiniz.</em></div>
-            <div style={{fontSize:13,color:"rgba(245,240,232,0.35)",lineHeight:1.7}}>Bilgileriniz alındı. Aşağıda size özel rehber ve prosedür bilgileri.</div>
+            <div style={{fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",color:"rgba(245,240,232,0.28)",marginBottom:8}}>{lang==="tr"?"Değerlendirme tamamlandı":"Assessment Complete"}</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:300,color:"#f8fafd",lineHeight:1.15,marginBottom:8,letterSpacing:"-0.01em"}}>{lang==="tr"?<>Teşekkürler,<br/><em>iyi ki geldiniz.</em></>:<>Thank you,<br/><em>we're glad you're here.</em></>}</div>
+            <div style={{fontSize:13,color:"rgba(245,240,232,0.35)",lineHeight:1.7}}>{lang==="tr"?"Bilgileriniz alındı. Aşağıda size özel rehber ve prosedür bilgileri.":"Your information has been received. Find your personal guide and procedure details below."}</div>
           </div>
 
           {/* MARKA ELÇİSİ */}
@@ -3442,10 +3855,10 @@ YAZIM KURALLARI:
           )}
 
           {/* KİŞİSEL REHBER */}
-          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>Size Özel Rehber</div>
+          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>{lang==="tr"?"Size Özel Rehber":"Your Personal Guide"}</div>
           {guideLoading&&(
             <div style={{background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:12,padding:"20px 16px",marginBottom:10,textAlign:"center"}}>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#7b9ab5",fontStyle:"italic",animation:"pulse 1.5s infinite"}}>Kişisel rehberiniz hazırlanıyor...</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#7b9ab5",fontStyle:"italic",animation:"pulse 1.5s infinite"}}>{lang==="tr"?"Kişisel rehberiniz hazırlanıyor...":"Preparing your personal guide..."}</div>
               <div style={{fontSize:12,color:"#d4e1ef",marginTop:6}}>Yapay zeka form cevaplarınızı analiz ediyor</div>
             </div>
           )}
@@ -3467,16 +3880,16 @@ YAZIM KURALLARI:
             );
           })()}
 
-          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"14px 0 8px 0"}}>Seçtiğiniz Prosedür</div>
+          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"14px 0 8px 0"}}>{lang==="tr"?"Seçtiğiniz Prosedür":"Your Procedure"}</div>
           <div style={{border:"1px solid #d4e1ef",borderRadius:12,padding:15,marginBottom:12}}>
-            <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:BORD2,marginBottom:5}}>◈ {PI.category}</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:19,fontWeight:300,color:"#1e3a5f",marginBottom:6,letterSpacing:"-0.01em"}}>{proc||"İşlem"}</div>
+            <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:BORD2,marginBottom:5}}>◈ {lang==="tr"?PI.category:(CAT_EN[PI.category]||PI.category)}</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:19,fontWeight:300,color:"#1e3a5f",marginBottom:6,letterSpacing:"-0.01em"}}>{lang==="tr"?(proc||"İşlem"):tProc(proc||"Procedure")}</div>
             <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.65,marginBottom:11}}>{PI.desc}</div>
             <div style={{display:"flex",gap:5}}>
               {PI.stats.map((s,i)=>(
                 <div key={i} style={{flex:1,background:"#eef3f9",borderRadius:7,padding:"8px 5px",textAlign:"center"}}>
-                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1e3a5f",lineHeight:1}}>{s.val}</div>
-                  <div style={{fontSize:8,color:"#7b9ab5",marginTop:3,letterSpacing:"0.08em",textTransform:"uppercase"}}>{s.lbl}</div>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1e3a5f",lineHeight:1}}>{lang==="tr"?s.val:(STAT_EN[s.val]||s.val)}</div>
+                  <div style={{fontSize:8,color:"#7b9ab5",marginTop:3,letterSpacing:"0.08em",textTransform:"uppercase"}}>{lang==="tr"?s.lbl:(STAT_EN[s.lbl]||s.lbl)}</div>
                 </div>
               ))}
             </div>
@@ -3486,7 +3899,7 @@ YAZIM KURALLARI:
           {/* TAMAMLAYICI İŞLEMLER */}
           {crossSellSuggestions.length>0&&(
             <>
-              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"14px 0 8px 0"}}>Konsültasyonda Sorabilirsiniz</div>
+              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"14px 0 8px 0"}}>{lang==="tr"?"Konsültasyonda Sorabilirsiniz":"You May Ask During Consultation"}</div>
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:12}}>
                 {crossSellSuggestions.map((s,i)=>(
                   <div key={i} style={{border:"1px solid #d4e1ef",borderRadius:12,padding:"13px 15px",background:"#faf8f4"}}>
@@ -3502,12 +3915,12 @@ YAZIM KURALLARI:
             </>
           )}
 
-          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>Sonraki Adım</div>
+          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>{lang==="tr"?"Sonraki Adım":"Next Step"}</div>
           <div style={{border:"1px solid #d4e1ef",borderRadius:12,padding:"13px 15px",display:"flex",alignItems:"center",gap:11,marginBottom:12}}>
             <div style={{width:30,height:30,background:"#eef3f9",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>📋</div>
             <div>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1e3a5f",marginBottom:1}}>Bilgileriniz doktorunuza iletildi</div>
-              <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.4}}>{doctorInfo?.name||"Doktorunuz"} konsültasyonunuza özel olarak hazırlanacak. Aşağıdaki bilgileri inceleyerek siz de hazırlanabilirsiniz.</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1e3a5f",marginBottom:1}}>{lang==="tr"?"Bilgileriniz doktorunuza iletildi":"Your information has been shared with your doctor"}</div>
+              <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.4}}>{lang==="tr"?`${doctorInfo?.name||"Doktorunuz"} konsültasyonunuza özel olarak hazırlanacak. Aşağıdaki bilgileri inceleyerek siz de hazırlanabilirsiniz.`:`${doctorInfo?.name||"Your doctor"} will prepare specifically for your consultation. Review the information below to prepare as well.`}</div>
             </div>
           </div>
         </>)}
@@ -3515,12 +3928,12 @@ YAZIM KURALLARI:
         {infoPage===1&&(<>
           {/* Kişiselleştirilmiş giriş — EN ÜSTTE */}
           <div style={{background:"linear-gradient(135deg,#eef3f9,#e8e3d8)",border:"1px solid #d4e1ef",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
-            <div style={{fontSize:11,letterSpacing:"0.15em",textTransform:"uppercase",color:"#7b9ab5",marginBottom:6,fontWeight:500}}>Size özel not</div>
+            <div style={{fontSize:11,letterSpacing:"0.15em",textTransform:"uppercase",color:"#7b9ab5",marginBottom:6,fontWeight:500}}>{lang==="tr"?"Size özel not":"A note for you"}</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:300,color:"#1e3a5f",lineHeight:1.75,fontStyle:"italic"}}>{PC.recoveryIntro}</div>
           </div>
 
           {/* Recovery timeline */}
-          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"4px 0 10px 2px"}}>İyileşme takvimi</div>
+          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"4px 0 10px 2px"}}>{lang==="tr"?"İyileşme takvimi":"Recovery Timeline"}</div>
           <div style={{position:"relative",paddingLeft:16,marginBottom:14}}>
             <div style={{position:"absolute",left:4,top:8,bottom:8,width:1,background:"linear-gradient(180deg,"+BORD+",rgba(74,21,32,0.08))"}}/>
             {PI.timeline.map((t,i)=>(
@@ -3536,13 +3949,13 @@ YAZIM KURALLARI:
           </div>
 
           {/* Prep tips */}
-          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"0 0 8px 2px"}}>İşlem öncesi hazırlık</div>
+          <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"0 0 8px 2px"}}>{lang==="tr"?"İşlem öncesi hazırlık":"Pre-procedure Preparation"}</div>
           <div style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,marginBottom:10,overflow:"hidden"}}>
             <div style={{padding:"12px 14px",display:"flex",alignItems:"center",gap:10,background:"#f0fdf4"}}>
               <div style={{fontSize:20}}>🌿</div>
               <div>
-                <div style={{fontSize:13,fontWeight:600,color:"#065f46"}}>Bilmeniz gerekenler</div>
-                <div style={{fontSize:12,color:"#6ee7b7",marginTop:1}}>{doctorInfo?.clinic_name||"Plastik Cerrahi"} önerileri</div>
+                <div style={{fontSize:13,fontWeight:600,color:"#065f46"}}>{lang==="tr"?"Bilmeniz gerekenler":"What you need to know"}</div>
+                <div style={{fontSize:12,color:"#6ee7b7",marginTop:1}}>{doctorInfo?.clinic_name||"Plastik Cerrahi"} {lang==="tr"?"önerileri":"recommendations"}</div>
               </div>
             </div>
             <div style={{padding:"10px 14px 12px",display:"flex",flexDirection:"column",gap:7,borderTop:"1px solid #eef3f9"}}>
@@ -3558,7 +3971,7 @@ YAZIM KURALLARI:
           {/* Kişiselleştirilmiş İyileşme */}
           {recoveryText&&(
             <>
-              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"0 0 8px 2px"}}>İyileşme süreci</div>
+              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"0 0 8px 2px"}}>{lang==="tr"?"İyileşme süreci":"Recovery Process"}</div>
               <div style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,padding:"14px 16px",marginBottom:10}}>
                 <div style={{fontSize:13,color:"#2d5a8e",lineHeight:1.8}}>{recoveryText}</div>
               </div>
@@ -3568,7 +3981,7 @@ YAZIM KURALLARI:
           {/* Kişiselleştirilmiş Riskler */}
           {riskText&&(
             <>
-              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>Bilinmesi Gerekenler</div>
+              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"0 0 8px 0"}}>{lang==="tr"?"Bilinmesi Gerekenler":"Important Information"}</div>
               <div style={{borderLeft:"1.5px solid "+BORD2,padding:"10px 12px",marginBottom:8}}>
                 <div style={{fontSize:13,fontWeight:500,color:"#1e3a5f",marginBottom:2}}>{PC.riskIntro}</div>
                 <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.65}}>{riskText}</div>
@@ -3579,7 +3992,7 @@ YAZIM KURALLARI:
           {/* Normal */}
           {PI.normal&&PI.normal.length>0&&(
             <>
-              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"8px 0 8px 0"}}>Bunlar Normaldir</div>
+              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"8px 0 8px 0"}}>{lang==="tr"?"Bunlar Normaldir":"These Are Normal"}</div>
               {PI.normal.map((n,i)=>(
                 <div key={i} style={{borderLeft:"1.5px solid #d4e1ef",padding:"8px 12px",marginBottom:6}}>
                   <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.6}}>{n}</div>
@@ -3590,7 +4003,7 @@ YAZIM KURALLARI:
 
           {/* Disclaimer */}
           <div style={{padding:"9px 11px",background:"#eef3f9",borderRadius:8,fontSize:11,color:"#7b9ab5",lineHeight:1.6,fontStyle:"italic",marginBottom:10}}>
-            Son karar her zaman hekiminize aittir. Bu bilgiler yalnızca ön bilgilendirme amaçlıdır.
+            {lang==="tr"?"Son karar her zaman hekiminize aittir. Bu bilgiler yalnızca ön bilgilendirme amaçlıdır.":"The final decision always belongs to your physician. This information is for preliminary guidance only."}
           </div>
         </>)}
 
@@ -3599,7 +4012,7 @@ YAZIM KURALLARI:
       {/* Bottom CTA */}
       <div style={{padding:"10px 22px 22px",flexShrink:0,background:"#f8fafd",borderTop:"1px solid #d4e1ef"}}>
         {infoPage===0
-          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>Hazırlık bilgilerini gör →</button>
+          ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>{lang==="tr"?"Hazırlık bilgilerini gör →":"View preparation info →"}</button>
           :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>Anladım, teşekkürler</button>
         }
       </div>
@@ -3608,18 +4021,12 @@ YAZIM KURALLARI:
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'Nunito',sans-serif",color:C.navy}}>
-      {/* Hero grid — sadece ilk soru (karşılama) */}
+      {/* Hero — tek resim */}
       {currentQ===0&&(
-        <div style={{width:"100%",height:280,display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:2,position:"relative",overflow:"hidden",flexShrink:0}}>
-          {["hero.png","hero2.png","hero3.png","hero4.png"].map((src,i)=>(
-            <div key={i} style={{position:"relative",overflow:"hidden"}}>
-              <img src={`/${src}`} alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center 15%"}}
-                onError={e=>{e.target.parentElement.style.background="#eef3f9"}}/>
-            </div>
-          ))}
-          {/* Gradient overlay */}
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(245,240,232,0) 20%, rgba(245,240,232,1) 100%)"}}/>
-          {/* Logo üstte */}
+        <div style={{width:"100%",height:240,position:"relative",overflow:"hidden",flexShrink:0,background:"linear-gradient(135deg, #e8f0fa 0%, #d4e5f5 50%, #c0d8f0 100%)"}}>
+          <img src="/form-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
+            onError={e=>{e.target.style.display="none"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(248,250,253,0) 40%, #f8fafd 100%)"}}/>
           <div style={{position:"absolute",top:16,left:20,display:"flex",alignItems:"center",gap:7}}>
             <div style={{width:20,height:20,border:"1px solid rgba(255,255,255,0.7)",borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(245,240,232,0.25)"}}>
               <div style={{width:6,height:6,background:"white",borderRadius:"50%"}}/>
@@ -3646,18 +4053,23 @@ YAZIM KURALLARI:
         {currentQ===0&&(
           <div style={{textAlign:"center",marginBottom:32,paddingTop:8}} className="f1">
             <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:12,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>Hoş Geldiniz</div>
-            <div style={{fontSize:15,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>{lang==="tr"?"Hoş Geldiniz":"Welcome"}</div>
+            <div style={{fontSize:15,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>{lang==="tr"?"Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.":"This short form helps us understand your expectations so we can plan the best and safest approach for you."}</div>
           </div>
         )}
         <div style={{display:"flex",gap:5,marginBottom:20,flexWrap:"wrap"}} className="f2">
           {SECTIONS.map((sec,i)=>(
-            <div key={sec} style={{padding:"3px 11px",borderRadius:20,fontSize:11,letterSpacing:"0.13em",textTransform:"uppercase",background:i===secIdx?"#eef3f9":"transparent",border:`1.5px solid ${i===secIdx?C.accent:C.border}`,color:i===secIdx?C.accent:C.muted,transition:"all 0.3s"}}>{sec}</div>
+            <div key={sec} style={{padding:"3px 11px",borderRadius:20,fontSize:11,letterSpacing:"0.13em",textTransform:"uppercase",background:i===secIdx?"#eef3f9":"transparent",border:`1.5px solid ${i===secIdx?C.accent:C.border}`,color:i===secIdx?C.accent:C.muted,transition:"all 0.3s"}}>{tSec(sec)}</div>
           ))}
         </div>
         <div style={{marginBottom:22}} className="f2">
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-            <span style={{fontSize:12,color:C.muted}}>SORU {currentQ+1} / {VISIBLE_QUESTIONS.length}</span>
+            <span style={{fontSize:12,color:C.muted}}>{lang==="tr"?"SORU":"Q"} {currentQ+1} / {VISIBLE_QUESTIONS.length}</span>
+            <div style={{display:"flex",gap:4}}>
+              {[["tr","🇹🇷"],["en","🇬🇧"]].map(([l,flag])=>(
+                <button key={l} onClick={()=>setLang(l)} style={{padding:"2px 8px",borderRadius:6,border:`1px solid ${lang===l?"#1e3a5f":"#d4e1ef"}`,background:lang===l?"#1e3a5f":"transparent",color:lang===l?"white":"#7b9ab5",fontSize:14,cursor:"pointer"}}>{flag}</button>
+              ))}
+            </div>
             <span style={{fontSize:12,color:C.accent,fontWeight:500}}>%{Math.round(progress)}</span>
           </div>
           <div style={{height:1,background:C.border,borderRadius:1}}>
@@ -3665,8 +4077,8 @@ YAZIM KURALLARI:
           </div>
         </div>
         <div style={{background:"#f8fafd",border:`1.5px solid ${C.border}`,borderRadius:14,padding:"24px 22px",marginBottom:14}} className="f3">
-          <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:9,fontWeight:400}}>{q.section}</div>
-          <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:C.navy,marginBottom:20,lineHeight:1.35,letterSpacing:"-0.01em"}}>{q.label}</div>
+          <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:9,fontWeight:400}}>{tSec(q.section)}</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:C.navy,marginBottom:20,lineHeight:1.35,letterSpacing:"-0.01em"}}>{t(`q.${q.id}.label`,q.label)}</div>
           {q.type==="text"&&<input type="text" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#eef3f9",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:15,outline:"none"}}/>}
           {q.type==="number"&&<input type="number" placeholder={q.placeholder} value={answers[q.id]||""} onChange={e=>setAnswers(p=>({...p,[q.id]:e.target.value}))} style={{width:"100%",padding:"12px 14px",background:"#eef3f9",border:`1.5px solid ${C.border}`,borderRadius:10,color:C.navy,fontSize:15,outline:"none"}}/>}
           {q.type==="radio"&&(
@@ -3680,7 +4092,7 @@ YAZIM KURALLARI:
                   setAnswers(p=>({...p,[q.id]:opt}));
                 }} style={{padding:"12px 14px",background:sel?"#eef3f9":"#eef3f9",border:`1.5px solid ${sel?C.accent:C.border}`,borderRadius:10,color:sel?C.accent:"#2d5a8e",fontSize:14,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:11,transition:"all 0.15s"}}>
                   <div style={{width:15,height:15,borderRadius:"50%",border:`2px solid ${sel?C.accent:C.muted}`,background:sel?C.accent:"transparent",flexShrink:0,transition:"all 0.15s"}}/>
-                  {opt}
+                  {tOpt(q.id,opt)}
                 </button>);
               })}
             </div>
@@ -3693,7 +4105,9 @@ YAZIM KURALLARI:
               <input type="checkbox" checked={kvkkConsent} onChange={e=>setKvkkConsent(e.target.checked)}
                 style={{width:18,height:18,marginTop:2,flexShrink:0,accentColor:"#1d4ed8",cursor:"pointer"}}/>
               <span>
-                Kişisel verilerimin ve sağlık bilgilerimin, 6698 sayılı KVKK kapsamında, yalnızca konsültasyon sürecimin planlanması amacıyla işlenmesini ve doktorumla paylaşılmasını kabul ediyorum. Verilerim şifrelenerek saklanır ve üçüncü taraflarla paylaşılmaz.
+                {lang==="tr"
+                  ?"Kişisel verilerimin ve sağlık bilgilerimin, 6698 sayılı KVKK kapsamında, yalnızca konsültasyon sürecimin planlanması amacıyla işlenmesini ve doktorumla paylaşılmasını kabul ediyorum. Verilerim şifrelenerek saklanır ve üçüncü taraflarla paylaşılmaz."
+                  :"I consent to the processing of my personal and health data solely for the purpose of planning my consultation, in accordance with data protection regulations. My data is stored encrypted and is not shared with third parties."}
               </span>
             </label>
           </div>
@@ -3704,17 +4118,20 @@ YAZIM KURALLARI:
             setQuestionTimes(p=>({...p,[QUESTIONS[currentQ].id]:elapsed}));
             qStartTime.current=Date.now();
             setCurrentQ(c=>c-1);
-          }} style={{flex:1,padding:"13px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,fontSize:13,cursor:"pointer"}}>← Geri</button>}
+          }} style={{flex:1,padding:"13px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,fontSize:13,cursor:"pointer"}}>{lang==="tr"?"← Geri":"← Back"}</button>}
           <button onClick={()=>{
             const elapsed=Math.round((Date.now()-qStartTime.current)/1000);
             setQuestionTimes(p=>({...p,[QUESTIONS[currentQ].id]:elapsed}));
             qStartTime.current=Date.now();
             if(currentQ<VISIBLE_QUESTIONS.length-1)setCurrentQ(c=>c+1);else handleSubmit();
-          }} disabled={currentQ===VISIBLE_QUESTIONS.length-1?(!canNext||!kvkkConsent):!canNext}
-            style={{flex:2,padding:"13px",background:(currentQ===VISIBLE_QUESTIONS.length-1?canNext&&kvkkConsent:canNext)?"#1e3a5f":"#d4e1ef",border:"none",borderRadius:8,color:(currentQ===VISIBLE_QUESTIONS.length-1?canNext&&kvkkConsent:canNext)?"#f8fafd":"#7b9ab5",fontSize:13,fontWeight:500,letterSpacing:"0.08em",cursor:(currentQ===VISIBLE_QUESTIONS.length-1?canNext&&kvkkConsent:canNext)?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Nunito',sans-serif"}}>
-            {currentQ===VISIBLE_QUESTIONS.length-1?"Formu Gönder →":"Devam →"}
+          }} disabled={currentQ===VISIBLE_QUESTIONS.length-1?(!canNext||!kvkkConsent||submitting):!canNext}
+            style={{flex:2,padding:"13px",background:(currentQ===VISIBLE_QUESTIONS.length-1?(canNext&&kvkkConsent&&!submitting):canNext)?"#1e3a5f":"#d4e1ef",border:"none",borderRadius:8,color:(currentQ===VISIBLE_QUESTIONS.length-1?(canNext&&kvkkConsent&&!submitting):canNext)?"#f8fafd":"#7b9ab5",fontSize:13,fontWeight:500,letterSpacing:"0.08em",cursor:(currentQ===VISIBLE_QUESTIONS.length-1?(canNext&&kvkkConsent&&!submitting):canNext)?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:"'Nunito',sans-serif"}}>
+            {submitting?(lang==="tr"?"Gönderiliyor...":"Submitting..."):currentQ===VISIBLE_QUESTIONS.length-1?(lang==="tr"?"Formu Gönder →":"Submit Form →"):(lang==="tr"?"Devam →":"Continue →")}
           </button>
         </div>
+        {submitError&&(
+          <div style={{marginTop:10,padding:"10px 14px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:13,color:"#dc2626",textAlign:"center"}}>{submitError}</div>
+        )}
       </main>
     </div>
   );
@@ -3879,7 +4296,7 @@ function AdminPanel(){
         {/* GENEL BAKIŞ */}
         {tab==="overview"&&!loading&&(
           <>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:24}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:24}}>
               {[
                 {lbl:"Toplam Hasta",val:total.patients,color:C.navy},
                 {lbl:"Dönüşüm",val:total.withOutcome>0?`%${totalDonusum}`:"—",color:totalDonusum>=60?"#059669":"#d97706"},
@@ -3957,7 +4374,7 @@ function AdminPanel(){
                     )}
                   </div>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8}}>
                   {[
                     {l:"Hasta",v:s.total,c:C.navy},
                     {l:"Dönüşüm",v:s.total>0?`%${s.donusum}`:"—",c:s.donusum>=60?"#059669":"#d97706"},
@@ -3984,7 +4401,7 @@ function AdminPanel(){
           <div style={{display:"grid",gap:12}}>
             <div style={{...cardS}}>
               <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:C.muted,marginBottom:16,fontWeight:500}}>Model Performansı — Genel</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:16}}>
                 {[
                   {l:"Toplam Etiketli",v:patients.filter(p=>p.no_appointment||p.outcome_procedures?.length>0).length,c:C.navy},
                   {l:"Kırmızı Hasta",v:redAll.length,c:"#dc2626"},
@@ -4038,7 +4455,7 @@ function AdminPanel(){
                           {clinicModels[s.id].threshold_src==="auto_f1"?"Otomatik F1":"Manuel"}
                         </span>
                       </div>
-                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginTop:4}}>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))",gap:6,marginTop:4}}>
                         {[
                           {l:"Doğruluk", v:clinicModels[s.id].val_accuracy?`%${Math.round(clinicModels[s.id].val_accuracy*100)}`:(clinicModels[s.id].accuracy?`%${Math.round(clinicModels[s.id].accuracy*100)}`:"—")},
                           {l:"F1",       v:clinicModels[s.id].val_f1?clinicModels[s.id].val_f1.toFixed(2):"—"},
@@ -4194,12 +4611,18 @@ function Login({onLogin}){
   return(
     <div style={{minHeight:"100vh",background:"#f8fafd",fontFamily:"'Nunito',sans-serif",display:"flex",flexDirection:isMobile?"column":"row"}}>
 
-      {/* SOL — Görsel (sadece masaüstü) */}
+      {/* SOL — Görsel (masaüstü: büyük, mobil: banner) */}
       {!isMobile&&(
-        <div style={{flex:"0 0 52%",position:"relative",overflow:"hidden",display:"flex"}}>
+        <div style={{flex:"0 0 52%",position:"relative",overflow:"hidden",display:"flex",background:"linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 40%, #4a7fb5 70%, #a8c5de 100%)"}}>
           <img src="/login-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}
-            onError={e=>{e.target.parentElement.style.background="#eef3f9";e.target.style.display="none"}}/>
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(to right, rgba(245,240,232,0) 50%, rgba(245,240,232,1) 100%)"}}/>
+            onError={e=>{e.target.style.display="none"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to right, transparent 50%, rgba(245,240,232,1) 100%)"}}/>
+          <div style={{position:"absolute",top:28,left:28,display:"flex",alignItems:"center",gap:9}}>
+            <div style={{width:28,height:28,border:"1.5px solid rgba(255,255,255,0.7)",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,0.15)",backdropFilter:"blur(8px)"}}>
+              <div style={{width:8,height:8,background:"white",borderRadius:"50%"}}/>
+            </div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:"white",letterSpacing:"0.02em",textShadow:"0 2px 12px rgba(0,0,0,0.3)"}}>Sculpt<em style={{color:"rgba(255,255,255,0.7)"}}>AI</em></div>
+          </div>
           <div style={{position:"absolute",bottom:40,left:40,right:"30%"}}>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:"white",lineHeight:1.4,textShadow:"0 2px 20px rgba(0,0,0,0.3)",fontStyle:"italic"}}>
               "Her hasta bir ilişki.<br/>Her ilişki bir güven."
@@ -4207,9 +4630,22 @@ function Login({onLogin}){
           </div>
         </div>
       )}
+      {isMobile&&(
+        <div style={{width:"100%",height:180,position:"relative",overflow:"hidden",background:"linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 40%, #4a7fb5 70%, #a8c5de 100%)"}}>
+          <img src="/login-hero.png" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top"}}
+            onError={e=>{e.target.style.display="none"}}/>
+          <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom, transparent 30%, #f8fafd 100%)"}}/>
+          <div style={{position:"absolute",top:16,left:16,display:"flex",alignItems:"center",gap:7}}>
+            <div style={{width:22,height:22,border:"1.5px solid rgba(255,255,255,0.7)",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,255,255,0.15)"}}>
+              <div style={{width:6,height:6,background:"white",borderRadius:"50%"}}/>
+            </div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,color:"white",textShadow:"0 1px 8px rgba(0,0,0,0.3)"}}>Sculpt<em style={{color:"rgba(255,255,255,0.7)"}}>AI</em></div>
+          </div>
+        </div>
+      )}
 
       {/* SAĞ — Form */}
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?"32px 24px":"40px 48px",minHeight:isMobile?"100vh":"auto"}}>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?"24px 24px":"40px 48px",minHeight:isMobile?"auto":"auto"}}>
         <div style={{width:"100%",maxWidth:360}}>
 
           {/* Logo */}
