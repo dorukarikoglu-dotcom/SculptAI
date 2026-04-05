@@ -691,25 +691,29 @@ function getFlags(a,cat){
 }
 
 function getSignals(a,cat){
-  // Kısa etiketler
-  const motShort={"Kendim için daha iyi hissetmek istiyorum":"İçsel motivasyon","Özgüvenimi artırmak istiyorum":"Özgüven odaklı","Yakınlarımın yorumları etkili oldu":"Dışsal baskı","Hayatımın daha iyi gideceğini düşünüyorum":"Yaşam kalitesi","Başka insanların yorumları beni kötü etkiliyor":"Dışsal baskı"};
-  const expShort={"Küçük, doğal bir iyileştirme yeterli":"Doğal iyileştirme","Dengeli ve orantılı bir sonuç bekliyorum":"Dengeli sonuç","Belirgin bir fark olmasını istiyorum":"Belirgin fark","Tamamen farklı bir görünüm istiyorum":"Tam değişim"};
+  // Açıklayıcı etiketler
+  const motShort={"Kendim için daha iyi hissetmek istiyorum":"Kendi kararı, içsel motivasyon ✓","Özgüvenimi artırmak istiyorum":"Özgüven artırmak istiyor","Yakınlarımın yorumları etkili oldu":"Çevre baskısı etkili ⚠","Hayatımın daha iyi gideceğini düşünüyorum":"Yaşam değişikliği bekliyor ⚠","Başka insanların yorumları beni kötü etkiliyor":"Dışsal baskı var ⚠"};
+  const expShort={"Küçük, doğal bir iyileştirme yeterli":"Doğal iyileştirme, gerçekçi ✓","Dengeli ve orantılı bir sonuç bekliyorum":"Dengeli sonuç bekliyor ✓","Belirgin bir fark olmasını istiyorum":"Belirgin fark istiyor","Tamamen farklı bir görünüm istiyorum":"Tam değişim bekliyor ⚠"};
+  const supShort={"Evet, destekliyorlar":"Ailesi destekliyor ✓","Biliyorlar ama kararsızlar":"Ailesi kararsız ⚠","Karşılar":"Ailesi karşı ⚠","Kimseye söylemedim":"Kimseye söylememiş ⚠"};
+  const docShort={"Hayır":"İlk konsültasyonu ✓","1-2 doktorla görüştüm":"1-2 doktor gördü","Birçok doktorla görüştüm":"Çok doktor gördü ⚠"};
   const mot=motShort[a.motivation]||a.motivation||"—";
   const exp=expShort[a.expectation]||a.expectation||"—";
+  const sup=supShort[a.support]||a.support||"—";
+  const doc=docShort[a.multiDoctor]||a.multiDoctor||"—";
   if(cat==="red"||cat==="amber") return [
     {label:"Motivasyon",val:mot},
     {label:"Beklenti",val:exp},
-    {label:"Önceki Danışma",val:a.multiDoctor||"—"},
+    {label:"Danıştığı Doktor",val:doc},
   ];
   if(cat==="ambassador") return [
-    {label:"Paylaşım",val:a.sharing||"—"},
-    {label:"Sosyal Etki",val:a.socialInfluence||"—"},
-    {label:"Ek Prosedür",val:a.otherConsidered||"—"},
+    {label:"Paylaşım Eğilimi",val:a.sharing||"—"},
+    {label:"Çevresel Etki",val:a.socialInfluence||"—"},
+    {label:"Ek İşlem İlgisi",val:a.otherConsidered||"—"},
   ];
   return [
     {label:"Motivasyon",val:mot},
     {label:"Beklenti",val:exp},
-    {label:"Sosyal Destek",val:a.support||"—"},
+    {label:"Sosyal Destek",val:sup},
   ];
 }
 
