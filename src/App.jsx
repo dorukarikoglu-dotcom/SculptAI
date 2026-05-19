@@ -4831,7 +4831,7 @@ Türkçe yaz.`}]
             <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:12,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>{lang==="tr"?"Hoş Geldiniz":"Welcome"}</div>
             <div style={{fontSize:15,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>{lang==="tr"?"Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.":"This short form helps us understand your expectations so we can plan the best and safest approach for you."}</div>
-            <div style={{fontSize:12,color:C.border,marginTop:4}}>{lang==="tr"?"~3 dakika sürer":"~3 minutes"}</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:4}}>{lang==="tr"?"~3 dakika sürer":"~3 minutes"}</div>
           </div>
         )}
         <div style={{display:"flex",gap:5,marginBottom:20,flexWrap:"wrap"}} className="f2">
