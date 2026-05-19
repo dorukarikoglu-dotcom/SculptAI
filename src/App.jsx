@@ -139,9 +139,10 @@ const GLOBAL_ML_WEIGHTS = {
     bilgisizDesteksiz: 0.10539008092538354,
     yuksekRiskProc:    0.17931191185566991,
     kararSuresi:       0.18,
+    bddSkor:           0.22,
   },
-  mean: [0.12142857142857141, 0.17087912087912083, 0.4357142857142857, 0.6538461538461539, 0.31483516483516444, 0.16483516483516483, 0.016483516483516477, 0.3332967032967033, 0.46771978021978006, 0.06593406593406594, 0.06593406593406594, 0.13186813186813187, 0.16483516483516483, 0.1],
-  std:  [0.28256506176229307, 0.29436707424443237, 0.3907084094622097, 0.3028464566927619, 0.22888819977055075, 0.25736348194791997, 0.23264543425552567, 0.19993435705748244, 0.2573563540433698, 0.24816680858541154, 0.24816680858541146, 0.3383473476558382, 0.3710317146403107, 0.3],
+  mean: [0.12142857142857141, 0.17087912087912083, 0.4357142857142857, 0.6538461538461539, 0.31483516483516444, 0.16483516483516483, 0.016483516483516477, 0.3332967032967033, 0.46771978021978006, 0.06593406593406594, 0.06593406593406594, 0.13186813186813187, 0.16483516483516483, 0.1, 0.15],
+  std:  [0.28256506176229307, 0.29436707424443237, 0.3907084094622097, 0.3028464566927619, 0.22888819977055075, 0.25736348194791997, 0.23264543425552567, 0.19993435705748244, 0.2573563540433698, 0.24816680858541154, 0.24816680858541146, 0.3383473476558382, 0.3710317146403107, 0.3, 0.35],
 };
 
 const PROC_RISK_MAP = {
@@ -245,6 +246,14 @@ function extractRawFeatures(a) {
     "Uzun süredir düşünüyorum ama hâlâ kararsız hissediyorum": 0.9,
   }[a.decisionDuration] ?? 0.1;
 
+  // BDD tarama skoru (0-1)
+  const m_bdd = {
+    "Pek etkilemiyor, bazen düşünüyorum": 0.0,
+    "Sıkça düşünüyorum ama hayatımı yönlendirmiyor": 0.33,
+    "Günde saatlerce düşünüyorum, sosyal hayatımı etkiliyor": 0.67,
+    "Tamamen ele geçirdi, kaçınma davranışlarım var": 1.0,
+  }[a.bddScreen] ?? 0.0;
+
   const m_proc = PROC_RISK_MAP[a.procedure] ?? 0.3;
   const age_n  = Math.min(1, Math.max(0, ((parseInt(a.age)||35) - 17) / 48));
 
@@ -255,7 +264,7 @@ function extractRawFeatures(a) {
   const yuksekRiskProc    = m_proc >= 0.5 ? 1.0 : 0.0;
 
   return [m_motiv, m_support, m_rev, m_risk, m_exp, m_multi, m_prev,
-          m_proc, age_n, rhinoDışsal, oncekiKotu, bilgisizDesteksiz, yuksekRiskProc, m_decision];
+          m_proc, age_n, rhinoDışsal, oncekiKotu, bilgisizDesteksiz, yuksekRiskProc, m_decision, m_bdd];
 }
 
 function computeMLScore(a) {
@@ -456,7 +465,7 @@ function classify(score,a,threshold=60){
   const socialActive=ambassadorProb>=0.82&&score<35;
 
   // Risk sinyalleri
-  const bddRisk=a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor"||a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
+  const bddRisk=a.bddScreen==="Günde saatlerce düşünüyorum, sosyal hayatımı etkiliyor"||a.bddScreen==="Tamamen ele geçirdi, kaçınma davranışlarım var"||a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor"||a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
   const highExp=a.expectation?.includes("Tamamen farklı");
   const extMotiv=["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x);
   const manyDocs=a.multiDoctor==="Birçok doktorla görüştüm";
@@ -550,7 +559,8 @@ function classify(score,a,threshold=60){
 
 function predictOutcomes(score, a){
   // ── Sinyal tespiti ──────────────────────────────────────────────
-  const bddRisk      = a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor" || a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
+  const bddRisk      = a.bddScreen==="Günde saatlerce düşünüyorum, sosyal hayatımı etkiliyor"||a.bddScreen==="Tamamen ele geçirdi, kaçınma davranışlarım var"||a.bodyFocus==="Neredeyse her gün, bazen işimi gücümü etkiliyor"||a.avoidance==="Günlük hayatımı önemli ölçüde kısıtlıyor";
+  const bddModerate  = a.bddScreen==="Sıkça düşünüyorum ama hayatımı yönlendirmiyor";
   const unrealistic  = a.revision==="Kusursuz sonuç bekliyorum";
   const extMotiv     = ["Yakınlarımın yorumları etkili oldu","Başka insanların yorumları beni kötü etkiliyor"].some(x=>a.motivation===x);
   const intMotiv     = ["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum"].some(x=>a.motivation===x);
@@ -559,25 +569,23 @@ function predictOutcomes(score, a){
   const manyDocs     = a.multiDoctor==="Birçok doktorla görüştüm";
   const noSupport    = ["Kimseye söylemedim","Karşılar"].some(x=>a.support===x);
   const goodSupport  = a.support==="Evet, destekliyorlar"||a.support==="Evet";
-  const impulsive    = false; // soru kaldırıldı
-  const patient      = true;  // varsayılan
-  const worstAvoid   = false; // soru kaldırıldı
   const prevBad      = ["Evet ama beklentimi karşılamadı","Evet ve hiç memnun değilim"].some(x=>a.prevSurgery===x);
   const prevGood     = a.prevSurgery==="Evet ve memnunum";
   const detailedKnow = a.riskKnowledge==="Detaylı araştırdım ve biliyorum";
   const lowSelfEst   = ["Kendimden pek memnun değilim","Hayır, kendimle barışık değilim"].some(x=>a.selfEsteem===x);
   const lifeExpect   = a.imagineAfter?.includes("Hayatımın daha iyi");
+  const hasOtherAreas= a.otherAreas&&a.otherAreas!=="Hayır, sadece bu bölge";
 
   // ── Revizyon Riski % ───────────────────────────────────────────
   let rev = 12;
   const revReasons = [];
-  if(bddRisk)      { rev+=28; revReasons.push({txt:"BDD riski saptandı — revizyon döngüsü olasılığı yüksek",w:"high"}); }
+  if(bddRisk)      { rev+=28; revReasons.push({txt:"BDD eğilimi saptandı — revizyon döngüsü olasılığı yüksek",w:"high"}); }
+  if(bddModerate)  { rev+=10; revReasons.push({txt:"Görünüm odağı orta düzeyde — beklenti çerçevesi dikkatli oluşturulmalı",w:"low"}); }
   if(unrealistic)  { rev+=22; revReasons.push({txt:"Kusursuz sonuç beklentisi — gerçek sonuçla uyumsuzluk riski",w:"high"}); }
   if(extMotiv)     { rev+=16; revReasons.push({txt:"Dışsal motivasyon — sonuç değerlendirmesi başkalarına bağımlı",w:"med"}); }
   if(highExp)      { rev+=14; revReasons.push({txt:"Tamamen farklı görünüm beklentisi — hayal kırıklığı riski",w:"med"}); }
   if(manyDocs)     { rev+=12; revReasons.push({txt:"Birçok doktora gidilmiş — kararsızlık ve yüksek standart",w:"med"}); }
   if(prevBad)      { rev+=14; revReasons.push({txt:"Geçmiş deneyim memnuniyetsizliği — tekrar riski",w:"med"}); }
-  if(worstAvoid)   { rev+=8;  revReasons.push({txt:"En kötü senaryo kaçınması — gerçekçi süreç planlaması eksik",w:"low"}); }
   if(noSupport)    { rev+=8;  revReasons.push({txt:"Sosyal destek eksikliği — karar kırılganlığı artar",w:"low"}); }
   if(lowSelfEst)   { rev+=6;  revReasons.push({txt:"Düşük benlik saygısı — sonuç algısını olumsuz etkileyebilir",w:"low"}); }
   if(lifeExpect)   { rev+=8;  revReasons.push({txt:"İşlemden hayat değişikliği beklentisi — gerçekçi değil",w:"med"}); }
@@ -590,7 +598,7 @@ function predictOutcomes(score, a){
   // Memnuniyet kaldırıldı — kontrol verisi birikince eklenecek
 
   // ── Cerrahi Uygunluk ──────────────────────────────────────────
-  const riskFactors = [bddRisk, highExp&&extMotiv, manyDocs, unrealistic, worstAvoid].filter(Boolean).length;
+  const riskFactors = [bddRisk, highExp&&extMotiv, manyDocs, unrealistic, bddModerate&&extMotiv].filter(Boolean).length;
   let fit, fitColor, fitBg;
   if(bddRisk || (score>=60 && riskFactors>=3)){
     fit="Genişletilmiş Değerlendirme"; fitColor="#dc2626"; fitBg="#fef2f2";
@@ -616,7 +624,13 @@ function predictOutcomes(score, a){
     approachDesc="Normal konsültasyon akışı yeterli. Beklentileri teyit et, sonra planla.";
   }
 
-  return { rev, fit, fitColor, fitBg, approach, approachDesc, revReasons };
+  // ── Cross-sell potansiyeli ──────────────────────────────────────
+  let crossSellNote=null;
+  if(hasOtherAreas&&intMotiv&&!bddRisk&&score<50){
+    crossSellNote="Hasta birden fazla bölge ilgisi belirtti ve motivasyonu sağlıklı — konsültasyonda ek prosedür önerisi uygun olabilir.";
+  }
+
+  return { rev, fit, fitColor, fitBg, approach, approachDesc, revReasons, crossSellNote };
 }
 
 
@@ -633,19 +647,12 @@ const QUESTIONS=[
   {id:"rhinoVision",section:"İşlem Bilgisi",label:"Ameliyat sonucunu hayal ettiğinizde aklınızda ne var?",type:"radio",showIf:(a)=>a.procedure==="Burun Estetiği",options:["Doktorum benim yüz yapıma en uygun olanı belirlesin","Burnumda beni rahatsız eden belirli bir şeyi düzeltmek istiyorum","Aklımda net bir görünüm var, buna ulaşmak istiyorum","Aklımda belirli bir referans var — bir ünlü veya fotoğraf"]},
 
   {id:"breastSymmetry",section:"İşlem Bilgisi",label:"Şu an iki memeniz arasındaki farkı nasıl tarif edersiniz?",type:"radio",showIf:(a)=>["Meme Küçültme","Meme Dikleştirme","Meme Büyütme (Silikon Protez ile)","Meme Asimetrisinin Giderilmesi"].includes(a.procedure),options:["Fark var ama beni pek rahatsız etmiyor, ameliyatla düzelsin istiyorum","Belirgin bir fark var ve bu beni çok rahatsız ediyor","Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor","Fark olduğunu düşünmüyorum, sadece küçültmek/büyütmek istiyorum"]},
-  {id:"otherConsidered",section:"İşlem Bilgisi",label:"Bu işlem dışında daha önce başka bir estetik işlem aklınızdan geçti mi?",type:"radio",options:["Hayır","Evet, düşündüm ama erteledim","Evet, bu işlemle aynı anda değerlendiriyorum","Evet, gelecekte yapmayı planlıyorum"]},
-
-  /* ── BDD Taraması ── */
-  {id:"bodyFocus",section:"Motivasyon & Beklenti",label:"Bu bölgenizi günlük hayatınızda ne sıklıkla düşünürsünüz?",type:"radio",options:["Nadiren aklıma gelir","Zaman zaman düşünürüm","Sık sık düşünürüm, ama kontrol altında","Neredeyse her gün, bazen işimi gücümü etkiliyor"]},
-  {id:"avoidance",section:"Motivasyon & Beklenti",label:"Bu konudan ötürü kaçındığınız durumlar oluyor mu?",type:"radio",options:["Hayır, hayatımı etkilemiyor","Bazen dikkatimi dağıtıyor","Bazı sosyal ortamlardan kaçınıyorum","Günlük hayatımı önemli ölçüde kısıtlıyor"]},
+  {id:"source",section:"İşlem Bilgisi",label:"Bize nereden ulaştınız?",type:"radio",options:["Instagram","Google Arama","Arkadaş / Tanıdık Tavsiyesi","TikTok","YouTube","Doktor Yönlendirmesi","Diğer"]},
   {id:"motivation",section:"Motivasyon & Beklenti",label:"Bu kararı almanızda en belirleyici olan nedir?",type:"radio",options:["Kendim için daha iyi hissetmek istiyorum","Özgüvenimi artırmak istiyorum","Yakınlarımın yorumları etkili oldu","Hayatımın daha iyi gideceğini düşünüyorum"]},
   {id:"expectation",section:"Motivasyon & Beklenti",label:"İşlem sonucunda nasıl bir değişim bekliyorsunuz?",type:"radio",options:["Küçük, doğal bir iyileştirme yeterli","Dengeli ve orantılı bir sonuç bekliyorum","Belirgin bir fark olmasını istiyorum","Tamamen farklı bir görünüm istiyorum"]},
-
-  /* ── Benlik saygısı ── */
-  {id:"selfEsteem",section:"Kendinizi Tanıyın",label:"Genel olarak kendinizden memnun musunuz?",type:"radio",options:["Evet, kendimden genel olarak memnunum","Çoğunlukla memnunum, bazı konularda değil","Kendimden pek memnun değilim","Hayır, kendimle barışık değilim"]},
+  {id:"bddScreen",section:"Motivasyon & Beklenti",label:"Görünümünüzle ilgili düşünceleriniz günlük yaşamınızı nasıl etkiliyor?",type:"radio",options:["Pek etkilemiyor, bazen düşünüyorum","Sıkça düşünüyorum ama hayatımı yönlendirmiyor","Günde saatlerce düşünüyorum, sosyal hayatımı etkiliyor","Tamamen ele geçirdi, kaçınma davranışlarım var"]},
 
   /* ── Karar Kalitesi ── */
-  {id:"imagineAfter",section:"Karar Süreci",label:"Bu işlem sonrasını hayal ettiğinizde ne görüyorsunuz?",type:"radio",options:["Kendimi daha özgüvenli ve hafif hayal ediyorum","Belirli bir fiziksel değişikliği hayal ediyorum","Hayatımın daha iyi gideceğini hayal ediyorum","Çevremin tepkisini ve beğenisini hayal ediyorum"]},
   {id:"prevSurgery",section:"Geçmiş Deneyimler",label:"Daha önce estetik bir işlem yaptırdınız mı?",type:"radio",options:["Hayır","Evet ve memnunum","Evet ama beklentimi karşılamadı","Evet ve hiç memnun değilim"]},
   {id:"multiDoctor",section:"Geçmiş Deneyimler",label:"Bu konuyu daha önce başka doktorlarla görüştünüz mü?",type:"radio",options:["Hayır","1-2 doktorla görüştüm","Birçok doktorla görüştüm"]},
 
@@ -664,7 +671,6 @@ const QUESTIONS=[
   /* ── Açık Uçlu ── */
   /* ── Marka Elçisi Sinyalleri ── */
   {id:"sharing",section:"Hasta Profili",label:"Memnun kaldığınız bir deneyimi çevrenizle paylaşır mısınız?",type:"radio",options:["Evet, açıkça paylaşırım","Sadece çok yakınlarımla","Hayır, paylaşmam"]},
-  {id:"socialInfluence",section:"Hasta Profili",label:"Çevreniz estetik kararlarında size danışır mı?",type:"radio",options:["Evet, sık sık danışırlar","Bazen danışanlar olur","Hayır, danışmazlar"]},
 
   {id:"phone",section:"İletişim",label:"Telefon numaranız (randevu için)",type:"text",placeholder:"05XX XXX XX XX",optional:true},
   {id:"openStory",section:"Size Bir Sorum Var",label:"Bu işlemden sonra hayatınızda ne değişmesini istiyorsunuz? Kendi cümlelerinizle anlatır mısınız.",type:"text",placeholder:"İstediğiniz kadar az veya çok yazabilirsiniz...",optional:true},
@@ -982,12 +988,19 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
   const ALL_PROCS=["Burun Estetiği","Meme Küçültme","Meme Büyütme","Meme Dikleştirme","Karın Germe","Liposuction","Üst Göz Kapağı","Alt Göz Kapağı","Botoks","Dolgu","Kol Germe","Yüz Germe","Uyluk Germe","Popo Estetiği","Jinekomasti"];
 
   async function saveOutcome(){
-    try{
-      await sb.from("patients").update({outcome_procedures:outcomeProcedures,no_appointment:false}).eq("id",patient.id);
-      setNoAppointment(false);
-      setShowOutcome(false);
-      triggerRetrain(patient.doctor_id);
-    }catch{alert("Kayıt güncellenemedi. İnternet bağlantınızı kontrol edin.");}
+    for(let attempt=0;attempt<3;attempt++){
+      try{
+        const {error}=await sb.from("patients").update({outcome_procedures:outcomeProcedures,no_appointment:false}).eq("id",patient.id);
+        if(error) throw error;
+        setNoAppointment(false);
+        setShowOutcome(false);
+        triggerRetrain(patient.doctor_id);
+        return;
+      }catch(e){
+        if(attempt===2) alert("Kayıt güncellenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.");
+        else await new Promise(r=>setTimeout(r,1000*(attempt+1)));
+      }
+    }
   }
 
   async function triggerRetrain(doctorId){
@@ -1036,29 +1049,38 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
       const data = month===1
         ? {satisfaction_1m:sat1m, would_recommend:wouldRecommend, had_revision:hadRevision, revision_reason:hadRevision?revisionReason:""}
         : {satisfaction_6m:sat6m, would_recommend:wouldRecommend, had_revision:hadRevision, revision_reason:hadRevision?revisionReason:""};
-      await sb.from("patients").update(data).eq("id",patient.id);
+      const {error}=await sb.from("patients").update(data).eq("id",patient.id);
+      if(error) throw error;
       month===1 ? setShowSat1m(false) : setShowSat6m(false);
       if(month===6) triggerRetrain(patient.doctor_id);
-    }catch{alert("Kayıt güncellenemedi.");}
+    }catch{alert("Kayıt güncellenemedi. Tekrar deneyin.");}
   }
 
   async function saveProcedure(){
     try{
-      await sb.from("patients").update({
+      const {error}=await sb.from("patients").update({
         had_procedure: hadProcedure,
         procedure_date: procedureDate||null,
       }).eq("id",patient.id);
+      if(error) throw error;
       setShowProcedure(false);
-    }catch{alert("Kayıt güncellenemedi.");}
+    }catch{alert("Kayıt güncellenemedi. Tekrar deneyin.");}
   }
 
   async function markNoAppointment(){
-    try{
-      await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patient.id);
-      setNoAppointment(true);
-      setOutcomeProcedures([]);
-      triggerRetrain(patient.doctor_id);
-    }catch{alert("Kayıt güncellenemedi.");}
+    for(let attempt=0;attempt<3;attempt++){
+      try{
+        const {error}=await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patient.id);
+        if(error) throw error;
+        setNoAppointment(true);
+        setOutcomeProcedures([]);
+        triggerRetrain(patient.doctor_id);
+        return;
+      }catch(e){
+        if(attempt===2) alert("Kayıt güncellenemedi. Tekrar deneyin.");
+        else await new Promise(r=>setTimeout(r,1000*(attempt+1)));
+      }
+    }
   }
 
   async function sendAmbassador(){
@@ -1082,7 +1104,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
     if(a.expectation?.includes("Tamamen farklı")) risks.push(`"Tamamen farklı görünmek" beklentisi ${proc} ile karşılanamayabilir`);
     if(a.support?.includes("Kimseye söylemedim")) risks.push("Bu kararı tek başına veriyor — iyileşmede yalnız kalma riski");
     if(a.revision?.includes("Kusursuz")) risks.push("Kusursuz sonuç beklentisi var — revizyon riski yüksek");
-    if(a.bodyFocus?.includes("işimi gücümü etkiliyor")) risks.push("Görünüm odaklanması günlük hayatı etkiliyor — BDD değerlendirmesi düşünülmeli");
+    if(a.bddScreen?.includes("saatlerce")||a.bddScreen?.includes("ele geçirdi")||a.bodyFocus?.includes("işimi gücümü etkiliyor")) risks.push("Görünüm odaklanması günlük hayatı etkiliyor — BDD değerlendirmesi düşünülmeli");
     if(a.prevSurgery?.includes("beklentimi karşılamadı")) risks.push("Önceki işlemden memnun değil — standartları daha yüksek");
     if(a.prevSurgery?.includes("hiç memnun değilim")) risks.push("Önceki işlemden hiç memnun değil — yüksek riskli profil");
     if(["Meme Asimetrisinin Giderilmesi"].includes(a.procedure)) risks.push("Meme asimetrisi vakaları yüksek beklenti riski taşıyor");
@@ -1188,7 +1210,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
         {noAppointment&&(
           <div onClick={e=>e.stopPropagation()} style={{padding:"5px 18px",background:"#fef2f2",borderTop:"1px solid #fecaca",display:"flex",alignItems:"center",gap:8}}>
             <div style={{fontSize:12,color:"#dc2626",fontWeight:500}}>✕ Randevu Alınmadı</div>
-            <button onClick={async e=>{e.stopPropagation();try{await sb.from("patients").update({no_appointment:false}).eq("id",patient.id);setNoAppointment(false);}catch{}}} style={{fontSize:11,color:"#7b9ab5",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline"}}>Geri Al</button>
+            <button onClick={async e=>{e.stopPropagation();try{const {error}=await sb.from("patients").update({no_appointment:false}).eq("id",patient.id);if(error) throw error;setNoAppointment(false);}catch{alert("Geri alma başarısız — tekrar deneyin.");}}} style={{fontSize:11,color:"#7b9ab5",background:"transparent",border:"none",cursor:"pointer",textDecoration:"underline"}}>Geri Al</button>
           </div>
         )}
       {cardError&&<div style={{padding:12,fontSize:12,color:"#dc2626"}}>Detay yüklenemedi</div>}
@@ -1277,8 +1299,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
                 <div style={{width:18,height:18,background:"#1e3a5f",borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#f8fafd",flexShrink:0}}>✦</div>
                 <div style={{fontSize:12,letterSpacing:"0.14em",textTransform:"uppercase",color:"#1e3a5f",fontWeight:600}}>Sistem Gözlemi</div>
-                {patient.ai_loading&&<div style={{fontSize:12,color:"#7b9ab5",animation:"pulse 1.5s infinite"}}>Claude analizi hazırlanıyor...</div>}
-              </div>
+                              </div>
 
               {/* AUTO SUMMARY — hasta spesifik */}
               {(()=>{
@@ -1296,7 +1317,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                 if(a.expectation?.includes("Tamamen farklı")) risks.push(`"Tamamen farklı görünmek" beklentisi ${proc} ile karşılanamayabilir — fotoğraflarla sınırları çerçevelemek faydalı olabilir`);
                 if(a.support?.includes("Kimseye söylemedim")) risks.push(`${name} bu kararı tek başına veriyor — iyileşme sürecinde yalnız kalma riski göz önünde bulundurulabilir`);
                 if(a.revision?.includes("Kusursuz")) risks.push(`Kusursuz sonuç beklentisi var — revizyon ihtimalini konsültasyonda ele almak önemli olabilir`);
-                if(a.bodyFocus?.includes("işimi gücümü etkiliyor")) risks.push(`Bu bölge günlük işleyişini etkiliyor — BDD değerlendirmesi düşünülebilir`);
+                if(a.bddScreen?.includes("saatlerce")||a.bddScreen?.includes("ele geçirdi")||a.bodyFocus?.includes("işimi gücümü etkiliyor")) risks.push(`Bu bölge günlük işleyişini etkiliyor — BDD değerlendirmesi düşünülebilir`);
                 if(a.prevSurgery?.includes("beklentimi karşılamadı")) risks.push(`Önceki işlemden beklentisi karşılanmamış — bu sefer standartları daha yüksek olabilir, geçmişi mutlaka konuş`);
                 if(a.prevSurgery?.includes("hiç memnun değilim")) risks.push(`Önceki işlemden hiç memnun değil — yüksek riskli profil, konsültasyonu çok dikkatli yürüt`);
                 if(a.selfEsteem?.includes("barışık değilim")) risks.push(`Benlik saygısı düşük — işlem sonrası psikolojik iyileşme yavaş olabilir`);
@@ -1358,7 +1379,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                 const pred=predictOutcomes(score,a);
 
                 return(
-                  <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:patient.ai_text?10:0}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:0}}>
 
                     {/* ── KLİNİK TAHMİN BLOĞU ── */}
                     <div style={{background:"#f8f7ff",border:"1px solid #ddd6fe",borderRadius:9,padding:"11px 13px"}}>
@@ -1410,7 +1431,7 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                       </div>
                     </div>
                     <div style={{background:"#f0f9f4",border:"1px solid #a7f3d0",borderRadius:9,padding:"10px 13px"}}>
-                      <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#065f46",marginBottom:7}}>💬 Konsültasyon Notu</div>
+                      <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#065f46",marginBottom:7}}>📝 Konsültasyon Notu</div>
                       <div style={{display:"flex",flexDirection:"column",gap:5}}>
                         {comms.map((c,i)=>(
                           <div key={i} style={{fontSize:13,color:"#064e3b",display:"flex",gap:6,lineHeight:1.55}}>
@@ -1419,22 +1440,16 @@ function PatientCard({patient,onDelete,isMobile,onConsult,mode}){
                         ))}
                       </div>
                     </div>
+                    {pred.crossSellNote&&(
+                      <div style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:9,padding:"10px 13px"}}>
+                        <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#1d4ed8",marginBottom:5}}>↗ Cross-sell Potansiyeli</div>
+                        <div style={{fontSize:13,color:"#1e40af",lineHeight:1.55}}>{pred.crossSellNote}</div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
 
-              {/* CLAUDE DEEP ANALYSIS */}
-              {patient.ai_text&&!patient.ai_text.includes("kullanılamıyor")&&(
-                <div style={{background:"#f0f7ff",border:"1px solid #d4e1ef",borderRadius:9,padding:"9px 12px"}}>
-                  <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:"#1e40af",marginBottom:5}}>🤖 Claude Derinlemeli Analiz</div>
-                  <div style={{fontSize:13,color:"#1e3a5f",lineHeight:1.75}}>{patient.ai_text}</div>
-                </div>
-              )}
-              {patient.ai_loading&&(
-                <div style={{background:"#f0f7ff",border:"1px dashed #d4e1ef",borderRadius:9,padding:"9px 12px",textAlign:"center"}}>
-                  <div style={{fontSize:13,color:"#93c5fd",animation:"pulse 1.5s infinite"}}>✦ Claude analizi yükleniyor...</div>
-                </div>
-              )}
             </div>
             {/* Cross-sell badge */}
             {crossSellDetected&&(
@@ -1913,11 +1928,12 @@ function ValueScreen({patients,doctor}){
 }
 
 /* ─── SETTINGS SCREEN ────────────────────────────────────────────────────── */
-function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP2,pwErr,setPwErr,saveNewCreds,confirmClear,setConfirmClear,clearAll,clinicName,setClinicName,clinicSaved,saveClinicName,thresholdMode,setThresholdMode}){
+function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP2,pwErr,setPwErr,saveNewCreds,confirmClear,setConfirmClear,clearAll,clinicName,setClinicName,clinicSaved,saveClinicName,thresholdMode,setThresholdMode,avgRevenue,setAvgRevenue}){
   const C={border:"#d4e1ef",muted:"#7b9ab5"};
   const cardS={background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:10,padding:"18px 20px",marginBottom:12};
   const [enabledProcs,setEnabledProcs]=useState(doctor.enabled_procedures||ALL_PROCEDURE_LIST);
   const [procsSaved,setProcsSaved]=useState(false);
+  const [revSaved,setRevSaved]=useState(false);
 
   async function saveProcs(){
     try{
@@ -2024,6 +2040,25 @@ function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP
             </button>
           </div>
         </div>
+        {/* Ortalama İşlem Geliri */}
+        <div style={{padding:"10px 0",borderBottom:"1px solid #d4e1ef"}}>
+          <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:C.muted,marginBottom:6}}>Ortalama İşlem Geliri (₺)</div>
+          <div style={{fontSize:10,color:C.muted,marginBottom:6}}>Kayıp analizi hesaplamalarında kullanılır</div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <input
+              type="number" value={avgRevenue}
+              onChange={e=>setAvgRevenue(parseInt(e.target.value)||0)}
+              placeholder="40000"
+              style={{flex:1,padding:"8px 10px",background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:7,fontSize:13,color:"#1e3a5f",outline:"none"}}
+            />
+            <span style={{fontSize:12,color:C.muted,flexShrink:0}}>₺</span>
+            <button onClick={async()=>{
+              try{await sb.from("doctors").update({avg_revenue:avgRevenue}).eq("id",doctor.id);doctor.avg_revenue=avgRevenue;setRevSaved(true);setTimeout(()=>setRevSaved(false),2500);}catch{}
+            }} style={{padding:"8px 14px",background:"#1e3a5f",border:"none",borderRadius:7,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",whiteSpace:"nowrap"}}>
+              {revSaved?"✓ Kaydedildi":"Kaydet"}
+            </button>
+          </div>
+        </div>
         <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0"}}>
           <div style={{fontSize:13,color:C.muted}}>Form Linki</div>
           <button onClick={()=>navigator.clipboard?.writeText(`${window.location.origin}/form/${doctor.id}`)} style={{fontSize:12,color:"#1d4ed8",border:"none",background:"transparent",cursor:"pointer",textDecoration:"underline"}}>Kopyala</button>
@@ -2063,34 +2098,75 @@ function SettingsScreen({doctor,onLogout,newU,setNewU,newP,setNewP,newP2,setNewP
 
 /* ─── DOCTOR PANEL ───────────────────────────────────────────────────────── */
 /* ─── SEKRETER GÖRÜNÜMÜ ──────────────────────────────────────────────────── */
-function SecretaryView({patients,doctorId,isDemo,onRefresh}){
+function SecretaryView({patients,doctorId,doctor,isDemo,onRefresh}){
   const [secFilter,setSecFilter]=useState("pending");
   const [saving,setSaving]=useState(null);
-  const [satOpen,setSatOpen]=useState(null); // memnuniyet girişi açık hasta id
+  const [satOpen,setSatOpen]=useState(null);
+  const [procDropdown,setProcDropdown]=useState(null); // prosedür seçim açık hasta id
+  const [selectedProcs,setSelectedProcs]=useState({}); // {patientId: [proc1, proc2]}
+
+  const ALL_PROCS=["Burun Estetiği","Meme Küçültme","Meme Büyütme","Meme Dikleştirme","Karın Germe","Liposuction","Üst Göz Kapağı","Alt Göz Kapağı","Botoks","Dolgu","Kol Germe","Yüz Germe","Uyluk Germe","Popo Estetiği","Jinekomasti"];
+  const procList=doctor?.enabled_procedures||ALL_PROCS;
+
+  function toggleProc(patientId,proc){
+    setSelectedProcs(prev=>{
+      const current=prev[patientId]||[];
+      return {...prev,[patientId]:current.includes(proc)?current.filter(x=>x!==proc):[...current,proc]};
+    });
+  }
+
+  const [toast,setToast]=useState(null);
+  function showToast(msg,ok=true){setToast({msg,ok});setTimeout(()=>setToast(null),2500);}
+
+  async function sbUpdate(patientId,data,retries=3){
+    for(let i=0;i<retries;i++){
+      try{
+        const {error}=await sb.from("patients").update(data).eq("id",patientId);
+        if(error) throw error;
+        return true;
+      }catch(e){
+        if(i===retries-1) return false;
+        await new Promise(r=>setTimeout(r,1000*(i+1)));
+      }
+    }
+    return false;
+  }
+
+  async function saveRandevu(patientId){
+    if(isDemo){alert("Demo modunda kayıt yapılamaz.");return;}
+    const procs=selectedProcs[patientId]||[];
+    if(procs.length===0){alert("En az bir prosedür seçin.");return;}
+    setSaving(patientId);
+    const ok=await sbUpdate(patientId,{no_appointment:false,outcome_procedures:procs});
+    setSaving(null);
+    if(ok){
+      setProcDropdown(null);
+      showToast("Randevu kaydedildi ✓");
+      if(onRefresh) onRefresh();
+    } else {
+      showToast("Kayıt başarısız — tekrar deneyin",false);
+    }
+  }
 
   async function markOutcome(patientId,type,extra={}){
     if(isDemo){alert("Demo modunda kayıt yapılamaz.");return;}
     setSaving(patientId);
-    try{
-    if(type==="randevu_aldi"){
-      const p=patients.find(x=>x.id===patientId);
-      const proc=p?.answers?.procedure||"";
-      await sb.from("patients").update({no_appointment:false,outcome_procedures:proc?[proc]:["randevu"]}).eq("id",patientId);
-    } else if(type==="randevu_almadi"){
-      await sb.from("patients").update({no_appointment:true,outcome_procedures:[]}).eq("id",patientId);
-    } else if(type==="islem_yapildi"){
-      const p=patients.find(x=>x.id===patientId);
-      const proc=p?.answers?.procedure||"";
-      await sb.from("patients").update({had_procedure:true,outcome_procedures:proc?[proc]:[],procedure_date:new Date().toISOString().slice(0,10)}).eq("id",patientId);
-    } else if(type==="vazgecti"){
-      await sb.from("patients").update({had_procedure:false,outcome_procedures:[]}).eq("id",patientId);
-    } else if(type==="memnuniyet"){
-      await sb.from("patients").update(extra).eq("id",patientId);
-      setSatOpen(null);
-    }
-    }catch(e){alert("Kayıt güncellenemedi. İnternet bağlantınızı kontrol edin.");}
+    let data={};
+    if(type==="randevu_almadi") data={no_appointment:true,outcome_procedures:[]};
+    else if(type==="islem_yapildi") data={had_procedure:true,procedure_date:new Date().toISOString().slice(0,10)};
+    else if(type==="vazgecti") data={had_procedure:false};
+    else if(type==="memnuniyet") data=extra;
+    else if(type==="geri_al") data={no_appointment:false,had_procedure:null,outcome_procedures:[],satisfaction_1m:null,satisfaction_6m:null};
+
+    const ok=await sbUpdate(patientId,data);
     setSaving(null);
-    if(onRefresh) onRefresh();
+    if(ok){
+      if(type==="memnuniyet") setSatOpen(null);
+      showToast("Kaydedildi ✓");
+      if(onRefresh) onRefresh();
+    } else {
+      showToast("Kayıt başarısız — tekrar deneyin",false);
+    }
   }
 
   const enriched=patients.map(p=>{
@@ -2124,7 +2200,10 @@ function SecretaryView({patients,doctorId,isDemo,onRefresh}){
   const satOptions=["Çok Memnun","Memnun","Kararsız","Memnun Değil"];
 
   return(
-    <div style={{flex:1,overflowY:"auto",padding:"20px 28px 24px"}}>
+    <div style={{flex:1,overflowY:"auto",padding:"20px 28px 24px",position:"relative"}}>
+      {toast&&(
+        <div style={{position:"fixed",top:20,right:20,padding:"12px 20px",borderRadius:10,background:toast.ok?"#059669":"#dc2626",color:"white",fontSize:13,fontWeight:600,zIndex:9999,boxShadow:"0 4px 12px rgba(0,0,0,0.15)",animation:"fadeUp 0.3s ease"}}>{toast.msg}</div>
+      )}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
         <div>
           <div style={{fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#2d5a8e"}}>Sekreter Paneli</div>
@@ -2174,15 +2253,41 @@ function SecretaryView({patients,doctorId,isDemo,onRefresh}){
 
             {/* Adım 1: Randevu aldı mı? */}
             {p.status==="pending"&&(
-              <div style={{display:"flex",gap:6,marginTop:6}}>
-                <button onClick={()=>markOutcome(p.id,"randevu_almadi")} disabled={saving===p.id}
-                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                  ✕ Randevu Almadı
-                </button>
-                <button onClick={()=>markOutcome(p.id,"randevu_aldi")} disabled={saving===p.id}
-                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                  ✓ Randevu Aldı
-                </button>
+              <div>
+                <div style={{display:"flex",gap:6,marginTop:6}}>
+                  <button onClick={()=>markOutcome(p.id,"randevu_almadi")} disabled={saving===p.id}
+                    style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #fecaca",background:"#fef2f2",color:"#dc2626",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                    ✕ Almadı
+                  </button>
+                  <button onClick={()=>{setProcDropdown(procDropdown===p.id?null:p.id);setSelectedProcs(prev=>({...prev,[p.id]:prev[p.id]||[p.procedure].filter(x=>x!=="Belirtilmedi")}));}} disabled={saving===p.id}
+                    style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #bfdbfe",background:"#eff6ff",color:"#2563eb",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                    ✓ Randevu Aldı
+                  </button>
+                </div>
+                {/* Prosedür seçim dropdown */}
+                {procDropdown===p.id&&(
+                  <div style={{marginTop:10,padding:"14px 16px",background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:10}}>
+                    <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:"#7b9ab5",marginBottom:6}}>Hangi prosedürler planlandı?</div>
+                    <div style={{fontSize:12,color:C.muted,marginBottom:8}}>Form prosedürü: <strong style={{color:C.navy}}>{p.procedure}</strong></div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+                      {procList.map(proc=>{
+                        const sel=(selectedProcs[p.id]||[]).includes(proc);
+                        return(
+                          <button key={proc} onClick={()=>toggleProc(p.id,proc)}
+                            style={{padding:"5px 11px",borderRadius:20,fontSize:12,border:`1px solid ${sel?"#1e3a5f":"#d4e1ef"}`,background:sel?"#1e3a5f":"transparent",color:sel?"#f8fafd":"#7b9ab5",cursor:"pointer"}}>
+                            {proc}{proc===p.procedure?" ✓":""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={()=>saveRandevu(p.id)} disabled={saving===p.id}
+                        style={{padding:"9px 20px",background:"#1e3a5f",border:"none",borderRadius:7,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer"}}>Kaydet</button>
+                      <button onClick={()=>setProcDropdown(null)}
+                        style={{padding:"9px 14px",background:"transparent",border:"1px solid #d4e1ef",borderRadius:7,color:"#7b9ab5",fontSize:13,cursor:"pointer"}}>İptal</button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -2197,31 +2302,36 @@ function SecretaryView({patients,doctorId,isDemo,onRefresh}){
                   style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #a7f3d0",background:"#ecfdf5",color:"#059669",fontSize:12,fontWeight:600,cursor:"pointer"}}>
                   ✓ İşlem Yapıldı
                 </button>
+                <button onClick={()=>markOutcome(p.id,"geri_al")} disabled={saving===p.id}
+                  style={{padding:"9px 10px",borderRadius:8,border:"1px solid #d4e1ef",background:"transparent",color:"#7b9ab5",fontSize:11,cursor:"pointer"}}>
+                  ↩ Geri Al
+                </button>
               </div>
             )}
 
             {/* Adım 3: Memnuniyet */}
             {p.status==="islem_yapildi"&&(
-              <button onClick={()=>setSatOpen(satOpen===p.id?null:p.id)}
-                style={{width:"100%",padding:"9px 8px",borderRadius:8,border:"1px solid #c4b5fd",background:"#f5f3ff",color:"#7c3aed",fontSize:12,fontWeight:600,cursor:"pointer",marginTop:6}}>
-                📋 Memnuniyet Gir
-              </button>
+              <div style={{display:"flex",gap:6,marginTop:6}}>
+                <button onClick={()=>setSatOpen(satOpen===p.id?null:p.id)}
+                  style={{flex:1,padding:"9px 8px",borderRadius:8,border:"1px solid #c4b5fd",background:"#f5f3ff",color:"#7c3aed",fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  📋 Memnuniyet Gir
+                </button>
+                <button onClick={()=>markOutcome(p.id,"geri_al")} disabled={saving===p.id}
+                  style={{padding:"9px 10px",borderRadius:8,border:"1px solid #d4e1ef",background:"transparent",color:"#7b9ab5",fontSize:11,cursor:"pointer"}}>
+                  ↩ Geri Al
+                </button>
+              </div>
             )}
 
-              {/* Tamamlanmış — geri alma butonu */}
-              {(p.status==="randevu_almadi"||p.status==="vazgecti"||p.status==="tamamlandi")&&(
-                <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
-                  <button onClick={async()=>{
-                    setSaving(p.id);
-                    try{await sb.from("patients").update({no_appointment:false,had_procedure:null,outcome_procedures:[],satisfaction_1m:null,satisfaction_6m:null}).eq("id",p.id);}catch{}
-                    setSaving(null);
-                    if(onRefresh) onRefresh();
-                  }} disabled={saving===p.id}
-                    style={{fontSize:11,color:"#7b9ab5",background:"transparent",border:"1px solid #d4e1ef",borderRadius:6,padding:"4px 10px",cursor:"pointer"}}>
-                    ↩ Geri Al
-                  </button>
-                </div>
-              )}
+            {/* Tamamlanmış / iptal — geri alma */}
+            {(p.status==="randevu_almadi"||p.status==="vazgecti"||p.status==="tamamlandi")&&(
+              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}>
+                <button onClick={()=>markOutcome(p.id,"geri_al")} disabled={saving===p.id}
+                  style={{fontSize:11,color:"#7b9ab5",background:"transparent",border:"1px solid #d4e1ef",borderRadius:6,padding:"4px 10px",cursor:"pointer"}}>
+                  ↩ Geri Al
+                </button>
+              </div>
+            )}
 
             {/* Memnuniyet girişi paneli */}
             {satOpen===p.id&&(
@@ -2258,7 +2368,7 @@ function SecretaryView({patients,doctorId,isDemo,onRefresh}){
   );
 }
 
-function Analytics({patients}){
+function Analytics({patients,avgRevenue=40000}){
   const total=patients.length;
   if(total===0) return(
     <div style={{textAlign:"center",padding:"60px 20px",color:"#7b9ab5"}}>
@@ -2491,7 +2601,7 @@ function Analytics({patients}){
           {(()=>{
             const estNoShow=Math.round(red*0.7); // kırmızıların ~%70'i randevu almaz
             const estWastedHours=Math.round(estNoShow*0.5*10)/10; // her biri ~30dk konsültasyon
-            const estLostRevenue=estNoShow*15000; // ortalama ameliyat geliri ~15.000₺
+            const estLostRevenue=estNoShow*avgRevenue; // doktorun belirlediği ortalama işlem geliri
             const amberLoss=Math.round(amber*0.3); // sarıların ~%30'u randevu almaz
             const totalLoss=estNoShow+amberLoss;
             return(
@@ -2639,6 +2749,7 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
   const [confirmClear,setConfirmClear]=useState(false);
   const [clinicName,setClinicName]=useState(doctor.clinic_name||"");
   const [clinicSaved,setClinicSaved]=useState(false);
+  const [avgRevenue,setAvgRevenue]=useState(doctor.avg_revenue||40000);
   const [sessionWarning,setSessionWarning]=useState(false);
 
   // Session timeout uyarısı — son 15 dakikada banner göster
@@ -2809,10 +2920,10 @@ function DoctorPanel({doctor,onLogout,demoPatients}){
           ))}
         </div>}
 
-        {tab==="analytics"&&<Analytics patients={patients}/>}
-        {tab==="secretary"&&<SecretaryView patients={patients} doctorId={doctor.id} isDemo={isDemo} onRefresh={loadPatients}/>}
+        {tab==="analytics"&&<Analytics patients={patients} avgRevenue={avgRevenue}/>}
+        {tab==="secretary"&&<SecretaryView patients={patients} doctorId={doctor.id} doctor={doctor} isDemo={isDemo} onRefresh={loadPatients}/>}
         {tab==="value"&&<ValueScreen patients={patients} doctor={doctor}/>}
-        {tab==="settings"&&<SettingsScreen doctor={doctor} onLogout={onLogout} showPw={showPw} setShowPw={setShowPw} newU={newU} setNewU={setNewU} newP={newP} setNewP={setNewP} newP2={newP2} setNewP2={setNewP2} pwErr={pwErr} setPwErr={setPwErr} saveNewCreds={saveNewCreds} confirmClear={confirmClear} setConfirmClear={setConfirmClear} clearAll={clearAll} clinicName={clinicName} setClinicName={setClinicName} clinicSaved={clinicSaved} saveClinicName={saveClinicName} thresholdMode={thresholdMode} setThresholdMode={setThresholdMode}/>}
+        {tab==="settings"&&<SettingsScreen doctor={doctor} onLogout={onLogout} showPw={showPw} setShowPw={setShowPw} newU={newU} setNewU={setNewU} newP={newP} setNewP={setNewP} newP2={newP2} setNewP2={setNewP2} pwErr={pwErr} setPwErr={setPwErr} saveNewCreds={saveNewCreds} confirmClear={confirmClear} setConfirmClear={setConfirmClear} clearAll={clearAll} clinicName={clinicName} setClinicName={setClinicName} clinicSaved={clinicSaved} saveClinicName={saveClinicName} thresholdMode={thresholdMode} setThresholdMode={setThresholdMode} avgRevenue={avgRevenue} setAvgRevenue={setAvgRevenue}/>}
         {tab==="patients"&&<div style={{flex:1,overflowY:"auto",padding:isMobile?"12px 12px 24px":"20px 28px 24px"}}>
           {showPw&&(
             <div style={{background:"#f8fafd",border:"1px solid #d4e1ef",borderRadius:12,padding:"16px 20px",marginBottom:18,animation:"fadeUp 0.25s ease"}}>
@@ -3067,6 +3178,37 @@ const PROFILE_CONTENT={
   },
 };
 
+const EN_PROFILE_CONTENT={
+  analyst:{
+    welcome:"Your research shows. The information below is supported by clinical data — you can discuss the details with your doctor during your consultation.",
+    recoveryIntro:"The recovery process varies depending on the technique used and structural factors. Below you'll find what to expect at each stage.",
+    riskIntro:"Every surgical procedure carries statistically low-frequency risks. Knowing them helps you make more informed decisions throughout the process.",
+    ambassadorMsg:"You made a data-driven decision. If someone in your circle researches with similar thoroughness, recommending the SculptAI assessment form can help them start through the right channel.",
+    ambassadorCTA:"Recommend to a researcher",
+  },
+  trustseeker:{
+    welcome:"Making this decision takes courage. Your questions, concerns, even things you think you don't know — we want you to know that's exactly what the consultation is for.",
+    recoveryIntro:"The recovery process progresses step by step. Knowing what you'll feel and what to do at each stage makes the process much easier.",
+    riskIntro:"Some unexpected situations can occur with any surgery — but the vast majority are temporary and treatable. Your doctor will be with you every step of the way.",
+    ambassadorMsg:"If someone in your life is trying to make this decision, sharing your experience can be a great support. We've prepared a special thank-you for each person who comes with your referral code.",
+    ambassadorCTA:"Recommend to someone who needs support",
+  },
+  social:{
+    welcome:"We see that you're someone people in your circle turn to for aesthetic decisions. As you go through this experience, you'll have the opportunity to guide those close to you.",
+    recoveryIntro:"If you're wondering how you'll look during the process and when you'll return to social life — the timeline below is made for you.",
+    riskIntro:"Having accurate information when talking about the process with your circle is important. Here's what you need to know and can share.",
+    ambassadorMsg:"Welcome to our Brand Ambassador program. When you share your code, you earn VIP consultation priority, special follow-up appointments, and clinic benefits for each patient you bring.",
+    ambassadorCTA:"See exclusive benefits",
+  },
+  pragmatic:{
+    welcome:"The process is clear and predictable. Here's everything you need to know — short and sweet.",
+    recoveryIntro:"Timeline: when what happens, when you return to work.",
+    riskIntro:"3 situations to watch for:",
+    ambassadorMsg:"Share your referral code and earn benefits for each person you refer.",
+    ambassadorCTA:"Share quickly",
+  },
+};
+
 const PROCEDURE_RECOVERY={
   "Burun Estetiği":{
     analyst:{
@@ -3124,8 +3266,90 @@ const PROCEDURE_RECOVERY={
   },
 };
 
+const EN_PROCS_STATIC={"Meme Küçültme":"Breast Reduction","Meme Büyütme (Silikon Protez ile)":"Breast Augmentation (Silicone Implant)","Meme Dikleştirme":"Breast Lift","Meme Asimetrisinin Giderilmesi":"Breast Asymmetry Correction","Meme Onarımı (Kanser sonrası)":"Breast Reconstruction (Post-cancer)","Doğumsal Meme Anomalisinin Düzeltilmesi":"Congenital Breast Anomaly Correction","Jinekomasti":"Gynecomastia","Burun Estetiği":"Rhinoplasty","Yüz Germe":"Facelift","Kaş Kaldırma":"Brow Lift","Üst Göz Kapağı Estetiği":"Upper Eyelid Surgery","Alt Göz Kapağı Estetiği":"Lower Eyelid Surgery","Yanak Estetiği (Bişektomi)":"Buccal Fat Removal","Kepçe Kulak Tedavisi":"Otoplasty","Yüz Yağ Enjeksiyonu":"Facial Fat Transfer","Botoks Uygulaması":"Botox","Dolgu Uygulaması":"Dermal Filler","Göz Altı Işık Dolgusu":"Under-Eye Light Filler","Nano Yağ Enjeksiyonu":"Nano Fat Injection","Mezoterapi":"Mesotherapy","Karın Germe":"Tummy Tuck","Liposuction":"Liposuction","Uyluk veya Kol germe":"Thigh or Arm Lift","Popo estetiği":"Buttock Aesthetics","Genital Estetik":"Genital Aesthetics","Labioplasti":"Labiaplasty","Lazer Epilasyon":"Laser Hair Removal","Lazer Dövme Silme":"Laser Tattoo Removal","Cilt Yenileme (Rejuvenasyon)":"Skin Rejuvenation","Karbon Peeling":"Carbon Peeling","Lazer Leke Tedavisi":"Laser Spot Treatment","Lazer Saç Tedavisi":"Laser Hair Treatment","Kol Germe":"Arm Lift","Kuşak Germe":"Belt Lipectomy","İple Askı Uygulaması":"Thread Lift"};
+
+const EN_PROCEDURE_RECOVERY={
+  "Burun Estetiği":{
+    analyst:{
+      recovery:"The procedure takes 1.5–2 hours. Postoperatively, a thermoplastic splint and nasal packing are applied; packing is removed within 24–48 hours, and the splint on day 7–14. Supine positioning should be avoided in the first 48 hours; cold compresses minimize edema. Ecchymosis regresses from day 3 onward. Dorsal edema fully resolves within 6–12 months; this timeframe should be considered for the final result.",
+      risks:"Early period: nasal discharge (normal in the first 24–48 hours), nausea, packing sensation (temporary). Late period: 5–10% revision likelihood (due to structural limitations), rare respiratory changes. Infection rates are significantly reduced with antibiotic prophylaxis.",
+    },
+    trustseeker:{
+      recovery:"When you wake up from surgery, you'll have a splint and packing on your nose — this is completely normal. The packing is usually removed on day 1–2, and you'll feel relieved. The first 3 days are the toughest, but pain medication helps. From day 3 on, swelling starts to decrease noticeably. The splint comes off at week 1–2, and you'll begin to see the general shape. Be patient for the final result — it can take up to 6 months, but each week it will look a little better.",
+      risks:"There are a few things to know, but all are manageable: Slight drainage from the nose in the first days is normal. The sneezing sensation is from the packing and goes away once it's removed. Rarely, a touch-up may be needed, but that's not a bad outcome — it's something you can discuss with your doctor.",
+    },
+    social:{
+      recovery:"When will you return to social life: Once the cast comes off (week 1–2), you can go out with light makeup. Bruising mostly fades by week 2. By month 1, 80% of people around you won't notice. The final result comes at month 6 — and that's the right time to share.",
+      risks:"You won't be able to wear sunglasses for the first 2 weeks — this is important. Avoid contact sports for up to 8 weeks. Other than that, you can return to daily life almost immediately.",
+    },
+    pragmatic:{
+      recovery:"Day 1–2: splint + packing, rest at home. Day 3–7: bruising fades, light activity. Week 2: splint removed, return to work. Month 1–3: social life normal. Month 6: final result.",
+      risks:"3 critical rules: no glasses for 8 weeks, no sun for 8 weeks, no sports for 2 weeks. Your doctor handles the rest.",
+    },
+  },
+  "Karın Germe":{
+    analyst:{
+      recovery:"Abdominoplasty takes 2–5 hours under general anesthesia. Postoperatively, a drain system remains for 1–3 days; non-absorbable sutures are removed at week 1–3. V-positioning reduces edema; leg movements are critical for embolism prophylaxis. After 2–3 nights of hospital stay, 1 week of home rest is recommended. Heavy physical activity is restricted for 6 weeks; the incision scar begins to fade after month 6 and continues to improve for up to 2 years.",
+      risks:"The most critical risk: thromboembolism (pulmonary embolism). Prophylaxis includes anticoagulants and compression stockings. Seroma formation (5–10%) is managed with drainage. Delayed healing at the incision line correlates with smoking. Permanent hypoesthesia is rare.",
+    },
+    trustseeker:{
+      recovery:"The first day after surgery is the toughest, but you're not alone — pain medication and sleep aids are available if needed. Feeling dizzy when first standing up is normal; get up slowly. From day 3, movement gets easier. You can return to social life from week 2. Sutures are removed at week 1–3. After 6 weeks, you can do almost everything.",
+      risks:"The most important thing: keep your legs moving. This prevents blood clot formation — your team will remind you, but it's good to know yourself. Beyond that, swelling, mild pain, and itching at the incision line are normal in the first months and resolve over time.",
+    },
+    social:{
+      recovery:"When can you do what: Social life returns at week 2, full showers at week 4, sports at week 6. The incision is planned to stay within the bikini line. After month 6, the scar fades significantly.",
+      risks:"No sauna or tanning for the first 6 weeks — to protect your skin. Smoking slows healing, so quitting during this period is very important.",
+    },
+    pragmatic:{
+      recovery:"Hospital: 2–3 nights. Home rest: 1 week. Social life: week 2. Sports: week 6. Sutures: removed at week 1–3.",
+      risks:"Leg movement is essential for embolism prevention. No heavy work, sauna, or sun for 6 weeks.",
+    },
+  },
+  "Liposuction":{
+    analyst:{
+      recovery:"Liposuction is performed under local or general anesthesia; a compression garment is critical for postoperative contouring. Significant edema is expected in the first 48 hours; the final contour develops over 3–6 months. The technique (tumescent, VASER, etc.) is personalized by the surgeon. If skin elasticity is insufficient, additional resection may be required.",
+      risks:"Contour irregularity, seroma, temporary changes in skin sensation. Rare: fat embolism (risk increases with very large area + single session combinations). Skin quality directly affects the outcome.",
+    },
+    trustseeker:{
+      recovery:"The first 2–3 days will be swollen — that's normal. Wearing the compression garment is important — it helps with shaping. From week 2, daily life returns to normal. Wait 3–6 months to see the final shape, but each month it will look a little better.",
+      risks:"There may be temporary numbness in the area, which resolves over time. Slight skin irregularity can rarely occur. These are manageable situations you can discuss with your doctor.",
+    },
+    social:{
+      recovery:"Social life at week 2, pool at week 4. Contour starts to become defined at month 3. Month 6 is the right time to share.",
+      risks:"Don't skip the compression garment — it directly affects the result. No sun or sauna for 6 weeks.",
+    },
+    pragmatic:{
+      recovery:"First week: rest. Week 2: work. Month 3–6: final contour. Compression garment is a must.",
+      risks:"3 rules: Compression garment every day, no sun for 6 weeks, no excess salt (causes swelling).",
+    },
+  },
+};
+
 // Diğer prosedürler için default profil içeriği
-function getPersonalizedContent(proc,profile,section){
+function getPersonalizedContent(proc,profile,section,lang){
+  if(lang==="en"){
+    const enData=EN_PROCEDURE_RECOVERY[proc]?.[profile];
+    if(enData&&enData[section]) return enData[section];
+    const enFallbacks={
+      analyst:{
+        recovery:`Post-${EN_PROCS_STATIC[proc]||proc} recovery varies depending on the technique used and individual factors. Early swelling and bruising are expected; your doctor will share a personalized timeline during consultation.`,
+        risks:`Complications related to ${EN_PROCS_STATIC[proc]||proc} will be comprehensively addressed during your pre-operative evaluation. Your personal risk profile will be assessed based on your health status.`,
+      },
+      trustseeker:{
+        recovery:`After your ${EN_PROCS_STATIC[proc]||proc} procedure, you'll know what to expect at every step. The first few days may be the toughest, but with pain management and our team's support, you'll get through comfortably. Swelling decreases over time, and you'll feel better each day.`,
+        risks:`Most situations that may occur after ${EN_PROCS_STATIC[proc]||proc} are temporary and manageable. Don't hesitate to call your doctor if you notice anything — our team is with you every step of the way.`,
+      },
+      social:{
+        recovery:`Your timeline for returning to social life after ${EN_PROCS_STATIC[proc]||proc} will be clarified during consultation. When people around you stop noticing is a sign that your recovery is largely complete.`,
+        risks:`Having accurate information about ${EN_PROCS_STATIC[proc]||proc} when talking with your circle is important. Your doctor will share reliable information you can pass along.`,
+      },
+      pragmatic:{
+        recovery:`${EN_PROCS_STATIC[proc]||proc}: Timeline will be shared clearly during consultation. Key restrictions and return-to-work timeline will be summarized by your doctor.`,
+        risks:`Key points will be covered in consultation. Follow post-op instructions and you'll be fine.`,
+      },
+    };
+    return enFallbacks[profile]?.[section]||"";
+  }
   const procData=PROCEDURE_RECOVERY[proc]?.[profile];
   if(procData&&procData[section]) return procData[section];
   const fallbacks={
@@ -3282,21 +3506,13 @@ function PatientForm({doctorId}){
         "Belirgin bir fark var ve bu beni çok rahatsız ediyor":"There's a noticeable difference and it bothers me a lot",
         "Çok küçük bir fark var ama bu küçük fark bile beni rahatsız ediyor":"Even a very small difference bothers me",
         "Fark olduğunu düşünmüyorum, sadece küçültmek/büyütmek istiyorum":"I don't see a difference, just want to resize"}},
-      otherConsidered:{label:"Have you considered any other aesthetic procedures?",options:{
-        "Hayır":"No",
-        "Evet, düşündüm ama erteledim":"Yes, I considered but postponed",
-        "Evet, bu işlemle aynı anda değerlendiriyorum":"Yes, considering alongside this procedure",
-        "Evet, gelecekte yapmayı planlıyorum":"Yes, planning for the future"}},
-      bodyFocus:{label:"How often do you think about this area in daily life?",options:{
-        "Nadiren aklıma gelir":"Rarely crosses my mind",
-        "Zaman zaman düşünürüm":"I think about it from time to time",
-        "Sık sık düşünürüm, ama kontrol altında":"Often, but it's under control",
-        "Neredeyse her gün, bazen işimi gücümü etkiliyor":"Almost every day, sometimes affects my work"}},
-      avoidance:{label:"Do you avoid certain situations because of this concern?",options:{
-        "Hayır, hayatımı etkilemiyor":"No, it doesn't affect my life",
-        "Bazen dikkatimi dağıtıyor":"It sometimes distracts me",
-        "Bazı sosyal ortamlardan kaçınıyorum":"I avoid some social situations",
-        "Günlük hayatımı önemli ölçüde kısıtlıyor":"It significantly limits my daily life"}},
+      bddScreen:{label:"How do thoughts about your appearance affect your daily life?",options:{
+        "Pek etkilemiyor, bazen düşünüyorum":"Not much, I think about it sometimes",
+        "Sıkça düşünüyorum ama hayatımı yönlendirmiyor":"I think about it often but it doesn't control my life",
+        "Günde saatlerce düşünüyorum, sosyal hayatımı etkiliyor":"I think about it for hours daily, it affects my social life",
+        "Tamamen ele geçirdi, kaçınma davranışlarım var":"It has completely taken over, I have avoidance behaviors"}},
+      source:{label:"How did you find us?",options:{
+        "Instagram":"Instagram","Google Arama":"Google Search","Arkadaş / Tanıdık Tavsiyesi":"Friend / Referral","TikTok":"TikTok","YouTube":"YouTube","Doktor Yönlendirmesi":"Doctor Referral","Diğer":"Other"}},
       motivation:{label:"What is your primary motivation for this procedure?",options:{
         "Kendim için daha iyi hissetmek istiyorum":"I want to feel better about myself",
         "Özgüvenimi artırmak istiyorum":"I want to boost my self-confidence",
@@ -3307,16 +3523,6 @@ function PatientForm({doctorId}){
         "Dengeli ve orantılı bir sonuç bekliyorum":"I expect a balanced and proportional result",
         "Belirgin bir fark olmasını istiyorum":"I want a noticeable difference",
         "Tamamen farklı bir görünüm istiyorum":"I want a completely different look"}},
-      selfEsteem:{label:"Are you generally satisfied with yourself?",options:{
-        "Evet, kendimden genel olarak memnunum":"Yes, I'm generally satisfied",
-        "Çoğunlukla memnunum, bazı konularda değil":"Mostly satisfied, not in some areas",
-        "Kendimden pek memnun değilim":"I'm not very satisfied with myself",
-        "Hayır, kendimle barışık değilim":"No, I'm not at peace with myself"}},
-      imagineAfter:{label:"When you imagine life after this procedure, what do you see?",options:{
-        "Kendimi daha özgüvenli ve hafif hayal ediyorum":"I imagine feeling more confident and lighter",
-        "Belirli bir fiziksel değişikliği hayal ediyorum":"I imagine a specific physical change",
-        "Hayatımın daha iyi gideceğini hayal ediyorum":"I imagine my life getting better",
-        "Çevremin tepkisini ve beğenisini hayal ediyorum":"I imagine reactions and approval from others"}},
       decisionDuration:{label:"How long have you been thinking about this procedure?",options:{
         "Yeni karar verdim — heyecanlı ve kararlı hissediyorum":"I just decided — I feel excited and determined",
         "Birkaç aydır düşünüyorum — hazır olduğumu hissediyorum":"Been thinking for a few months — I feel ready",
@@ -3348,10 +3554,6 @@ function PatientForm({doctorId}){
         "Evet, açıkça paylaşırım":"Yes, I'd share openly",
         "Sadece çok yakınlarımla":"Only with close friends/family",
         "Hayır, paylaşmam":"No, I wouldn't share"}},
-      socialInfluence:{label:"Do people consult you about aesthetic decisions?",options:{
-        "Evet, sık sık danışırlar":"Yes, they often ask my advice",
-        "Bazen danışanlar olur":"Sometimes people ask",
-        "Hayır, danışmazlar":"No, they don't ask"}},
       phone:{label:"Your phone number (for appointment)"},
       openStory:{label:"Is there anything else you'd like to share? (Optional)"},
     },
@@ -3363,7 +3565,617 @@ function PatientForm({doctorId}){
       "Karın Germe":"Tummy Tuck","Liposuction":"Liposuction","Uyluk veya Kol germe":"Thigh or Arm Lift","Popo estetiği":"Buttock Aesthetics",
       "Genital Estetik":"Genital Aesthetics","Labioplasti":"Labiaplasty",
       "Lazer Epilasyon":"Laser Hair Removal","Lazer Dövme Silme":"Laser Tattoo Removal","Cilt Yenileme (Rejuvenasyon)":"Skin Rejuvenation","Karbon Peeling":"Carbon Peeling","Lazer Leke Tedavisi":"Laser Spot Treatment","Lazer Saç Tedavisi":"Laser Hair Treatment",
-    }
+    },
+    procInfo:{
+      "default":{
+        desc:"Our expert team will prepare a personalized plan for you.",
+        stats:[{val:"Variable",lbl:"Duration"},{val:"Variable",lbl:"Recovery"},{val:"6–12 months",lbl:"Result"}],
+        timeline:[
+          {time:"Surgery day",title:"Surgery & Recovery",desc:"Our team will keep you informed throughout the process."},
+          {time:"First week",title:"Healing begins",desc:"Rest and following your doctor's instructions are critical during this period."},
+          {time:"6–12 months",title:"Final result",desc:"The final shape emerges gradually over time."}
+        ],
+        prep:["Inform your doctor about all medications you are taking","Write down your questions for the consultation"],
+        normal:["Mild swelling and discomfort may occur in the first few days","Swelling begins to subside from day 3 onward"],
+        followup:"Follow-up appointments"
+      },
+      "Burun Estetiği":{
+        desc:"Correcting the size and shape of the nose to improve both appearance and breathing issues.",
+        stats:[{val:"1.5–2 hours",lbl:"Duration"},{val:"1–2 weeks",lbl:"Recovery"},{val:"6–12 months",lbl:"Result"}],
+        timeline:[
+          {time:"Surgery day",title:"Surgery & Recovery",desc:"1.5–2 hour procedure. A thermoplastic splint and packing will be placed on your nose."},
+          {time:"Day 1–2",title:"Rest & Cold Compress",desc:"Apply cold compresses for 15 min every 2 hours to reduce swelling. Packing is removed during this period."},
+          {time:"Day 3–7",title:"Bruising Fades",desc:"Swelling and bruising diminish rapidly. Daily activities can be gradually resumed."},
+          {time:"Week 1–2",title:"Splint Removed",desc:"The splint is removed and thin tape is applied for about one more week. The general shape of your nose becomes visible."},
+          {time:"Month 6–12",title:"Final Result",desc:"Your nose takes its final shape. Before-and-after comparisons can be made."}
+        ],
+        prep:["Avoid contact sports and wearing glasses for the first 2 weeks after surgery","Avoid sauna, tanning beds, and sun exposure for 8 weeks","Swimming and individual sports may be resumed from week 2 onward","Write down your questions for the consultation"],
+        normal:["Mild nausea and dizziness may occur in the first few days","Slight drainage from the nose is normal in the first 24–48 hours","Your nose may appear more swollen in the morning and decrease throughout the day","Mild numbness at the tip of the nose may persist for several months"],
+        followup:"Follow-up at 1, 3, 6, and 12 months"
+      },
+      "Karın Germe":{
+        desc:"A surgical procedure that removes excess fat and sagging skin from the mid and lower abdomen while tightening the abdominal muscles.",
+        stats:[{val:"2–5 hours",lbl:"Duration"},{val:"2–3 nights",lbl:"Hospital"},{val:"6 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"2–5 hours. Drains are placed and an abdominal binder is applied."},
+          {time:"Day 1–2",title:"Most Intensive Period",desc:"Pain medication support. Rest in a V-position. Leg exercises are important."},
+          {time:"Day 3–7",title:"Swelling Decreases",desc:"Drains are removed. Mobility improves. Transition from liquids to normal diet."},
+          {time:"Week 2–6",title:"Return to Social Life",desc:"Social activities from week 2. No heavy lifting for 6 weeks."},
+          {time:"6+ months",title:"Final Result",desc:"The incision scar begins to fade from month 6 and continues to improve for up to 2 years."}
+        ],
+        prep:["If you smoke, stop at least 2 weeks before surgery","If you take vitamin E, discontinue during this period","Avoid pools and the sea for 4 weeks","Avoid sauna, tanning beds, and sun exposure for 6 weeks"],
+        normal:["The body retains fluid in the first 2 days, making movement difficult","You may feel dizzy when first standing — get up slowly","The incision line may be red and itchy for the first 3–4 months","Temporary numbness below the navel area is possible"],
+        followup:"Follow-up at 1, 3, 6, and 12 months"
+      },
+      "Üst Göz Kapağı Estetiği":{
+        desc:"Correcting sagging and loose upper eyelid skin for a more youthful and refreshed appearance.",
+        stats:[{val:"Local Anesthesia",lbl:"Anesthesia"},{val:"Day 3–4",lbl:"Bandages Removed"},{val:"6 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure & Recovery",desc:"Local anesthesia. Bandages will be placed on the eyelids. You go home the same day."},
+          {time:"Day 1–2",title:"Cold Compress",desc:"Apply cold compresses for 20 minutes every hour. Rest with your head elevated."},
+          {time:"Day 3–4",title:"Bandages Removed",desc:"Swelling begins to subside. Bandages are removed on day 4. You can wash around the eyes."},
+          {time:"Week 2–4",title:"Normalization",desc:"Bruising fades. Eyes begin to look more open. Light makeup is possible."},
+          {time:"6+ weeks",title:"Final Appearance",desc:"The final result becomes visible after 6 weeks."}
+        ],
+        prep:["Since local anesthesia is used, fasting is not required","Avoid lying down and strenuous activities for 4 hours after the procedure","Wear sunglasses","Avoid sauna and tanning beds for 6 weeks"],
+        normal:["Swelling and bruising around the eyes may increase in the first 2–3 days","Eyes may be more swollen in the morning and improve during the day","You may feel tightness around the eyes when exposed to wind or sun in the first weeks","A slight pulling sensation at the corner of the eye may be more noticeable in the first week"],
+        followup:"Follow-up 15 days after the procedure"
+      },
+      "Alt Göz Kapağı Estetiği":{
+        desc:"Correcting fat deposits and sagging of the lower eyelid for a more rested and youthful appearance.",
+        stats:[{val:"General Anesthesia",lbl:"Anesthesia"},{val:"Day 3–4",lbl:"Bandages Removed"},{val:"6 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure",desc:"Performed under general anesthesia. Typically requires 1–2 nights' stay."},
+          {time:"Day 1–3",title:"Cold Compress",desc:"Regular cold compresses help keep swelling under control."},
+          {time:"Day 4–7",title:"Bandages Removed",desc:"Swelling noticeably decreases. Return to daily activities begins."},
+          {time:"6 weeks",title:"Final Appearance",desc:"The final result becomes visible."}
+        ],
+        prep:["Avoid sauna and tanning beds for 6 weeks","Wear sunglasses"],
+        normal:["Swelling and bruising may increase in the first 2–3 days","Eyes may be more swollen in the morning","You may feel tightness around the eyes in the first few weeks"],
+        followup:"Follow-up 15 days after the procedure"
+      },
+      "Botoks Uygulaması":{
+        desc:"A quick, non-surgical treatment that temporarily relaxes facial muscles to reduce wrinkles.",
+        stats:[{val:"10–15 min",lbl:"Duration"},{val:"3–7 days",lbl:"Effect Begins"},{val:"3–4 months",lbl:"Effect Duration"}],
+        timeline:[
+          {time:"Treatment day",title:"Application",desc:"10–15 minutes. Painless. You go home the same day."},
+          {time:"Day 3–7",title:"Effect Begins",desc:"Wrinkles start to diminish. Facial muscles gradually relax."},
+          {time:"Week 2–4",title:"Full Effect",desc:"The full effect of Botox is seen at 2–4 weeks."},
+          {time:"Month 3–4",title:"Time for Retreatment",desc:"The effect gradually fades. With repeated treatments, the effect can last up to 12 months."}
+        ],
+        prep:["Do not use your facial muscles for 4 hours after the treatment","Do not lie down for 4 hours after the treatment","Do not massage the injection sites for 2 days","Take a break from intense exercise for 2 days"],
+        normal:["Redness, bruising, or mild swelling may occur for 1–2 days","A mild headache may be felt in the first week after treatment","The effect begins within 3–7 days depending on the individual"],
+        followup:"Touch-up at 15 days if needed"
+      },
+      "Dolgu Uygulaması":{
+        desc:"A hyaluronic acid-based treatment that adds volume and fills grooves in various areas of the face.",
+        stats:[{val:"15–30 min",lbl:"Duration"},{val:"1–2 days",lbl:"Recovery"},{val:"6–18 months",lbl:"Effect Duration"}],
+        timeline:[
+          {time:"Treatment day",title:"Application",desc:"Painless with topical anesthetic cream. You go home the same day."},
+          {time:"Day 1–3",title:"Swelling Period",desc:"Slightly more swelling than normal is expected, especially in the lips."},
+          {time:"Week 1–2",title:"Final Appearance",desc:"Swelling resolves and the lasting result appears."}
+        ],
+        prep:["Avoid blood thinners for 10 days before the procedure","Avoid excessive heat and steam","Do not massage the area after the application"],
+        normal:["Swelling and bruising may occur in the first 2 days","Swelling may be more noticeable with lip filler","Temporary tightness in the treated area may be felt"],
+        followup:"Follow-up at 2 weeks if needed"
+      },
+      "Liposuction":{
+        desc:"Body contouring by vacuum removal of localized fat deposits that are resistant to diet and exercise.",
+        stats:[{val:"Variable",lbl:"Duration"},{val:"2–3 days",lbl:"Hospital"},{val:"3–6 months",lbl:"Result"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"Compression garment is applied. Drains may be placed."},
+          {time:"Day 1–3",title:"Intense Swelling",desc:"The body retains fluid. Wear the compression garment continuously."},
+          {time:"Week 1–2",title:"Recovery",desc:"Mobility returns to normal. Return to social life begins."},
+          {time:"Month 3–6",title:"Final Contour",desc:"The body takes its new shape. The final result appears."}
+        ],
+        prep:["The compression garment must be worn continuously after surgery","Avoid pools and the sea for 4 weeks","Avoid sauna and tanning beds for 6 weeks"],
+        normal:["Significant swelling and bruising may occur in the first 2–3 days","Temporary irregularities on the skin surface are possible","Numbness or sensitivity will resolve over time"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Meme Dikleştirme":{
+        desc:"Lifting and reshaping sagging breasts, with the option to add implants if needed.",
+        stats:[{val:"2–4 hours",lbl:"Duration"},{val:"1–2 nights",lbl:"Hospital"},{val:"6 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General anesthesia. A support bra is applied."},
+          {time:"Day 1–3",title:"Rest",desc:"Arm movement is restricted. Pain medication support."},
+          {time:"Week 2–4",title:"Normalization",desc:"Swelling decreases, arm movement returns to normal. Light activities resume."},
+          {time:"6+ weeks",title:"Final Appearance",desc:"Swelling fully resolves and the final shape appears."}
+        ],
+        prep:["Wear the support bra continuously after surgery","Avoid pools for 4 weeks","Avoid heavy arm exercises for 6 weeks"],
+        normal:["Temporary changes in nipple sensation may occur","Firmness and swelling in the breast area are normal in the first days","Incision scars may be more visible in the first 3–4 months"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Meme Küçültme":{
+        desc:"Reducing and reshaping large, sagging breasts to relieve back pain and improve posture.",
+        stats:[{val:"2–4 hours",lbl:"Duration"},{val:"1–2 nights",lbl:"Hospital"},{val:"6 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General anesthesia. A support bra is applied."},
+          {time:"Week 1–2",title:"Recovery",desc:"Swelling decreases. Arm movement returns to normal."},
+          {time:"6 weeks",title:"Final Appearance",desc:"The new breast shape settles. Scars begin to fade."}
+        ],
+        prep:["Wear the support bra continuously","Avoid heavy sports and arm exercises for 6 weeks"],
+        normal:["Temporary changes in nipple sensation may occur","Incision scars may be visible in the first months","Mild swelling and firmness are normal"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Meme Büyütme (Silikon Protez ile)":{
+        desc:"Increasing breast volume with silicone implants to achieve the desired fullness and shape.",
+        stats:[{val:"1–2 hours",lbl:"Duration"},{val:"1 night",lbl:"Hospital"},{val:"3–6 months",lbl:"Result"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General anesthesia. A support bra is applied."},
+          {time:"Day 1–7",title:"Rest",desc:"Do not raise your arms. Pain medication support."},
+          {time:"Month 3–6",title:"Implant Settles",desc:"The implant integrates with the tissue and the final shape appears."}
+        ],
+        prep:["Wear the support bra continuously","Do not raise your arms during the first week"],
+        normal:["Firmness and tightness in the first week are normal","Temporary numbness around the implant area may occur","Swelling noticeably decreases by week 3–4"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Kol Germe":{
+        desc:"Removing sagging skin and excess fat from the back and inner arm to reshape the arm contour.",
+        stats:[{val:"General Anesthesia",lbl:"Anesthesia"},{val:"Day 10–14",lbl:"Sutures"},{val:"6 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"Excess skin and fat tissue are removed through an incision from the armpit. Drains are placed."},
+          {time:"Day 1–3",title:"Rest",desc:"Drains are removed. Arm movement is restricted."},
+          {time:"Week 1–2",title:"Sutures Removed",desc:"Sutures are removed on day 10–14. Swelling decreases."},
+          {time:"6 weeks",title:"Recovery",desc:"Return to heavy arm exercises is possible."}
+        ],
+        prep:["Avoid pools and the sea for 4 weeks","Avoid heavy arm work for 6 weeks","If you smoke, quit during the surgical period"],
+        normal:["Significant swelling may occur in the first 2 days","The incision scar may be red and itchy in the first 3–4 months","Temporary numbness in the arm may be felt"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Uyluk veya Kol germe":{
+        desc:"Surgical correction of sagging skin and excess fat in the thigh or arm area.",
+        stats:[{val:"General Anesthesia",lbl:"Anesthesia"},{val:"1–2 nights",lbl:"Hospital"},{val:"6 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General anesthesia. Drains are placed."},
+          {time:"Day 1–3",title:"Rest",desc:"Drains are removed. Rest in a V-position."},
+          {time:"Week 1–2",title:"Sutures Removed",desc:"Sutures are removed on day 12–14."},
+          {time:"6 weeks",title:"Recovery",desc:"Return to heavy activities is possible."}
+        ],
+        prep:["Begin eating soft foods 3–4 days beforehand","Avoid pools and the sea for 4 weeks","Avoid sauna and tanning beds for 6 weeks"],
+        normal:["Significant swelling in the first 2 days","The suture line may be red in the first months","Temporary numbness in the area may be felt"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Kuşak Germe":{
+        desc:"A comprehensive surgery that corrects sagging skin and excess fat around the entire abdomen, waist, hips, and tailbone area.",
+        stats:[{val:"2–6 hours",lbl:"Duration"},{val:"1–5 nights",lbl:"Hospital"},{val:"6 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"2–6 hours. Circumferential incision. Binder is applied."},
+          {time:"Day 1–3",title:"Intensive Care",desc:"Leg exercises are very important. Rest in a V-position."},
+          {time:"Day 3–7",title:"Swelling Decreases",desc:"Drains are removed. Mobility improves."},
+          {time:"6 weeks",title:"Recovery",desc:"Return to heavy sports and activities is possible."}
+        ],
+        prep:["If you smoke, stop at least 2 weeks beforehand","If you take vitamin E, discontinue","Avoid pools and the sea for 4 weeks","Avoid heavy sports and activities for 6 weeks"],
+        normal:["Intense swelling in the first 2 days is normal","You may feel dizzy when first standing — get up slowly","The incision line may be prominent and itchy in the first months","Temporary numbness in the area may be felt"],
+        followup:"Follow-up at 1, 3, 6, and 12 months"
+      },
+      "İple Askı Uygulaması":{
+        desc:"Lifting sagging facial tissues to their natural anatomical position using specialized threads.",
+        stats:[{val:"Sedation",lbl:"Anesthesia"},{val:"Same day",lbl:"Hospital"},{val:"Variable",lbl:"Result Duration"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure",desc:"Sedation or local anesthesia. You go home the same day."},
+          {time:"Week 1–2",title:"Initial Result",desc:"Swelling subsides. The effect of the threads becomes visible."},
+          {time:"Month 1–3",title:"Final Appearance",desc:"The final result settles. A natural and refreshed look."}
+        ],
+        prep:["Avoid hard foods on the first day after the procedure","Avoid excessive facial expressions","Follow the massage recommendations"],
+        normal:["Small dimples or indentations may occur after the procedure and will resolve","A mild burning sensation in the temple area is normal","Slight facial asymmetry in the first week is possible and will correct itself"],
+        followup:"Follow-up at 1 month and 3 months"
+      },
+      "Yüz Germe":{
+        desc:"Surgical correction of sagging in the face and neck.",
+        stats:[{val:"3–5 hours",lbl:"Duration"},{val:"1–2 nights",lbl:"Hospital"},{val:"2–4 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General or sedation anesthesia. Bandages are applied."},
+          {time:"Day 1–7",title:"Rest",desc:"Keep head elevated. Swelling and bruising are at their peak."},
+          {time:"Week 2–4",title:"Normalization",desc:"Swelling and bruising resolve. Return to social life."},
+          {time:"Month 3–6",title:"Final Appearance",desc:"The final result settles. Incision scars are hidden at the hairline and behind the ears."}
+        ],
+        prep:["If you smoke, quit","Avoid sauna and tanning beds for 6 weeks"],
+        normal:["Significant facial swelling and bruising in the first week","Temporary numbness at the hairline is possible","A tightness sensation around the ears will resolve over time"],
+        followup:"Follow-up at 1 and 3 months"
+      },
+      "Popo estetiği":{
+        desc:"Enhancing the shape and volume of the buttocks through fat injection or implants.",
+        stats:[{val:"1–3 hours",lbl:"Duration"},{val:"1–2 nights",lbl:"Hospital"},{val:"3–6 months",lbl:"Result"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General anesthesia. Compression garment is applied."},
+          {time:"Week 2–4",title:"Sitting Restricted",desc:"Avoid prolonged sitting and lying on your back."},
+          {time:"Month 3–6",title:"Final Shape",desc:"Fat retention stabilizes and the final shape settles."}
+        ],
+        prep:["Wear the compression garment continuously","Limit sitting activities for 2–4 weeks"],
+        normal:["Sitting discomfort may occur in the first weeks","Some of the injected fat will be absorbed — this is normal","Temporary firmness and sensitivity in the area are possible"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Jinekomasti":{
+        desc:"Surgical or liposuction correction of enlarged breast tissue in men.",
+        stats:[{val:"1–2 hours",lbl:"Duration"},{val:"1 night",lbl:"Hospital"},{val:"6 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General or sedation anesthesia. Compression garment is applied."},
+          {time:"Day 1–7",title:"Rest",desc:"Wear the compression garment continuously. Arm movement is restricted."},
+          {time:"6 weeks",title:"Recovery",desc:"The final result settles. Return to heavy exercise is possible."}
+        ],
+        prep:["Wear the compression garment continuously","Avoid heavy arm exercises for 6 weeks"],
+        normal:["Swelling and sensitivity in the first week are normal","Temporary numbness around the nipple area may occur","The incision scar is hidden around the nipple"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Meme Asimetrisinin Giderilmesi":{
+        desc:"Surgical correction of differences in size, shape, or position between the breasts. Unilateral or bilateral intervention may be planned.",
+        stats:[{val:"2–4 hours",lbl:"Duration"},{val:"1–2 nights",lbl:"Hospital"},{val:"6–12 months",lbl:"Result"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General anesthesia. Unilateral or bilateral intervention depending on the type of asymmetry."},
+          {time:"Day 1–3",title:"Rest",desc:"Wear the support bra continuously. Arm movement is restricted."},
+          {time:"Week 2–4",title:"Normalization",desc:"Swelling decreases. Light activities resume. The difference between breasts begins to diminish."},
+          {time:"Month 3–6",title:"Shape Settles",desc:"Swelling fully resolves and tissues settle."},
+          {time:"Month 6–12",title:"Final Result",desc:"Final symmetry appears. Incision scars begin to fade."}
+        ],
+        prep:["Wear the support bra continuously","Avoid pools for 4 weeks","Avoid heavy arm exercises for 6 weeks","Document the size difference between breasts with photographs"],
+        normal:["Swelling differences between the two breasts in the first weeks are temporary","Temporary changes in nipple sensation may occur","Incision scars may be prominent in the first 3–4 months","Perfect symmetry cannot be anatomically guaranteed — significant improvement is the goal"],
+        followup:"Follow-up at 1, 3, 6, and 12 months"
+      },
+      "Meme Onarımı (Kanser sonrası)":{
+        desc:"Surgical reconstruction of breast tissue lost after breast cancer surgery. Implants or your own tissue may be used.",
+        stats:[{val:"2–6 hours",lbl:"Duration"},{val:"2–5 nights",lbl:"Hospital"},{val:"6–12 months",lbl:"Result"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General anesthesia. May take 2–6 hours depending on the method."},
+          {time:"Day 1–5",title:"Hospital Monitoring",desc:"Drains may be placed. Pain management and early mobilization."},
+          {time:"Week 2–6",title:"Recovery",desc:"Drains are removed. Gradual return to daily activities."},
+          {time:"Month 3–6",title:"Shaping",desc:"If needed, a second stage (nipple reconstruction, symmetry correction)."},
+          {time:"Month 6–12",title:"Final Appearance",desc:"The final result appears when all stages are completed."}
+        ],
+        prep:["Coordination with your oncology team will be ensured","Wear the support bra continuously","Inform your surgeon if you have a radiotherapy plan","Avoid heavy arm exercises for 6 weeks"],
+        normal:["Prolonged numbness in the reconstruction area is possible","If an implant is used, the settling process takes 3–6 months","If a flap is used, there will also be a healing process at the donor site","The process may require multiple surgeries — this is normal"],
+        followup:"Coordinated follow-up with the oncology and plastic surgery team"
+      },
+      "Doğumsal Meme Anomalisinin Düzeltilmesi":{
+        desc:"Surgical correction of congenital breast development disorders such as tuberous breast, Poland syndrome, and asymmetry.",
+        stats:[{val:"2–4 hours",lbl:"Duration"},{val:"1–2 nights",lbl:"Hospital"},{val:"6–12 months",lbl:"Result"}],
+        timeline:[
+          {time:"Surgery day",title:"Procedure",desc:"General anesthesia. A personalized plan based on the type of anomaly."},
+          {time:"Day 1–3",title:"Rest",desc:"A support bra is applied. Arm movement is restricted."},
+          {time:"Week 2–6",title:"Recovery",desc:"Swelling decreases. Gradual return to daily activities."},
+          {time:"Month 6–12",title:"Final Result",desc:"The final appearance emerges when all stages are completed."}
+        ],
+        prep:["Wear the support bra continuously","Avoid pools for 4 weeks","Avoid heavy arm exercises for 6 weeks"],
+        normal:["Swelling and sensitivity may be significant in the first weeks","Temporary changes in nipple sensation may occur","Multiple surgical stages may be required","Incision scars are prominent initially but fade over time"],
+        followup:"Follow-up at 1, 3, 6, and 12 months"
+      },
+      "Lazer Epilasyon":{
+        desc:"Laser light is absorbed by the melanin in the hair follicle, converting to heat and disabling the root. Multiple sessions are needed since only hairs in the active growth phase are targeted. Results vary by skin type, hair structure, and hormonal status.",
+        stats:[{val:"15–60 min",lbl:"Session Duration"},{val:"Avg. 6 sessions",lbl:"Recommended Sessions"},{val:"4–8 weeks",lbl:"Session Interval"}],
+        timeline:[
+          {time:"Session 1",title:"Getting Started",desc:"First application. A mild stinging sensation may occur. Redness lasts a few hours."},
+          {time:"Week 1–3",title:"Initial Shedding",desc:"Treated hairs begin to fall out. Do not pluck or pull."},
+          {time:"Session 2–4",title:"Visible Reduction",desc:"Hair density noticeably decreases. Thinning is evident in some areas."},
+          {time:"Session 6–10",title:"Target Result",desc:"Permanent hair reduction is achieved. 1–2 maintenance sessions per year may suffice."}
+        ],
+        prep:["Avoid waxing, tweezing, or epilators that remove the hair root for 4–6 weeks beforehand","Avoid tanning — the lighter the skin tone, the more effective the laser","Shave 3 days before the session — hair length should be about 1 mm","Avoid chemical peels or hair bleaching products","Do not apply cream, deodorant, or perfume to the area on session day"],
+        normal:["Mild redness, swelling, and temporary sensitivity resolve within hours to days","Avoid sun exposure, hot water, and saunas for the first 24–48 hours","Do not use wax, tweezers, or epilators for at least 4 weeks — shaving is safe","Soothe the skin with fragrance-free, hypoallergenic moisturizers and aloe vera","Hormonal changes (pregnancy, medication) can trigger new hair growth — maintenance sessions may be needed","Contact your physician if you experience severe pain, blistering, or a reaction lasting more than 7 days"],
+        followup:"Assessment before each session"
+      },
+      "Lazer Dövme Silme":{
+        desc:"FDA-approved laser technology penetrates color pigments beneath the skin, breaking them down for absorption by the immune system. The tattoo's color, size, and depth affect the result.",
+        stats:[{val:"15–45 min",lbl:"Session Duration"},{val:"6–12 sessions",lbl:"Recommended Sessions"},{val:"6–8 weeks",lbl:"Session Interval"}],
+        timeline:[
+          {time:"Session 1",title:"Getting Started",desc:"First application. A stinging sensation may occur. Whitening and mild swelling in the area are normal."},
+          {time:"Week 2–4",title:"Healing",desc:"Crusting may occur — do not pick at it. The area heals on its own."},
+          {time:"Session 3–6",title:"Fading Begins",desc:"The tattoo begins to fade noticeably. Each session breaks down more pigment."},
+          {time:"Session 6–12",title:"Target Result",desc:"Most of the tattoo is removed. Complete removal depends on color and depth."}
+        ],
+        prep:["Avoid tanning and tanning beds for 2–4 weeks before the session — the lighter the skin, the stronger the effect","Do not apply cream or lotion to the area before the session","Inform us if you take blood thinners","Discuss your expectations with your doctor — complete removal may not be possible with lighter-colored tattoos"],
+        normal:["Whitening (frosting) after the session is normal and resolves in 15–30 minutes","Mild crusting and itching may last 1–2 weeks — do not pick at the scabs","Black and dark blue are the easiest colors to remove; white, yellow, red, and green are the most difficult","Line tattoos respond faster than solid filled designs","Professional tattoos may require more sessions than amateur ones","Allergic reactions are very rare, but contact your physician if one occurs"],
+        followup:"Assessment before each session — progress evaluation"
+      },
+      "Cilt Yenileme (Rejuvenasyon)":{
+        desc:"Fractional CO2 laser creates microscopic channels in the skin, triggering the natural healing mechanism and collagen production. Effective for anti-aging, acne scars, stretch marks, and dark spots.",
+        stats:[{val:"30–60 min",lbl:"Session Duration"},{val:"3–6 sessions",lbl:"Recommended Sessions"},{val:"4–6 weeks",lbl:"Session Interval"}],
+        timeline:[
+          {time:"Session day",title:"Application",desc:"Painless with topical anesthesia. Redness and mild burning sensation after the session are normal."},
+          {time:"Day 3–7",title:"Healing",desc:"Skin may peel; redness decreases. Moisturizer and sun protection are critical."},
+          {time:"Week 2–4",title:"Renewal Begins",desc:"New collagen production starts. Skin texture noticeably improves."},
+          {time:"Month 3–6",title:"Final Result",desc:"Collagen renewal is complete. Skin tone and texture are visibly improved."}
+        ],
+        prep:["Stop retinol and AHA/BHA use 1 week before the session","Protect yourself from the sun — use SPF 50 before and after the procedure","Come without makeup on session day","Sessions are postponed during active herpes or skin infections"],
+        normal:["Redness and mild swelling for 1–3 days after the session","Skin peeling may last 3–7 days","Sun sensitivity may increase — protection is essential","Results are gradual; patience is required"],
+        followup:"Skin assessment before each session"
+      },
+      "Karbon Peeling":{
+        desc:"A carbon lotion is applied to the face and activated with laser to cleanse pores, even out skin tone, and control oiliness.",
+        stats:[{val:"20–30 min",lbl:"Session Duration"},{val:"4–6 sessions",lbl:"Recommended Sessions"},{val:"2–4 weeks",lbl:"Session Interval"}],
+        timeline:[
+          {time:"Session day",title:"Application",desc:"20–30 min. Painless. A slight tickling sensation. No anesthesia required."},
+          {time:"Immediately after",title:"Instant Glow",desc:"Skin immediately appears brighter and smoother. Mild redness may occur."},
+          {time:"Week 1–2",title:"Recovery",desc:"Pores begin to shrink. Oiliness decreases."},
+          {time:"Session 4–6",title:"Cumulative Effect",desc:"Skin quality improves with each session. Regular treatment provides lasting results."}
+        ],
+        prep:["Come without makeup on session day","Sessions are postponed during active acne or skin infections","Do not apply makeup for 24 hours after the procedure","Use sun protection"],
+        normal:["A mild heat sensation and tickling during the procedure","Mild redness after the session (a few hours)","Results are cumulative — dramatic change from a single session should not be expected","Results are more pronounced in oily skin types"],
+        followup:"Skin assessment before each session"
+      },
+      "Lazer Leke Tedavisi":{
+        desc:"Laser targeting of areas where melanin pigment has concentrated excessively, lightening sun spots, hormonal discoloration, age spots, and acne marks.",
+        stats:[{val:"15–30 min",lbl:"Session Duration"},{val:"1–4 sessions",lbl:"Recommended Sessions"},{val:"4–6 weeks",lbl:"Session Interval"}],
+        timeline:[
+          {time:"Session day",title:"Application",desc:"15–30 min. Mild stinging sensation. Darkening of the treated spot after the session is normal."},
+          {time:"Day 3–7",title:"Crusting",desc:"Crusting occurs over the spot — do not pick at it; it will shed on its own."},
+          {time:"Week 2–4",title:"Lightening Begins",desc:"Lighter skin appears beneath the shed crust."},
+          {time:"Month 1–3",title:"Final Result",desc:"The spot is noticeably lighter or completely gone. Sun protection is essential for lasting results."}
+        ],
+        prep:["Use sunscreen year-round, even in winter — SPF 30+ is essential","Avoid tanning and tanning beds","Discontinue retinol and bleaching creams 1 week before the session","Take extra precautions during pregnancy or while using hormone medications","Share your skin type, spot history, and hormonal status with your doctor"],
+        normal:["The spot area may temporarily darken after treatment — this is an expected reaction","Mild redness resolves quickly","Estrogen plays a significant role in pigmentation — spots are more common in women than men","Pregnancy, birth control pills, and hormone medications can trigger spot formation","Without sun protection, spots can recur — SPF use must be maintained after treatment","Lasting results are possible with regular sessions and proper care"],
+        followup:"Spot assessment before each session — SPF usage check"
+      },
+      "Kaş Kaldırma":{
+        desc:"Lifting a low brow position using surgical or endoscopic techniques for a more youthful and dynamic upper face appearance.",
+        stats:[{val:"1–2 hours",lbl:"Duration"},{val:"Same day",lbl:"Hospital"},{val:"2–4 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure",desc:"Sedation or general anesthesia. 1–2 hours."},
+          {time:"Day 1–7",title:"Rest",desc:"Swelling and bruising are normal. Cold compresses help."},
+          {time:"Week 2–4",title:"Recovery",desc:"Swelling largely resolves. Return to social life."},
+          {time:"Month 3–6",title:"Final Result",desc:"Brow position settles and the result becomes clear."}
+        ],
+        prep:["Discontinue blood thinners 1 week beforehand","Stop smoking 2 weeks beforehand"],
+        normal:["Swelling and bruising are expected in the first week","Temporary numbness in the forehead area may occur","Incision scars are hidden within the hairline"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Yanak Estetiği (Bişektomi)":{
+        desc:"Removal of the buccal fat pad inside the cheek to give the face a more defined contour.",
+        stats:[{val:"30–60 min",lbl:"Duration"},{val:"Same day",lbl:"Hospital"},{val:"2–3 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure",desc:"Local anesthesia is sufficient. 30–60 min."},
+          {time:"Day 1–3",title:"Rest",desc:"Swelling and sensitivity are normal. Eat soft foods."},
+          {time:"Week 2–3",title:"Recovery",desc:"Swelling decreases, facial contour begins to emerge."},
+          {time:"Month 3–6",title:"Final Result",desc:"Facial slimming and contour become clear."}
+        ],
+        prep:["Oral hygiene is important before the procedure","Discontinue blood thinners 1 week beforehand"],
+        normal:["Swelling and sensitivity inside the cheek in the first week","Soft foods are recommended","Results are gradual — allow 3 months for the full effect"],
+        followup:"Follow-up at 1 and 3 months"
+      },
+      "Kepçe Kulak Tedavisi":{
+        desc:"Surgical correction of protruding ears by reshaping the cartilage to bring the ears closer to the head.",
+        stats:[{val:"1–1.5 hours",lbl:"Duration"},{val:"Same day",lbl:"Hospital"},{val:"2–3 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure",desc:"Local or general anesthesia. 1–1.5 hours."},
+          {time:"Day 1–7",title:"Rest",desc:"A bandage is applied. Pain is mild; pain medication is sufficient."},
+          {time:"Week 2–3",title:"Recovery",desc:"Bandage is removed. A night headband is recommended for 4–6 weeks."},
+          {time:"Month 2–3",title:"Final Result",desc:"Ear position settles, scars fade."}
+        ],
+        prep:["Come with clean, washed hair","Have a night headband ready for after the procedure"],
+        normal:["Mild pain and swelling in the first week","The scar behind the ear fades over time","Wearing a night headband for 6 weeks is recommended"],
+        followup:"Follow-up at 1 week, 1 month, and 3 months"
+      },
+      "Yüz Yağ Enjeksiyonu":{
+        desc:"Fat tissue harvested from another part of the body is processed and injected into the face, providing natural fullness for volume loss, hollowing, and wrinkles.",
+        stats:[{val:"1–2 hours",lbl:"Duration"},{val:"Same day",lbl:"Hospital"},{val:"2–4 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure",desc:"Sedation or general anesthesia. 1–2 hours."},
+          {time:"Day 1–7",title:"Rest",desc:"Facial swelling and bruising are normal. Cold compresses help."},
+          {time:"Week 2–4",title:"Recovery",desc:"Swelling decreases. Some of the fat will be absorbed — this is expected."},
+          {time:"Month 3–6",title:"Final Result",desc:"The remaining fat is permanent. Natural fullness settles."}
+        ],
+        prep:["Discontinue blood thinners 1 week beforehand","Stop smoking 2 weeks beforehand"],
+        normal:["Significant swelling and bruising in the first week","30–50% of the injected fat is absorbed — this is normal","Results become clear at 3 months"],
+        followup:"Follow-up at 1, 3, and 6 months"
+      },
+      "Genital Estetik":{
+        desc:"Surgical correction of aesthetic and functional concerns in the genital area, including changes related to childbirth or aging.",
+        stats:[{val:"1–2 hours",lbl:"Duration"},{val:"Same day",lbl:"Hospital"},{val:"3–4 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure",desc:"Local or general anesthesia."},
+          {time:"Day 1–7",title:"Rest",desc:"Sensitivity and mild swelling are normal."},
+          {time:"Week 3–4",title:"Recovery",desc:"Sutures dissolve. Return to daily activities."},
+          {time:"Month 2–3",title:"Final Result",desc:"Full healing and final result."}
+        ],
+        prep:["Area hygiene is important","Shaving before the procedure is recommended"],
+        normal:["Sensitivity and swelling in the first week","Dissolving sutures are absorbed in 2–3 weeks","Avoid sexual intercourse for 4–6 weeks"],
+        followup:"Follow-up at 1 week and 1 month"
+      },
+      "Labioplasti":{
+        desc:"Reduction or reshaping of the labia minora (inner lips) for aesthetic or functional reasons.",
+        stats:[{val:"45–90 min",lbl:"Duration"},{val:"Same day",lbl:"Hospital"},{val:"3–4 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure",desc:"Local or general anesthesia. 45–90 min."},
+          {time:"Day 1–7",title:"Rest",desc:"Swelling and sensitivity are normal. Wear comfortable underwear."},
+          {time:"Week 3–4",title:"Recovery",desc:"Sutures dissolve. Return to daily activities."},
+          {time:"Month 2–3",title:"Final Result",desc:"Full healing. Aesthetic and functional results settle."}
+        ],
+        prep:["Area hygiene is important","Discontinue blood thinners 1 week beforehand"],
+        normal:["Swelling, sensitivity, and mild bleeding may occur in the first week","Dissolving sutures are absorbed in 2–3 weeks","Avoid sexual intercourse and heavy exercise for 4–6 weeks"],
+        followup:"Follow-up at 1 week and 1 month"
+      },
+      "Göz Altı Işık Dolgusu":{
+        desc:"Hyaluronic acid-based filler to address under-eye hollowing, dark circles, and volume loss.",
+        stats:[{val:"15–30 min",lbl:"Duration"},{val:"Immediate",lbl:"Result"},{val:"12–18 months",lbl:"Effect Duration"}],
+        timeline:[
+          {time:"Treatment day",title:"Application",desc:"15–30 min. Mild stinging sensation. Immediate results."},
+          {time:"Day 1–3",title:"Mild Swelling",desc:"Slight swelling under the eyes may occur. Cold compresses help."},
+          {time:"Week 1–2",title:"Settling",desc:"Filler settles, a natural look emerges."},
+          {time:"Month 12–18",title:"Maintenance",desc:"The effect begins to diminish. A repeat session can be scheduled."}
+        ],
+        prep:["Discontinue blood thinners and aspirin 1 week beforehand","Come without makeup on treatment day"],
+        normal:["Mild swelling and bruising may occur after treatment (1–3 days)","Filler fully settles in 1–2 weeks","Results last 12–18 months, varying by individual"],
+        followup:"Follow-up after 2 weeks"
+      },
+      "Nano Yağ Enjeksiyonu":{
+        desc:"Fat harvested from the body is processed to nano size and injected into the face, under-eye area, and delicate skin zones. A finer and more precise application than traditional fat injection.",
+        stats:[{val:"1–1.5 hours",lbl:"Duration"},{val:"Same day",lbl:"Hospital"},{val:"2–3 weeks",lbl:"Recovery"}],
+        timeline:[
+          {time:"Procedure day",title:"Procedure",desc:"Local or sedation anesthesia."},
+          {time:"Day 1–7",title:"Rest",desc:"Mild swelling and bruising. Cold compresses."},
+          {time:"Week 2–3",title:"Recovery",desc:"Swelling resolves, results become visible."},
+          {time:"Month 3–6",title:"Final Result",desc:"The remaining fat is permanent."}
+        ],
+        prep:["Discontinue blood thinners 1 week beforehand","Smoking slows healing"],
+        normal:["Swelling at both the donor and injection sites is normal","Some of the injected fat will be absorbed","Results become clear at 3 months"],
+        followup:"Follow-up at 1 and 3 months"
+      },
+      "Mezoterapi":{
+        desc:"Micro-injection of a vitamin, mineral, amino acid, and hyaluronic acid blend beneath the skin. Used for skin rejuvenation, hydration, and hair loss treatment.",
+        stats:[{val:"15–30 min",lbl:"Session Duration"},{val:"4–6 sessions",lbl:"Recommended Sessions"},{val:"2–4 weeks",lbl:"Session Interval"}],
+        timeline:[
+          {time:"Session day",title:"Application",desc:"15–30 min. Mild stinging sensation. Anesthesia is usually not required."},
+          {time:"Day 1–2",title:"Mild Redness",desc:"Needle marks and mild redness are normal. Resolves in a few hours."},
+          {time:"Session 3–4",title:"Effect Begins",desc:"Skin quality and hydration noticeably improve."},
+          {time:"Session 6+",title:"Cumulative Result",desc:"Lasting skin quality improvement with regular sessions."}
+        ],
+        prep:["Come without makeup on session day","Sessions are postponed during active skin infections"],
+        normal:["Brief redness at needle marks","Rare bruising may occur","Results are cumulative — regular sessions are needed"],
+        followup:"Skin assessment before each session"
+      },
+      "Lazer Saç Tedavisi":{
+        desc:"Laser-assisted hair treatment that stimulates hair follicles, reduces hair loss, and supports healthier hair growth. Can be combined with PRP and mesotherapy.",
+        stats:[{val:"20–40 min",lbl:"Session Duration"},{val:"6–12 sessions",lbl:"Recommended Sessions"},{val:"2–4 weeks",lbl:"Session Interval"}],
+        timeline:[
+          {time:"Session 1",title:"Getting Started",desc:"Painless application. No recovery time required."},
+          {time:"Session 2–4",title:"Shedding Decreases",desc:"Hair shedding begins to slow."},
+          {time:"Session 6–8",title:"New Growth",desc:"Fine new hairs begin to appear."},
+          {time:"Session 12+",title:"Strengthening",desc:"Hair thickness and density increase. Maintenance sessions are recommended."}
+        ],
+        prep:["A clean scalp is important","Sessions are postponed during active scalp infections","Inform your doctor about all medications you are taking"],
+        normal:["The procedure is painless — no side effects are expected","Results are gradual; patience is required","Results for genetic hair loss vary by individual","Better results may be achieved when combined with PRP/mesotherapy"],
+        followup:"Assessment every 3 sessions"
+      },
+    },
+    crossSell:{
+      "Üst Göz Kapağı Estetiği":[
+        {proc:"Kaş Kaldırma",why:"Brow position directly affects the outcome of eyelid surgery — evaluating both together can produce a much more balanced result."},
+        {proc:"Botoks",why:"Botox for fine lines around the eyes can beautifully complement eyelid surgery."},
+      ],
+      "Alt Göz Kapağı Estetiği":[
+        {proc:"Yüz Germe",why:"Lower eyelid and lower face can be addressed in the same session — this can provide a much more comprehensive result for some patients."},
+        {proc:"Dolgu",why:"Filler for under-eye hollowing can support the post-surgical appearance."},
+      ],
+      "Burun Estetiği":[
+        {proc:"Çene Ucu Estetiği",why:"The chin-nose ratio is one of the most important factors defining your facial profile — a chin assessment can significantly strengthen the result."},
+        {proc:"Çene Dolgusu",why:"For those who want to enhance the jawline without surgery, filler combined with rhinoplasty can create a much more balanced profile."},
+      ],
+      "Meme Büyütme (Silikon Protez ile)":[
+        {proc:"Meme Dikleştirme",why:"If sagging is present, augmentation and lift can be done in the same session — potentially eliminating the need for a second surgery."},
+        {proc:"Korse Liposuction",why:"Shaping the waistline together can make the augmentation result much more harmonious with your body."},
+      ],
+      "Meme Dikleştirme":[
+        {proc:"Meme Büyütme (Silikon Protez ile)",why:"If there is also volume loss, it can be addressed together with the lift — a single session delivers a much more satisfying result."},
+        {proc:"Korse Liposuction",why:"Waist and side contouring can make the breast aesthetics result much more harmonious with your body."},
+      ],
+      "Meme Küçültme":[
+        {proc:"Liposuction",why:"The underarm and lateral chest area can be contoured with liposuction in the same session — worth considering for a more complete silhouette."},
+        {proc:"Korse Liposuction",why:"When addressed together with the waist and back, breast reduction creates a much more proportional appearance."},
+      ],
+      "Karın Germe":[
+        {proc:"Liposuction",why:"When tummy tuck and liposuction are combined, the waist and side contours can become much more defined."},
+        {proc:"Korse Liposuction",why:"Corset liposuction complements the tummy tuck result, creating a more feminine silhouette."},
+      ],
+      "Liposuction":[
+        {proc:"Karın Germe",why:"If skin laxity may develop after liposuction, a tummy tuck option can be evaluated in advance."},
+        {proc:"Korse Liposuction",why:"Corset liposuction — shaping the waist, back, and sides together — can be a complementary approach to standard liposuction."},
+      ],
+      "Yüz Germe":[
+        {proc:"Boyun Germe",why:"When the face and neck are addressed together, a much more natural and comprehensive rejuvenation can be achieved."},
+        {proc:"Dolgu",why:"Supporting volume loss with filler after a facelift can significantly strengthen the result."},
+        {proc:"Botoks",why:"Botox for the forehead and eye area is a very common complement to a facelift."},
+      ],
+      "Jinekomasti":[
+        {proc:"Liposuction",why:"If there is fatty tissue around the chest along with gynecomastia, liposuction can be addressed in the same session."},
+        {proc:"Karın Germe",why:"If the abdominal area is also a concern, it can be addressed in the same session — meaning just one recovery period."},
+      ],
+      "Kol Germe":[
+        {proc:"Liposuction",why:"Combining liposuction with arm lift can help the arms both tighten and contour."},
+        {proc:"Uyluk Germe",why:"When arms and thighs are addressed together, a comprehensive body tightening result can be achieved."},
+      ],
+      "Uyluk Germe":[
+        {proc:"Liposuction",why:"Combining liposuction with thigh lift can more dramatically define the leg contour."},
+        {proc:"Kol Germe",why:"When arm and thigh tightening are planned together, a comprehensive result is achieved in a single recovery period."},
+      ],
+      "Yüz Germe (Mini)":[
+        {proc:"Boyun Germe",why:"When mini facelift and the neck area are addressed together, the result looks much more comprehensive and natural."},
+        {proc:"Dolgu",why:"Volume support with filler after a mini facelift can maintain a youthful appearance for much longer."},
+        {proc:"Botoks",why:"Botox for dynamic lines perfectly complements a mini facelift."},
+      ],
+      "Sıvı Yüz Germe":[
+        {proc:"Botoks",why:"When filler and botox are applied together, the 'liquid facelift' effect offers a much more comprehensive rejuvenation."},
+        {proc:"İp Askı",why:"When evaluated together with thread lift, sagging and volume loss can be addressed simultaneously."},
+      ],
+      "Botoks":[
+        {proc:"Dolgu",why:"Botox addresses dynamic lines while filler addresses volume loss — together they provide a much more comprehensive rejuvenation."},
+        {proc:"Sıvı Yüz Germe",why:"For those seeking comprehensive rejuvenation without surgery, the combination of filler and botox is increasingly popular."},
+      ],
+      "Dolgu":[
+        {proc:"Botoks",why:"Filler is for volume, botox is for lines — when applied together, the result is much more balanced."},
+        {proc:"Sıvı Yüz Germe",why:"A combined approach addressing different areas of the face creates a much more comprehensive effect than a single procedure."},
+      ],
+      "İp Askı":[
+        {proc:"Dolgu",why:"When thread lift and filler are applied together, sagging and volume loss can be addressed in the same session."},
+        {proc:"Botoks",why:"Botox support after thread lift can help extend the longevity of the result."},
+      ],
+    },
+    crossSellMessages:{
+      analyst:{
+        "Kaş Kaldırma":"The brow-lid ratio is a critical variable in surgical planning — eyelid procedures done without evaluating brow position may prove insufficient over time.",
+        "Botoks":"Neurotoxin treatment is the gold standard for dynamic lines — a combined approach with structural changes offers a much more comprehensive rejuvenation.",
+        "Yüz Germe":"When rhytidectomy is planned alongside lower eyelid surgery, a much more comprehensive result is achieved in a single recovery period.",
+        "Dolgu":"Volume restoration and structural change address different pathologies — when both are addressed together, the result is much more anatomically complete.",
+        "Çene Ucu Estetiği":"In facial aesthetic analysis, the chin-nose ratio is a fundamental reference point — from a profilometric perspective, chin evaluation is an integral part of rhinoplasty planning.",
+        "Çene Dolgusu":"Optimizing chin projection without surgery is possible — with filler before or after rhinoplasty, profile balance can be adjusted much more precisely.",
+        "Meme Dikleştirme":"Simultaneous mastopexy with implant placement optimizes volume while preserving skin envelope quality — recovery time and scar burden are reduced compared to separate sessions.",
+        "Korse Liposuction":"When the entire trunk contour is addressed, the proportionality of the aesthetic result to the body becomes much stronger.",
+        "Liposuction":"In a combined approach, lateral contours can be shaped during flap elevation — achieving a much more comprehensive contour in a single session.",
+        "Karın Germe":"Post-liposuction skin elasticity assessment is critical — pre-planning when laxity risk exists delivers much better results.",
+        "Boyun Germe":"When rhytidectomy and platysmaplasty are performed together, anatomical integrity in the lower face-neck transition zone is achieved.",
+        "Uyluk Germe":"Comprehensive planning in extremity contouring delivers a much more harmonious result in a single session.",
+        "Sıvı Yüz Germe":"Synergy effects in non-surgical combinations are well documented — a much more comprehensive rejuvenation is achieved compared to single-agent application.",
+        "İp Askı":"When mechanical support and volume restoration are planned together, the longevity of the result is much stronger.",
+        "Meme Büyütme (Silikon Protez ile)":"When volume and ptosis are addressed simultaneously, a much more satisfying result is achieved in a single recovery period.",
+      },
+      pragmatic:{
+        "Kaş Kaldırma":"Done in the same session, no extra recovery time — the result is much more noticeable.",
+        "Botoks":"Can even be done on consultation day, 15–20 minutes — no separate appointment needed.",
+        "Yüz Germe":"Same anesthesia, same recovery — one session instead of two separate surgeries.",
+        "Dolgu":"Can be completed in the same session, no additional visit required.",
+        "Çene Ucu Estetiği":"Both nose and chin are completed in one appointment — no separate trip needed.",
+        "Çene Dolgusu":"A 20–30 minute procedure — can be done the same day, no extra process.",
+        "Meme Dikleştirme":"One anesthesia, one recovery period — you don't have to plan a second surgery.",
+        "Korse Liposuction":"Combined in the same session — the total process is much shorter than two separate surgeries.",
+        "Liposuction":"Planned together means one recovery period — much more efficient in terms of time and cost.",
+        "Karın Germe":"Evaluating and planning now eliminates the possibility of a second surgery later.",
+        "Boyun Germe":"Face and neck are completed at the same time — one process instead of two separate ones.",
+        "Uyluk Germe":"Both are completed in a single recovery period — much more practical.",
+        "Sıvı Yüz Germe":"Can be done in the same session, no surgery required — a quick and practical option.",
+        "İp Askı":"Minimally invasive, short recovery — can be planned for the same day as botox.",
+        "Meme Büyütme (Silikon Protez ile)":"One anesthesia, one recovery — you don't have to plan a second surgery.",
+      },
+      trustSeeker:{
+        "Kaş Kaldırma":"Most people who come in without noticing this hear about it for the first time during consultation — just asking is enough; let your doctor evaluate.",
+        "Botoks":"If you're curious, you can ask — your doctor will tell you whether it's right for you.",
+        "Yüz Germe":"Many people say afterward, 'I wish I had asked' — bringing it up during consultation doesn't commit you to anything.",
+        "Dolgu":"A small question can make a big difference — asking during consultation is enough; the decision is entirely yours.",
+        "Çene Ucu Estetiği":"Many people don't think of it, but it makes a huge difference in the facial profile — if you're curious, ask during your consultation.",
+        "Çene Dolgusu":"You can try it without surgery — it's worth asking during consultation before making a permanent decision.",
+        "Meme Dikleştirme":"Many people are curious about this but hesitate to ask — asking a question doesn't commit you to anything.",
+        "Korse Liposuction":"You can simply ask, 'Is this right for me?' — your doctor is the best judge.",
+        "Liposuction":"Don't worry, you can simply ask, 'Is this suitable for me?' — the decision is entirely yours.",
+        "Karın Germe":"Many people discover this afterward — it's much better to ask and learn during consultation.",
+        "Boyun Germe":"Many people say afterward they wish they had asked — bringing it up during consultation doesn't commit you to anything.",
+        "Uyluk Germe":"If you're curious, you can ask — your doctor will recommend the best plan for you.",
+        "Sıvı Yüz Germe":"If you're wondering how much change is possible without surgery, you can ask during your consultation.",
+        "İp Askı":"It makes sense to ask about this option before making a permanent decision — it doesn't require surgery.",
+        "Meme Büyütme (Silikon Protez ile)":"Many people are curious about this — asking during consultation doesn't commit you to anything; the decision is entirely yours.",
+      },
+      social:{
+        "Kaş Kaldırma":"The eye area is the most noticeable part of the face — when brow and eyelid are addressed together, the difference in photos is much more striking.",
+        "Botoks":"The skin surface looks much smoother in the light — the vast majority of those who want to share their results get this done too.",
+        "Yüz Germe":"When the lower eyelid and face are rejuvenated together, the difference in photos and videos is incredible.",
+        "Dolgu":"When volume and contour are addressed together, results become much more dramatic and shareable.",
+        "Çene Ucu Estetiği":"One of the most defining details in profile photos — when the jawline is strengthened, the entire face looks much more attractive.",
+        "Çene Dolgusu":"An application that makes a big difference from a selfie angle — the jawline can make your profile much more defined.",
+        "Meme Dikleştirme":"The effect on clothing and posture is very noticeable — when both are done together, the result is much more eye-catching.",
+        "Korse Liposuction":"When the entire silhouette is shaped, the effect on how clothes fit changes dramatically.",
+        "Liposuction":"When the entire body contour is addressed, the silhouette can become much more dramatic and photogenic.",
+        "Karın Germe":"When the waist and abdomen are shaped together, clothes fit very differently — the effect is much more pronounced.",
+        "Boyun Germe":"When face and neck are rejuvenated together, the difference in photos and videos is incredible.",
+        "Uyluk Germe":"When legs and arms are tightened together, the entire body looks much more balanced and striking.",
+        "Sıvı Yüz Germe":"In a combined treatment, every area of the face lights up at once — the impact in photos is very powerful.",
+        "İp Askı":"The effect achieved with minimal intervention is very noticeable in photos — ideal for sharing on social media.",
+        "Meme Büyütme (Silikon Protez ile)":"The effect on clothing options and silhouette is very noticeable — most patients want to share their results.",
+      },
+    },
   };
 
   function t(key,fallback){if(lang==="tr") return fallback; const parts=key.split("."); let v=EN; for(const p of parts){v=v?.[p]; if(!v) return fallback;} return v;}
@@ -3397,8 +4209,10 @@ function PatientForm({doctorId}){
 
   useEffect(()=>{
     if(!doctorId) return;
-    sb.from("doctors").select("id,name,clinic_name,photo_url,primary_color,enabled_procedures").eq("id",doctorId).maybeSingle()
-      .then(({data})=>{ if(data) setDoctorInfo(data); });
+    const isUUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(doctorId);
+    const col=isUUID?"id":"username";
+    sb.from("doctors").select("id,name,clinic_name,photo_url,primary_color,enabled_procedures").eq(col,doctorId).maybeSingle()
+      .then(({data})=>{ if(data){ setDoctorInfo(data); if(!isUUID) setDoctorId(data.id); } });
   },[doctorId]);
 
   // Geri tuşu + sekme kapatma koruması
@@ -3463,8 +4277,6 @@ function PatientForm({doctorId}){
       risk_score:score,
       segment:cls.label,
       answers:safeAnswers,
-      ai_text:"",
-      ai_loading:true,
       ambassador_code:ambCode||"",
       ambassador_sent:false,
       outcome_procedures:[],
@@ -3485,7 +4297,6 @@ function PatientForm({doctorId}){
     setSubmitting(false);
     setAmbassadorCode(ambCode);
     setPatientSegment(cls);
-    fetchAI(answers,score,cls,rec.id,slowQuestions,changedQuestions);
     fetchPersonalGuide(answers,score,cls,slowQuestions,changedQuestions);
   }
 
@@ -3554,57 +4365,12 @@ Türkçe yaz.`}]
     setGuideLoading(false);
   }
 
-  async function fetchAI(a,score,cls,recId,slowQ=[],changedQ=[]){
-    try{
-      if(!canCallAPI()) return;
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:`Bir plastik cerrahın konsültasyon asistanısın. Aşağıdaki hasta hakkında doktora kısa, içten ve kullanışlı bir ön not yazacaksın.
-
-TON: Meslektaşına not bırakır gibi — yargılamayan, ego incitmeyen, "bence şuna dikkat edebilirsin" tarzında. Doktoru küçümsemeden, ama gerçeği söyle.
-
-HASTA:
-${a.name||"Hasta"}, ${a.age} yaş · ${a.procedure}
-
-FORM CEVAPLARI:
-· Motivasyon: ${a.motivation}
-· Beklenti: ${a.expectation}
-· Ne zamandır düşünüyor: ${a.decisionAge||"belirtmedi"}
-· Sosyal destek: ${a.support}
-· Kaç doktora danıştı: ${a.multiDoctor}
-· Önceki işlem: ${a.prevSurgery}
-· Revizyon tutumu: ${a.revision}
-
-· Benlik saygısı: ${a.selfEsteem||"belirtmedi"}
-· Gelecek bakışı: ${a.futureOptimism||"belirtmedi"}
-· Bölgeyle meşguliyet: ${a.bodyFocus||"belirtmedi"}
-· Sosyal kaçınma: ${a.avoidance||"belirtmedi"}
-· Hayal ettiği: ${a.imagineAfter||"belirtmedi"}
-
-· Risk değerlendirmesi: ${score}/100
-
-FORM DAVRANIŞI:
-· Uzun düşündüğü sorular: ${slowQ.length>0?slowQ.join(", "):"yok"}
-· Cevap değiştirdiği sorular: ${changedQ.length>0?changedQ.join(", "):"yok"}
-· Değişim beklentisi (kendi sözleriyle): "${a.openStory||"boş bıraktı"}"
-
-YAZIM KURALLARI:
-- Tam olarak 3 kısa paragraf yaz, başlık yok, liste yok
-- Her paragraf 2-3 cümle, toplam 120-150 kelime
-- İlk paragraf: Bu kişiyi bir cümlede tanımla — ne arıyor, ne hissediyor, ne taşıyor
-- İkinci paragraf: Konsültasyonda dikkat edilmesi gereken 1-2 spesifik nokta — "motivasyon sorusunda çok düşündü" veya "aynaya bakmaktan bahsetti" gibi form verisinden somut bağlantı kur
-- Üçüncü paragraf: Tek bir pratik öneri — nasıl başlayabilirsin, neyi sormak işe yarayabilir
-- Hasta ismi kullan, soyut konuşma
-- "Belki", "düşünülebilir", "fark edilebilir" gibi yumuşak ifadeler kullan — direktif değil, öneri
-- Türkçe yaz`}]})});
-      const d=await res.json();
-      const txt=d.content?.map(b=>b.text||"").join("\n")||"Analiz mevcut değil.";
-      await sb.from("patients").update({ai_text:txt,ai_loading:false}).eq("id",recId);
-    }catch{
-      await sb.from("patients").update({ai_text:"Sistem gözlemi şu an kullanılamıyor.",ai_loading:false}).eq("id",recId);
-    }
-  }
-
   const proc=answers.procedure||"";
   const PI=PROCEDURE_INFO[proc]||PROCEDURE_INFO["default"];
+  const piTimeline=lang==="en"&&EN.procInfo?.[proc]?.timeline?EN.procInfo[proc].timeline:PI.timeline;
+  const piPrep=lang==="en"&&EN.procInfo?.[proc]?.prep?EN.procInfo[proc].prep:PI.prep;
+  const piNormal=lang==="en"&&EN.procInfo?.[proc]?.normal?EN.procInfo[proc].normal:PI.normal;
+  const piFollowup=lang==="en"&&EN.procInfo?.[proc]?.followup?EN.procInfo[proc].followup:PI.followup;
 
   // Cross-sell haritası — işleme göre tamamlayıcı öneriler
   const CROSS_SELL_MAP={
@@ -3783,13 +4549,21 @@ YAZIM KURALLARI:
       if(profileKey&&MESSAGES[profileKey][s.proc]){
         why=MESSAGES[profileKey][s.proc];
       }
+      if(lang==="en"){
+        if(profileKey&&EN.crossSellMessages?.[profileKey]?.[s.proc]){
+          why=EN.crossSellMessages[profileKey][s.proc];
+        }else{
+          const csEntry=EN.crossSell?.[proc]?.find(x=>x.proc===s.proc);
+          if(csEntry) why=csEntry.why;
+        }
+      }
       return {...s,why};
     });
   })();
   const profile=detectProfile(answers);
-  const PC=PROFILE_CONTENT[profile];
-  const recoveryText=getPersonalizedContent(proc,profile,"recovery");
-  const riskText=getPersonalizedContent(proc,profile,"risks");
+  const PC=lang==="en"?EN_PROFILE_CONTENT[profile]||PROFILE_CONTENT[profile]:PROFILE_CONTENT[profile];
+  const recoveryText=getPersonalizedContent(proc,profile,"recovery",lang);
+  const riskText=getPersonalizedContent(proc,profile,"risks",lang);
   const [infoPage,setInfoPage]=useState(0); // 0=thanks+proc, 1=prep+normal
 
   const BORD="#1d4ed8";
@@ -3805,7 +4579,7 @@ YAZIM KURALLARI:
           </div>
           <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,color:"#1e3a5f",letterSpacing:"0.02em"}}>SculptAI</div>
         </div>
-        <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.06em"}}>{doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
+        <div style={{fontSize:11,color:"#7b9ab5",letterSpacing:"0.06em"}}>{doctorInfo?.clinic_name||(lang==="tr"?"Plastik Cerrahi Kliniği":"Plastic Surgery Clinic")}</div>
       </div>
 
       {/* Scrollable content */}
@@ -3827,28 +4601,28 @@ YAZIM KURALLARI:
               <div style={{position:"absolute",top:-20,right:-20,width:80,height:80,borderRadius:"50%",background:"rgba(245,240,232,0.04)"}}/>
 
               {/* Header */}
-              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(245,240,232,0.28)",marginBottom:8}}>Marka Elçisi Programı</div>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:"#f8fafd",lineHeight:1.2,marginBottom:8,letterSpacing:"-0.01em"}}>Sizi aramızda<br/><em>görmekten mutluluk.</em></div>
+              <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(245,240,232,0.28)",marginBottom:8}}>{lang==="tr"?"Marka Elçisi Programı":"Brand Ambassador Program"}</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:300,color:"#f8fafd",lineHeight:1.2,marginBottom:8,letterSpacing:"-0.01em"}}>{lang==="tr"?<>Sizi aramızda<br/><em>görmekten mutluluk.</em></>:<>So glad to<br/><em>have you with us.</em></>}</div>
               <div style={{fontSize:12,color:"rgba(245,240,232,0.42)",lineHeight:1.7,marginBottom:14}}>{PC.ambassadorMsg}</div>
 
               {/* Kod + butonlar */}
               <div style={{background:"rgba(245,240,232,0.07)",border:"1px solid rgba(245,240,232,0.1)",borderRadius:9,padding:"11px 13px",marginBottom:8}}>
-                <div style={{fontSize:9,color:"rgba(245,240,232,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:3}}>Referans Kodunuz</div>
+                <div style={{fontSize:9,color:"rgba(245,240,232,0.3)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:3}}>{lang==="tr"?"Referans Kodunuz":"Your Referral Code"}</div>
                 <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,color:"#f8fafd",letterSpacing:"0.1em",fontWeight:300}}>{ambassadorCode}</div>
               </div>
 
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
                 <button onClick={()=>{
-                  const msg=`Merhaba! ${doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}'nde konsültasyona gidiyorum ve çok güvendim. Seni de yönlendirmek istedim — formu doldurursan doktor seni çok daha hazırlıklı karşılıyor. İşte bağlantı: ${window.location.origin}/form/${doctorInfo?.id||""}%0AReferans kodum: ${ambassadorCode}`;
+                  const msg=lang==="tr"?`Merhaba! ${doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}'nde konsültasyona gidiyorum ve çok güvendim. Seni de yönlendirmek istedim — formu doldurursan doktor seni çok daha hazırlıklı karşılıyor. İşte bağlantı: ${window.location.origin}/form/${doctorInfo?.id||""}%0AReferans kodum: ${ambassadorCode}`:`Hi! I'm going for a consultation at ${doctorInfo?.clinic_name||"Plastic Surgery Clinic"} and I feel very confident. I wanted to refer you — if you fill out the form, the doctor will be much better prepared for you. Here's the link: ${window.location.origin}/form/${doctorInfo?.id||""}%0AMy referral code: ${ambassadorCode}`;
                   window.open(`https://wa.me/?text=${msg}`,"_blank");
                 }} style={{padding:"10px",background:"#25D366",border:"none",borderRadius:8,color:"white",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.04em",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.116 1.528 5.845L0 24l6.335-1.508A11.93 11.93 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.853 0-3.601-.5-5.112-1.374l-.366-.217-3.76.896.951-3.666-.239-.379A9.946 9.946 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-                  WhatsApp'ta Paylaş
+                  {lang==="tr"?"WhatsApp'ta Paylaş":"Share on WhatsApp"}
                 </button>
                 <button onClick={()=>{
-                  navigator.clipboard?.writeText(`${window.location.origin}/form/${doctorInfo?.id||""} — Referans: ${ambassadorCode}`);
+                  navigator.clipboard?.writeText(`${window.location.origin}/form/${doctorInfo?.id||""} — ${lang==="tr"?"Referans":"Referral"}: ${ambassadorCode}`);
                 }} style={{padding:"10px",background:"rgba(245,240,232,0.08)",border:"1px solid rgba(245,240,232,0.15)",borderRadius:8,fontSize:12,color:"rgba(245,240,232,0.7)",cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.04em"}}>
-                  Linki Kopyala
+                  {lang==="tr"?"Linki Kopyala":"Copy Link"}
                 </button>
               </div>
             </div>
@@ -3859,7 +4633,7 @@ YAZIM KURALLARI:
           {guideLoading&&(
             <div style={{background:"#eef3f9",border:"1px solid #d4e1ef",borderRadius:12,padding:"20px 16px",marginBottom:10,textAlign:"center"}}>
               <div style={{fontFamily:"'Playfair Display',serif",fontSize:17,color:"#7b9ab5",fontStyle:"italic",animation:"pulse 1.5s infinite"}}>{lang==="tr"?"Kişisel rehberiniz hazırlanıyor...":"Preparing your personal guide..."}</div>
-              <div style={{fontSize:12,color:"#d4e1ef",marginTop:6}}>Yapay zeka form cevaplarınızı analiz ediyor</div>
+              <div style={{fontSize:12,color:"#d4e1ef",marginTop:6}}>{lang==="tr"?"Yapay zeka form cevaplarınızı analiz ediyor":"AI is analyzing your form responses"}</div>
             </div>
           )}
           {personalGuide&&!guideLoading&&(()=>{
@@ -3884,15 +4658,17 @@ YAZIM KURALLARI:
           <div style={{border:"1px solid #d4e1ef",borderRadius:12,padding:15,marginBottom:12}}>
             <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:BORD2,marginBottom:5}}>◈ {lang==="tr"?PI.category:(CAT_EN[PI.category]||PI.category)}</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:19,fontWeight:300,color:"#1e3a5f",marginBottom:6,letterSpacing:"-0.01em"}}>{lang==="tr"?(proc||"İşlem"):tProc(proc||"Procedure")}</div>
-            <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.65,marginBottom:11}}>{PI.desc}</div>
+            <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.65,marginBottom:11}}>{lang==="en"&&EN.procInfo?.[proc]?.desc ? EN.procInfo[proc].desc : PI.desc}</div>
+            {(()=>{const piStats=lang==="en"&&EN.procInfo?.[proc]?.stats?EN.procInfo[proc].stats:PI.stats;return(
             <div style={{display:"flex",gap:5}}>
-              {PI.stats.map((s,i)=>(
+              {piStats.map((s,i)=>(
                 <div key={i} style={{flex:1,background:"#eef3f9",borderRadius:7,padding:"8px 5px",textAlign:"center"}}>
-                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1e3a5f",lineHeight:1}}>{lang==="tr"?s.val:(STAT_EN[s.val]||s.val)}</div>
-                  <div style={{fontSize:8,color:"#7b9ab5",marginTop:3,letterSpacing:"0.08em",textTransform:"uppercase"}}>{lang==="tr"?s.lbl:(STAT_EN[s.lbl]||s.lbl)}</div>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,color:"#1e3a5f",lineHeight:1}}>{s.val}</div>
+                  <div style={{fontSize:8,color:"#7b9ab5",marginTop:3,letterSpacing:"0.08em",textTransform:"uppercase"}}>{s.lbl}</div>
                 </div>
               ))}
             </div>
+            );})()}
           </div>
 
           {/* Sonraki adım */}
@@ -3905,12 +4681,12 @@ YAZIM KURALLARI:
                   <div key={i} style={{border:"1px solid #d4e1ef",borderRadius:12,padding:"13px 15px",background:"#faf8f4"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                       <div style={{width:5,height:5,borderRadius:"50%",background:BORD2,flexShrink:0}}/>
-                      <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:400,color:"#1e3a5f"}}>{s.proc}</div>
+                      <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:400,color:"#1e3a5f"}}>{lang==="en"?(EN.procs?.[s.proc]||s.proc):s.proc}</div>
                     </div>
                     <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.65}}>{s.why}</div>
                   </div>
                 ))}
-                <div style={{fontSize:11,color:"#7b9ab5",lineHeight:1.5,padding:"0 2px"}}>Bu bilgiler yalnızca ön bilgilendirme amaçlıdır. Son karar konsültasyonunuzda doktorunuzla birlikte değerlendirilecektir.</div>
+                <div style={{fontSize:11,color:"#7b9ab5",lineHeight:1.5,padding:"0 2px"}}>{lang==="tr"?"Bu bilgiler yalnızca ön bilgilendirme amaçlıdır. Son karar konsültasyonunuzda doktorunuzla birlikte değerlendirilecektir.":"This information is for preliminary guidance only. The final decision will be made with your doctor during your consultation."}</div>
               </div>
             </>
           )}
@@ -3936,7 +4712,7 @@ YAZIM KURALLARI:
           <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:600,margin:"4px 0 10px 2px"}}>{lang==="tr"?"İyileşme takvimi":"Recovery Timeline"}</div>
           <div style={{position:"relative",paddingLeft:16,marginBottom:14}}>
             <div style={{position:"absolute",left:4,top:8,bottom:8,width:1,background:"linear-gradient(180deg,"+BORD+",rgba(74,21,32,0.08))"}}/>
-            {PI.timeline.map((t,i)=>(
+            {piTimeline.map((t,i)=>(
               <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,paddingBottom:10}}>
                 <div style={{width:9,height:9,borderRadius:"50%",flexShrink:0,marginTop:4,position:"relative",left:-16,marginRight:-6,border:"1.5px solid #f8fafd",background:BORD,opacity:1-i*0.18,zIndex:1}}/>
                 <div style={{flex:1,border:"1px solid #d4e1ef",borderRadius:9,padding:"9px 11px"}}>
@@ -3955,11 +4731,11 @@ YAZIM KURALLARI:
               <div style={{fontSize:20}}>🌿</div>
               <div>
                 <div style={{fontSize:13,fontWeight:600,color:"#065f46"}}>{lang==="tr"?"Bilmeniz gerekenler":"What you need to know"}</div>
-                <div style={{fontSize:12,color:"#6ee7b7",marginTop:1}}>{doctorInfo?.clinic_name||"Plastik Cerrahi"} {lang==="tr"?"önerileri":"recommendations"}</div>
+                <div style={{fontSize:12,color:"#6ee7b7",marginTop:1}}>{doctorInfo?.clinic_name||(lang==="tr"?"Plastik Cerrahi":"Plastic Surgery")} {lang==="tr"?"önerileri":"recommendations"}</div>
               </div>
             </div>
             <div style={{padding:"10px 14px 12px",display:"flex",flexDirection:"column",gap:7,borderTop:"1px solid #eef3f9"}}>
-              {PI.prep.map((p,i)=>(
+              {piPrep.map((p,i)=>(
                 <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9,fontSize:13,color:"#2d5a8e",lineHeight:1.55}}>
                   <div style={{width:16,height:16,borderRadius:4,background:"#ecfdf5",border:"1.5px solid #6ee7b7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#059669",flexShrink:0,marginTop:1}}>✓</div>
                   {p}
@@ -3990,10 +4766,10 @@ YAZIM KURALLARI:
           )}
 
           {/* Normal */}
-          {PI.normal&&PI.normal.length>0&&(
+          {piNormal&&piNormal.length>0&&(
             <>
               <div style={{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#7b9ab5",fontWeight:500,margin:"8px 0 8px 0"}}>{lang==="tr"?"Bunlar Normaldir":"These Are Normal"}</div>
-              {PI.normal.map((n,i)=>(
+              {piNormal.map((n,i)=>(
                 <div key={i} style={{borderLeft:"1.5px solid #d4e1ef",padding:"8px 12px",marginBottom:6}}>
                   <div style={{fontSize:12,color:"#7b9ab5",lineHeight:1.6}}>{n}</div>
                 </div>
@@ -4013,7 +4789,7 @@ YAZIM KURALLARI:
       <div style={{padding:"10px 22px 22px",flexShrink:0,background:"#f8fafd",borderTop:"1px solid #d4e1ef"}}>
         {infoPage===0
           ?<button onClick={()=>setInfoPage(1)} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>{lang==="tr"?"Hazırlık bilgilerini gör →":"View preparation info →"}</button>
-          :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>Anladım, teşekkürler</button>
+          :<button onClick={()=>{setSubmitted(false);setAnswers({});setCurrentQ(0);setInfoPage(0);}} style={{width:"100%",padding:13,background:BORD,border:"none",borderRadius:9,color:"#f8fafd",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'Nunito',sans-serif",letterSpacing:"0.08em"}}>{lang==="tr"?"Anladım, teşekkürler":"Got it, thanks"}</button>
         }
       </div>
     </div>
@@ -4055,6 +4831,7 @@ YAZIM KURALLARI:
             <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"5px 18px",border:`1px solid ${accent}33`,borderRadius:24,fontSize:12,letterSpacing:"0.22em",color:accent,marginBottom:18,textTransform:"uppercase",background:`${accent}11`}}>✦ {doctorInfo?.clinic_name||"Plastik Cerrahi Kliniği"}</div>
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:46,color:C.navy,marginBottom:12,fontWeight:300,lineHeight:1.1,letterSpacing:"-0.01em"}}>{lang==="tr"?"Hoş Geldiniz":"Welcome"}</div>
             <div style={{fontSize:15,color:C.muted,lineHeight:1.85,maxWidth:420,margin:"0 auto",marginBottom:6}}>{lang==="tr"?"Bu kısa form, size en doğru ve güvenli planlama yapabilmemiz için beklentilerinizi anlamamıza yardımcı olur.":"This short form helps us understand your expectations so we can plan the best and safest approach for you."}</div>
+            <div style={{fontSize:12,color:C.border,marginTop:4}}>{lang==="tr"?"~3 dakika sürer":"~3 minutes"}</div>
           </div>
         )}
         <div style={{display:"flex",gap:5,marginBottom:20,flexWrap:"wrap"}} className="f2">
@@ -4064,7 +4841,7 @@ YAZIM KURALLARI:
         </div>
         <div style={{marginBottom:22}} className="f2">
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-            <span style={{fontSize:12,color:C.muted}}>{lang==="tr"?"SORU":"Q"} {currentQ+1} / {VISIBLE_QUESTIONS.length}</span>
+            <span style={{fontSize:12,color:C.muted}}>{lang==="tr"?"SORU":"Q"} {currentQ+1} / {VISIBLE_QUESTIONS.length} <span style={{fontSize:10,opacity:0.6}}>· {lang==="tr"?`~${Math.max(1,Math.ceil((VISIBLE_QUESTIONS.length-currentQ)*0.18))} dk`:`~${Math.max(1,Math.ceil((VISIBLE_QUESTIONS.length-currentQ)*0.18))} min`}</span></span>
             <div style={{display:"flex",gap:4}}>
               {[["tr","🇹🇷"],["en","🇬🇧"]].map(([l,flag])=>(
                 <button key={l} onClick={()=>setLang(l)} style={{padding:"2px 8px",borderRadius:6,border:`1px solid ${lang===l?"#1e3a5f":"#d4e1ef"}`,background:lang===l?"#1e3a5f":"transparent",color:lang===l?"white":"#7b9ab5",fontSize:14,cursor:"pointer"}}>{flag}</button>
@@ -4133,6 +4910,275 @@ YAZIM KURALLARI:
           <div style={{marginTop:10,padding:"10px 14px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,fontSize:13,color:"#dc2626",textAlign:"center"}}>{submitError}</div>
         )}
       </main>
+    </div>
+  );
+}
+
+/* ─── ANALYTICS BETA ─────────────────────────────────────────────────────── */
+function AnalyticsBeta(){
+  const [authed,setAuthed]=useState(false);
+  const [pass,setPass]=useState("");
+  const [patients,setPatients]=useState([]);
+  const [doctors,setDoctors]=useState([]);
+  const [loading,setLoading]=useState(false);
+
+  async function login(){
+    const {data,error}=await sb.auth.signInWithPassword({email:"admin@sculptai.health",password:pass});
+    if(data?.session){setAuthed(true);loadData(data.session.access_token);}
+    else alert("Hatalı şifre.");
+  }
+
+  async function loadData(token){
+    setLoading(true);
+    try{
+      // Try server-side function (bypasses RLS)
+      const t=token||(await sb.auth.getSession()).data?.session?.access_token;
+      const res=await fetch("/api/admin-analytics",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({access_token:t})});
+      if(res.ok){
+        const d=await res.json();
+        setPatients(d.patients||[]);
+        setDoctors(d.doctors||[]);
+      } else {
+        // Fallback to client-side (may be empty due to RLS)
+        const [r1,r2]=await Promise.all([
+          sb.from("patients").select("id,doctor_id,created_at,risk_score,segment,outcome_procedures,no_appointment,had_procedure,satisfaction_1m,satisfaction_6m,answers"),
+          sb.from("doctors").select("id,name,clinic_name"),
+        ]);
+        setPatients(r1.data||[]);
+        setDoctors(r2.data||[]);
+      }
+    }catch(e){console.error(e);}
+    setLoading(false);
+  }
+
+  if(!authed) return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#f8fafd",fontFamily:"'Nunito',sans-serif"}}>
+      <div style={{background:"white",padding:40,borderRadius:16,border:"1px solid #d4e1ef",width:340,textAlign:"center"}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,color:"#1e3a5f",marginBottom:6}}>Sculpt<em style={{color:"#1d4ed8"}}>AI</em></div>
+        <div style={{fontSize:11,color:"#7b9ab5",marginBottom:20,letterSpacing:"0.1em",textTransform:"uppercase"}}>Analytics Beta</div>
+        <input type="password" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()} placeholder="Admin şifre" style={{width:"100%",padding:"10px 14px",border:"1px solid #d4e1ef",borderRadius:8,fontSize:14,marginBottom:12,fontFamily:"'Nunito',sans-serif"}}/>
+        <button onClick={login} style={{width:"100%",padding:"10px",background:"#1e3a5f",color:"white",border:"none",borderRadius:8,fontSize:14,cursor:"pointer"}}>Giriş</button>
+      </div>
+    </div>
+  );
+
+  if(loading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Nunito',sans-serif",color:"#7b9ab5"}}>Yükleniyor...</div>;
+
+  // ── AGGREGATIONS ──
+  const total=patients.length;
+  const withOutcome=patients.filter(p=>p.outcome_procedures?.length>0||p.no_appointment);
+  const converted=patients.filter(p=>p.outcome_procedures?.length>0);
+  const convRate=withOutcome.length>0?Math.round(converted.length/withOutcome.length*100):0;
+  const satPatients=patients.filter(p=>p.satisfaction_1m);
+  const satMap={"Çok Memnun":100,"Memnun":75,"Kararsız":50,"Memnun Değil":25};
+  const avgSat=satPatients.length>0?Math.round(satPatients.reduce((s,p)=>s+(satMap[p.satisfaction_1m]||50),0)/satPatients.length):null;
+
+  // Age groups
+  const ageGroups={"18-25":[],"26-35":[],"36-45":[],"46+":[]};
+  patients.forEach(p=>{
+    const age=parseInt(p.answers?.age)||0;
+    if(age>=18&&age<=25) ageGroups["18-25"].push(p);
+    else if(age<=35) ageGroups["26-35"].push(p);
+    else if(age<=45) ageGroups["36-45"].push(p);
+    else if(age>45) ageGroups["46+"].push(p);
+  });
+
+  // Top procedures
+  const procCount={};
+  patients.forEach(p=>{const pr=p.answers?.procedure;if(pr){procCount[pr]=(procCount[pr]||0)+1;}});
+  const topProcs=Object.entries(procCount).sort((a,b)=>b[1]-a[1]).slice(0,6).map(x=>x[0]);
+
+  // Procedure performance
+  const procPerf=Object.entries(procCount).sort((a,b)=>b[1]-a[1]).map(([proc,n])=>{
+    const pp=patients.filter(p=>p.answers?.procedure===proc);
+    const wo=pp.filter(p=>p.outcome_procedures?.length>0||p.no_appointment);
+    const cv=pp.filter(p=>p.outcome_procedures?.length>0);
+    const sp=pp.filter(p=>p.satisfaction_1m);
+    return{
+      proc,n,
+      conv:wo.length>0?Math.round(cv.length/wo.length*100):null,
+      sat:sp.length>0?Math.round(sp.reduce((s,p)=>s+(satMap[p.satisfaction_1m]||50),0)/sp.length):null,
+      conf:n<10?"Yetersiz":n<30?"Düşük":"Yeterli",
+    };
+  });
+
+  // Risk score vs outcome
+  const segments=[
+    {label:"Yeşil (0-39)",filter:p=>(p.risk_score||0)<40,color:"#059669",bg:"#ecfdf5"},
+    {label:"Sarı (40-59)",filter:p=>(p.risk_score||0)>=40&&(p.risk_score||0)<60,color:"#d97706",bg:"#fffbeb"},
+    {label:"Kırmızı (60+)",filter:p=>(p.risk_score||0)>=60,color:"#dc2626",bg:"#fef2f2"},
+  ].map(seg=>{
+    const sp=patients.filter(seg.filter);
+    const wo=sp.filter(p=>p.outcome_procedures?.length>0||p.no_appointment);
+    const cv=sp.filter(p=>p.outcome_procedures?.length>0);
+    return{...seg,n:sp.length,conv:wo.length>0?Math.round(cv.length/wo.length*100):null};
+  });
+
+  // Source analysis
+  const srcCount={};
+  patients.forEach(p=>{const s=p.answers?.source;if(s) srcCount[s]=(srcCount[s]||0)+1;});
+  const srcTotal=Object.values(srcCount).reduce((a,b)=>a+b,0);
+  const srcPerf=Object.entries(srcCount).sort((a,b)=>b[1]-a[1]).map(([src,n])=>{
+    const sp=patients.filter(p=>p.answers?.source===src);
+    const wo=sp.filter(p=>p.outcome_procedures?.length>0||p.no_appointment);
+    const cv=sp.filter(p=>p.outcome_procedures?.length>0);
+    return{src,n,conv:wo.length>0?Math.round(cv.length/wo.length*100):null};
+  });
+
+  // Heat map cell
+  function heatCell(ageKey,proc){
+    const pp=ageGroups[ageKey].filter(p=>p.answers?.procedure===proc);
+    const n=pp.length;
+    const wo=pp.filter(p=>p.outcome_procedures?.length>0||p.no_appointment);
+    const cv=pp.filter(p=>p.outcome_procedures?.length>0);
+    const rate=wo.length>0?Math.round(cv.length/wo.length*100):null;
+    const bg=n<3?"#f1f5f9":rate===null?"#f1f5f9":rate>=70?"#dcfce7":rate>=40?"#fef9c3":"#fee2e2";
+    const color=n<3?"#94a3b8":rate===null?"#94a3b8":rate>=70?"#166534":rate>=40?"#854d0e":"#991b1b";
+    return{n,rate,bg,color};
+  }
+
+  const C={navy:"#1e3a5f",muted:"#7b9ab5",border:"#d4e1ef"};
+  const confColor=c=>c==="Yeterli"?"#059669":c==="Düşük"?"#d97706":"#dc2626";
+
+  return(
+    <div style={{minHeight:"100vh",background:"#f8fafd",fontFamily:"'Nunito',sans-serif",color:C.navy}}>
+      <div style={{maxWidth:1100,margin:"0 auto",padding:"24px 20px"}}>
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24}}>
+          <div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,color:C.navy}}>Sculpt<em style={{color:"#1d4ed8"}}>AI</em> <span style={{fontSize:14,color:C.muted,fontFamily:"'Nunito',sans-serif"}}>Analytics Beta</span></div>
+          </div>
+          <button onClick={loadData} style={{padding:"6px 16px",border:"1px solid "+C.border,borderRadius:8,background:"white",color:C.muted,fontSize:12,cursor:"pointer"}}>↻ Yenile</button>
+        </div>
+
+        {/* Beta uyarısı */}
+        <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:10,padding:"12px 16px",marginBottom:20,fontSize:12,color:"#92400e",lineHeight:1.6}}>
+          ⚠️ <strong>BETA</strong> — İstatistiksel anlamlılık için minimum 30 hasta/segment gereklidir. n&lt;30 segmentlerde sonuçlar güvenilir değildir. Gerçek pattern analizi 6 ay sonra olgunlaşacak.
+        </div>
+
+        {/* 1. GENEL ÖZET */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
+          {[
+            {label:"Toplam Hasta",val:total,icon:"👥"},
+            {label:"Dönüşüm Oranı",val:convRate+"%",sub:`${converted.length}/${withOutcome.length} (outcome girili)`,icon:"📊"},
+            {label:"Ort. Memnuniyet",val:avgSat?avgSat+"%":"—",sub:satPatients.length>0?`${satPatients.length} hasta`:"Veri yok",icon:"⭐"},
+            {label:"Klinik Sayısı",val:doctors.length,icon:"🏥"},
+          ].map((m,i)=>(
+            <div key={i} style={{background:"white",border:"1px solid "+C.border,borderRadius:12,padding:"16px",textAlign:"center"}}>
+              <div style={{fontSize:20,marginBottom:6}}>{m.icon}</div>
+              <div style={{fontSize:24,fontWeight:700,color:C.navy}}>{m.val}</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:4}}>{m.label}</div>
+              {m.sub&&<div style={{fontSize:10,color:C.muted,marginTop:2}}>{m.sub}</div>}
+            </div>
+          ))}
+        </div>
+
+        {/* 2. YAŞ × PROSEDÜR ISIL HARİTASI */}
+        <div style={{background:"white",border:"1px solid "+C.border,borderRadius:12,padding:"20px",marginBottom:24}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.navy,marginBottom:4}}>Yaş × Prosedür Dönüşüm Matrisi</div>
+          <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Hücre: dönüşüm oranı (n=hasta sayısı). Gri = n&lt;3, yetersiz veri.</div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead>
+                <tr>
+                  <th style={{padding:"8px 10px",textAlign:"left",borderBottom:"2px solid "+C.border,color:C.muted,fontSize:10,letterSpacing:"0.08em"}}>YAŞ</th>
+                  {topProcs.map(p=><th key={p} style={{padding:"8px 6px",textAlign:"center",borderBottom:"2px solid "+C.border,color:C.muted,fontSize:9,letterSpacing:"0.06em",maxWidth:100}}>{p}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(ageGroups).map(ag=>(
+                  <tr key={ag}>
+                    <td style={{padding:"8px 10px",fontWeight:600,borderBottom:"1px solid #eef3f9"}}>{ag}</td>
+                    {topProcs.map(pr=>{
+                      const h=heatCell(ag,pr);
+                      return <td key={pr} style={{padding:"6px",textAlign:"center",borderBottom:"1px solid #eef3f9"}}>
+                        <div style={{background:h.bg,color:h.color,borderRadius:6,padding:"8px 4px",fontSize:13,fontWeight:600}}>
+                          {h.rate!==null?h.rate+"%":"—"}
+                          <div style={{fontSize:9,fontWeight:400,opacity:0.7}}>n={h.n}</div>
+                        </div>
+                      </td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 3. PROSEDÜR PERFORMANS TABLOSU */}
+        <div style={{background:"white",border:"1px solid "+C.border,borderRadius:12,padding:"20px",marginBottom:24}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.navy,marginBottom:14}}>Prosedür Performansı</div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead>
+              <tr>
+                {["Prosedür","Hasta","Dönüşüm %","Memnuniyet %","Confidence"].map(h=>(
+                  <th key={h} style={{padding:"8px 10px",textAlign:"left",borderBottom:"2px solid "+C.border,color:C.muted,fontSize:10,letterSpacing:"0.08em"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {procPerf.map((r,i)=>(
+                <tr key={i} style={{background:i%2===0?"white":"#fafbfc"}}>
+                  <td style={{padding:"8px 10px",fontWeight:500,borderBottom:"1px solid #eef3f9"}}>{r.proc}</td>
+                  <td style={{padding:"8px 10px",borderBottom:"1px solid #eef3f9"}}>{r.n}</td>
+                  <td style={{padding:"8px 10px",borderBottom:"1px solid #eef3f9",fontWeight:600,color:r.conv===null?C.muted:r.conv>=60?"#059669":r.conv>=30?"#d97706":"#dc2626"}}>{r.conv!==null?r.conv+"%":"—"}</td>
+                  <td style={{padding:"8px 10px",borderBottom:"1px solid #eef3f9",color:r.sat?C.navy:C.muted}}>{r.sat?r.sat+"%":"—"}</td>
+                  <td style={{padding:"8px 10px",borderBottom:"1px solid #eef3f9"}}><span style={{padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:600,background:confColor(r.conf)+"18",color:confColor(r.conf),border:"1px solid "+confColor(r.conf)+"33"}}>{r.conf}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 4. RİSK SKORU vs OUTCOME */}
+        <div style={{background:"white",border:"1px solid "+C.border,borderRadius:12,padding:"20px",marginBottom:24}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.navy,marginBottom:4}}>Risk Skoru vs Gerçek Outcome</div>
+          <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Modelin segmentlere ayırdığı hastaların gerçek dönüşüm oranları</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            {segments.map((seg,i)=>(
+              <div key={i} style={{background:seg.bg,border:"1px solid "+seg.color+"33",borderRadius:10,padding:"16px",textAlign:"center"}}>
+                <div style={{fontSize:12,fontWeight:600,color:seg.color,marginBottom:8}}>{seg.label}</div>
+                <div style={{fontSize:28,fontWeight:700,color:seg.color}}>{seg.conv!==null?seg.conv+"%":"—"}</div>
+                <div style={{fontSize:11,color:seg.color,opacity:0.7,marginTop:4}}>n={seg.n} hasta</div>
+                {seg.n<10&&<div style={{fontSize:9,color:"#dc2626",marginTop:4}}>⚠ Yetersiz veri</div>}
+              </div>
+            ))}
+          </div>
+          {segments[0].conv!==null&&segments[2].conv!==null&&(
+            <div style={{marginTop:14,padding:"10px 14px",background:"#f8fafd",borderRadius:8,fontSize:12,color:C.navy,lineHeight:1.6}}>
+              📊 <strong>Model doğrulaması:</strong> Yeşil hastalardan %{segments[0].conv} dönüşüm, kırmızılardan %{segments[2].conv}.
+              {segments[0].conv>segments[2].conv?" ✅ Model doğru yönde ayrışıyor.":" ⚠ Daha fazla veri gerekiyor."}
+            </div>
+          )}
+        </div>
+
+        {/* 5. KANAL ANALİZİ */}
+        <div style={{background:"white",border:"1px solid "+C.border,borderRadius:12,padding:"20px",marginBottom:24}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.navy,marginBottom:4}}>Kanal Analizi</div>
+          <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Hastaların "Bize nereden ulaştınız?" cevabına göre dağılım</div>
+          {srcTotal===0?(
+            <div style={{textAlign:"center",padding:"20px",color:C.muted,fontSize:13}}>📭 Henüz kaynak verisi yok — yeni formda "source" sorusu eklendi, veri birikecek.</div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {srcPerf.map((r,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:i%2===0?"white":"#fafbfc",borderRadius:8}}>
+                  <div style={{flex:1,fontWeight:500}}>{r.src}</div>
+                  <div style={{width:60,textAlign:"right",fontSize:13,fontWeight:600}}>{r.n} hasta</div>
+                  <div style={{width:80}}>
+                    <div style={{height:6,background:"#eef3f9",borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:Math.round(r.n/srcTotal*100)+"%",background:"#1d4ed8",borderRadius:3}}/>
+                    </div>
+                  </div>
+                  <div style={{width:60,textAlign:"right",fontSize:12,color:r.conv!==null?C.navy:C.muted}}>{r.conv!==null?r.conv+"%":"—"}</div>
+                </div>
+              ))}
+              <div style={{fontSize:10,color:C.muted,marginTop:4}}>{total-srcTotal} hastada kaynak verisi eksik ({Math.round((total-srcTotal)/total*100)}%)</div>
+            </div>
+          )}
+        </div>
+
+        <div style={{fontSize:10,color:C.muted,textAlign:"center",padding:"12px 0"}}>SculptAI Analytics Beta · Sadece dahili kullanım · {new Date().toLocaleDateString("tr-TR")}</div>
+      </div>
     </div>
   );
 }
@@ -4764,6 +5810,7 @@ export default function App(){
     if(params.get("demo")==="true") return "demo";
     if(path.match(/^\/form\/.+$/)) return "patient";
     if(path.startsWith("/admin")) return "admin";
+    if(path==="/panel/analytics-beta") return "analytics_beta";
     if(path.startsWith("/panel")) return "doctor_or_login";
     return "patient";
   });
@@ -4777,6 +5824,7 @@ export default function App(){
 
   useEffect(()=>{
     const path=window.location.pathname;
+    if(path==="/panel/analytics-beta") return; // analytics-beta kendi auth'unu yönetir
     if(path.startsWith("/panel")){
       const params=new URLSearchParams(window.location.search);
       if(params.get("demo")==="true"){setView("demo");return;}
@@ -4839,6 +5887,7 @@ export default function App(){
     </div>
   );
 
+  if(view==="analytics_beta") return <AnalyticsBeta/>;
   if(view==="admin") return <AdminPanel/>;
   if(view==="login") return <Login onLogin={d=>{try{sessionStorage.setItem("sculpt_doctor",JSON.stringify(d));sessionStorage.setItem("sculpt_login_time",String(Date.now()));}catch{}setDoctor(d);setView("doctor");}}/>;
 
