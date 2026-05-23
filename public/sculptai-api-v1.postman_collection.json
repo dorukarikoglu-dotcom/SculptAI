@@ -1,0 +1,276 @@
+{
+	"info": {
+		"_postman_id": "sculptai-api-v1",
+		"name": "SculptAI API v1",
+		"description": "SculptAI REST API — Patient management, AI observations, outcomes, clinic analytics, and webhooks.\n\nBase URL: https://app.sculptai.health/api/v1\nDocs: https://app.sculptai.health/api-docs.html",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{apiKey}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://app.sculptai.health/api/v1"
+		},
+		{
+			"key": "apiKey",
+			"value": ""
+		},
+		{
+			"key": "patientId",
+			"value": ""
+		},
+		{
+			"key": "webhookId",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "Clinic",
+			"item": [
+				{
+					"name": "Get Clinic Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/clinic",
+							"host": ["{{baseUrl}}"],
+							"path": ["clinic"]
+						},
+						"description": "Returns current clinic name, doctor name, and creation date."
+					}
+				},
+				{
+					"name": "Get Clinic Analytics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/clinic/analytics",
+							"host": ["{{baseUrl}}"],
+							"path": ["clinic", "analytics"]
+						},
+						"description": "Aggregate metrics: total patients, conversion rate, segment breakdown, last 7/30 day counts."
+					}
+				}
+			]
+		},
+		{
+			"name": "Patients",
+			"item": [
+				{
+					"name": "List Patients",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients?page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Page number" },
+								{ "key": "limit", "value": "20", "description": "Results per page (max 100)" },
+								{ "key": "segment", "value": "", "description": "Filter by segment name", "disabled": true },
+								{ "key": "from_date", "value": "", "description": "ISO date — filter from", "disabled": true },
+								{ "key": "to_date", "value": "", "description": "ISO date — filter to", "disabled": true },
+								{ "key": "outcome", "value": "", "description": "no_appointment | had_procedure", "disabled": true }
+							]
+						},
+						"description": "Paginated patient list with optional filters."
+					}
+				},
+				{
+					"name": "Create Patient",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.patient && json.patient.id) {",
+									"    pm.collectionVariables.set('patientId', json.patient.id);",
+									"    console.log('Set patientId = ' + json.patient.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Ayşe Yılmaz\",\n  \"age\": 32,\n  \"procedure\": \"Burun Estetiği\",\n  \"gender\": \"Kadın\",\n  \"phone\": \"05551234567\",\n  \"form_data\": {\n    \"motivation\": \"Kendim için daha iyi hissetmek istiyorum\",\n    \"expectation\": \"Küçük, doğal bir iyileştirme yeterli\"\n  },\n  \"utm_source\": \"instagram\",\n  \"language\": \"tr\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/patients",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients"]
+						},
+						"description": "Create a new patient record. Automatically sets patientId variable on success."
+					}
+				},
+				{
+					"name": "Get Patient Detail",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients/{{patientId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients", "{{patientId}}"]
+						},
+						"description": "Full patient record including answers, scores, and outcomes."
+					}
+				},
+				{
+					"name": "Update Patient",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"05559876543\",\n  \"notes\": \"VIP hasta — konsültasyon öncesi aranacak\",\n  \"no_appointment\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/patients/{{patientId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients", "{{patientId}}"]
+						},
+						"description": "Update allowed fields: phone, notes, no_appointment."
+					}
+				},
+				{
+					"name": "Delete Patient",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients/{{patientId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients", "{{patientId}}"]
+						},
+						"description": "Permanently delete a patient record."
+					}
+				}
+			]
+		},
+		{
+			"name": "Observations & Outcomes",
+			"item": [
+				{
+					"name": "Get Patient Observation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/patients/{{patientId}}/observation",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients", "{{patientId}}", "observation"]
+						},
+						"description": "AI-generated observation: risk score, segment, model source, and analysis text."
+					}
+				},
+				{
+					"name": "Create Outcome",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"procedure_done\",\n  \"procedure\": \"Burun Estetiği\",\n  \"result\": \"successful\",\n  \"satisfaction_3m\": \"Çok memnun\",\n  \"notes\": \"Komplikasyonsuz iyileşme\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/patients/{{patientId}}/outcomes",
+							"host": ["{{baseUrl}}"],
+							"path": ["patients", "{{patientId}}", "outcomes"]
+						},
+						"description": "Add outcome to patient. Types: procedure_done, no_appointment, followup."
+					}
+				}
+			]
+		},
+		{
+			"name": "Webhooks",
+			"item": [
+				{
+					"name": "List Webhooks",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/webhooks",
+							"host": ["{{baseUrl}}"],
+							"path": ["webhooks"]
+						},
+						"description": "List all registered webhooks for this clinic."
+					}
+				},
+				{
+					"name": "Create Webhook",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var json = pm.response.json();",
+									"if (json.webhook && json.webhook.id) {",
+									"    pm.collectionVariables.set('webhookId', json.webhook.id);",
+									"    console.log('Set webhookId = ' + json.webhook.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"url\": \"https://example.com/webhook\",\n  \"events\": [\"patient.created\", \"patient.updated\", \"outcome.created\"],\n  \"secret\": \"whsec_your_signing_secret\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/webhooks",
+							"host": ["{{baseUrl}}"],
+							"path": ["webhooks"]
+						},
+						"description": "Register a webhook endpoint. Events: patient.created, patient.updated, outcome.created. Secret is used for HMAC-SHA256 signing."
+					}
+				},
+				{
+					"name": "Delete Webhook",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/webhooks/{{webhookId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["webhooks", "{{webhookId}}"]
+						},
+						"description": "Delete a webhook registration."
+					}
+				}
+			]
+		}
+	]
+}
